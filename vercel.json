@@ -1,4 +1,7 @@
 {
-  "buildCommand": "npm run build || echo 'Build skipped'",
-  "outputDirectory": ".next"
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs20.x"
+    }
+  }
 }
