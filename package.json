@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "Vehicle import calculator for THESV",
   "scripts": {
-    "build": "mkdir -p .next && echo 'API-only deployment'",
-    "start": "echo 'APIs ready'"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   },
   "dependencies": {
     "next": "^14.0.0",
