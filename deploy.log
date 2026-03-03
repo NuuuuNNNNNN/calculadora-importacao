@@ -1,0 +1,6 @@
+Loading scopes…
+Searching for existing projects…
+Linked to npereira-1525s-projects/calculadora-importacao (created .vercel and added it to .gitignore)
+Deploying npereira-1525s-projects/calculadora-importacao
+Error: Invalid vercel.json - Invalid request: `env.NEXT_PUBLIC_API_URL` should be string..
+View Documentation: https://vercel.com/docs/concepts/projects/project-configuration
