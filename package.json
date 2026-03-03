@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "description": "Vehicle import calculator for THESV",
   "scripts": {
-    "start": "node api/index.js",
-    "build": "echo 'No build needed - serverless functions only'"
+    "build": "mkdir -p .next && echo 'API-only deployment'",
+    "start": "echo 'APIs ready'"
   },
   "dependencies": {
-    "cheerio": "^1.0.0-rc.12",
-    "node-fetch": "^2.7.0"
+    "next": "^14.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "cheerio": "^1.0.0-rc.12"
   }
 }
