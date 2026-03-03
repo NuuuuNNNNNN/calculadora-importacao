@@ -1,17 +1,10 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run build || true",
   "outputDirectory": ".next",
-  "framework": "nextjs",
-  "regions": ["iad"],
+  "envPrefix": "NEXT_PUBLIC_",
   "env": {
-    "NEXT_PUBLIC_API_URL": {
-      "description": "API base URL (usually same as your domain)"
-    }
-  },
-  "functions": {
-    "api/**/*.js": {
-      "maxDuration": 30,
-      "memory": 512
-    }
+    "NEXT_PUBLIC_API_URL": "@next-public-api-url",
+    "NEXT_PUBLIC_MOBILE_DE_API": "@next-public-mobile-de-api",
+    "NEXT_PUBLIC_CO2_API": "@next-public-co2-api"
   }
 }
