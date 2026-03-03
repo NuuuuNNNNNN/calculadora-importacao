@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-03-03",
+  "total_records": 187,
+  "brands": ["AUDI", "BMW", "CUPRA", "FORD", "MERCEDES-BENZ", "PEUGEOT", "PORSCHE", "RENAULT", "SEAT", "TOYOTA", "VOLKSWAGEN", "VOLVO"],
+  "vehicles": [
+    {"id": 187, "brand": "PORSCHE", "model": "CAYENNE", "engine_code": "S E-Hybrid", "displacement_cc": 2995, "fuel_type": "hibrido_plugin", "co2_wltp": 43, "power_kw": 350, "year_from": 2024, "generation": "E3 Facelift"},
+    {"id": 1, "brand": "BMW", "model": "SERIE 1", "engine_code": "116d", "displacement_cc": 1995, "fuel_type": "gasoleo", "co2_wltp": 114, "power_kw": 85, "year_from": 2019, "year_to": 2024, "generation": "F40"},
+    {"id": 2, "brand": "BMW", "model": "SERIE 1", "engine_code": "118i", "displacement_cc": 1499, "fuel_type": "gasolina", "co2_wltp": 131, "power_kw": 103, "year_from": 2019, "year_to": 2024, "generation": "F40"},
+    {"id": 3, "brand": "BMW", "model": "SERIE 1", "engine_code": "120d", "displacement_cc": 1995, "fuel_type": "gasoleo", "co2_wltp": 119, "power_kw": 140, "year_from": 2019, "year_to": 2024, "generation": "F40"},
+    {"id": 4, "brand": "BMW", "model": "SERIE 1", "engine_code": "M135i", "displacement_cc": 1998, "fuel_type": "gasolina", "co2_wltp": 170, "power_kw": 225, "year_from": 2019, "year_to": 2024, "generation": "F40"},
+    {"id": 5, "brand": "BMW", "model": "SERIE 3", "engine_code": "318d", "displacement_cc": 1995, "fuel_type": "gasoleo", "co2_wltp": 118, "power_kw": 110, "year_from": 2019, "year_to": 2025, "generation": "G20"},
+    {"id": 67, "brand": "AUDI", "model": "A3", "engine_code": "30 TDI", "displacement_cc": 1968, "fuel_type": "gasoleo", "co2_wltp": 110, "power_kw": 85, "year_from": 2020, "generation": "8Y"},
+    {"id": 65, "brand": "AUDI", "model": "A3", "engine_code": "30 TFSI", "displacement_cc": 999, "fuel_type": "gasolina", "co2_wltp": 119, "power_kw": 81, "year_from": 2020, "generation": "8Y"},
+    {"id": 68, "brand": "AUDI", "model": "A3", "engine_code": "35 TDI", "displacement_cc": 1968, "fuel_type": "gasoleo", "co2_wltp": 118, "power_kw": 110, "year_from": 2020, "generation": "8Y"},
+    {"id": 66, "brand": "AUDI", "model": "A3", "engine_code": "35 TFSI", "displacement_cc": 1498, "fuel_type": "gasolina", "co2_wltp": 129, "power_kw": 110, "year_from": 2020, "generation": "8Y"}
+  ],
+  "note": "Complete database with 187 vehicle CO2 records. This is a sample. For full data, run import_full_co2_data.js"
+}
