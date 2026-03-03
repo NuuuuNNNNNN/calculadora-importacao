@@ -1,4 +1,4 @@
-import coDatabase from '../data/co2-database.json' assert { type: 'json' };
+import coDatabase from '../data/co2-database.json' with { type: 'json' };
 
 /**
  * Lookup CO2 emissions for a vehicle
