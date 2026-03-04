@@ -71,16 +71,18 @@ function parseVehicleData(html, url) {
       data.mileage = parseInt(mileageMatch[1].replace(/\./g, ''));
     }
 
-    // Year: look for "firstRegistration" or "Erstzulassung"
-    const yearMatch = html.match(/"tag":"firstRegistration"[^}]*"value":"(\d{2})\/(\d{4})/);
+    // Year: try multiple patterns
+    let yearMatch = html.match(/"firstRegistration"[^}]*"value":"(\d{2})\/(\d{4})/);
     if (yearMatch) {
       data.year = parseInt(yearMatch[2]);
     }
     if (!data.year) {
-      const yearMatch2 = html.match(/"Erstzulassung"[^:]*:\s*"(\d{2})\/(\d{4})/);
-      if (yearMatch2) {
-        data.year = parseInt(yearMatch2[2]);
-      }
+      yearMatch = html.match(/"Erstzulassung"[^:]*:\s*"(\d{2})\/(\d{4})/);
+      if (yearMatch) data.year = parseInt(yearMatch[2]);
+    }
+    if (!data.year) {
+      yearMatch = html.match(/•\s*(\d{2})\/(\d{4})"/);
+      if (yearMatch) data.year = parseInt(yearMatch[2]);
     }
 
     // Transmission (look more carefully)
