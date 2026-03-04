@@ -1,4 +1,5 @@
-import axios from 'axios';
+import https from 'https';
+import { parse } from 'url';
 
 export default async function handler(req, res) {
   // Only POST allowed
@@ -37,116 +38,132 @@ export default async function handler(req, res) {
     const listingUrl = `https://suchen.mobile.de/fahrzeuge/details.html?id=${adKey}`;
     console.log('[API] Scraping URL:', listingUrl);
 
-    // Call ScrapingBee API
-    const scrapingBeeUrl = 'https://api.scrapingbee.com/api/v1/';
+    // Call ScrapingBee API using native https
+    const scrapingBeeUrl = new URL('https://api.scrapingbee.com/api/v1/');
+    scrapingBeeUrl.searchParams.append('api_key', apiKey);
+    scrapingBeeUrl.searchParams.append('url', listingUrl);
+    scrapingBeeUrl.searchParams.append('render_javascript', 'true');
+    scrapingBeeUrl.searchParams.append('timeout', '30000');
+    scrapingBeeUrl.searchParams.append('premium_proxy', 'true');
 
     console.log('[API] Calling ScrapingBee...');
+
+    const html = await httpGet(scrapingBeeUrl.toString());
     
-    const response = await axios.get(scrapingBeeUrl, {
-      params: {
-        api_key: apiKey,
-        url: listingUrl,
-        render_javascript: 'true',
-        timeout: '30000',
-        premium_proxy: 'true'
-      },
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      },
-      timeout: 35000
-    });
+    console.log('[API] HTML received, length:', html.length);
 
-    const html = response.data;
-    console.log('[API] ScrapingBee response status:', response.status);
-    console.log('[API] HTML length:', html.length);
-
-    if (!response.ok) {
-      console.error('[API] ScrapingBee error:', html.substring(0, 500));
-      return res.status(response.status).json({
-        error: 'Failed to scrape from ScrapingBee',
-        message: html.substring(0, 200),
-        status: response.status
+    if (!html || html.includes('Access denied')) {
+      return res.status(500).json({
+        error: 'Failed to scrape vehicle data',
+        message: 'ScrapingBee blocked access to mobile.de'
       });
     }
 
-    // Parse vehicle data from HTML
-    const vehicleData = parseVehicleData(html, adKey);
-    
-    return res.status(200).json({
-      success: true,
-      data: vehicleData,
-      debug: {
-        htmlLength: html.length,
-        adKey: adKey
-      }
-    });
+    // Parse HTML with cheerio
+    const cheerio = (await import('cheerio')).default;
+    const $ = cheerio.load(html);
+
+    // Extract vehicle data from HTML
+    const vehicle = {
+      title: $('h1.listing-title, h1').first().text().trim(),
+      price: extractPrice($, html),
+      mileage: extractMileage($, html),
+      year: extractYear($, html),
+      transmission: extractTransmission($, html),
+      fuelType: extractFuelType($, html),
+      co2: null, // Will be filled from database
+      location: extractLocation($, html),
+      image: extractImage($, html),
+      url: listingUrl
+    };
+
+    console.log('[API] Vehicle extracted:', vehicle.title);
+
+    res.status(200).json(vehicle);
+
   } catch (error) {
-    console.error('[API] Error:', error.message);
-    return res.status(500).json({
+    console.error('[API] Error:', error);
+    res.status(500).json({
       error: 'Failed to scrape vehicle data',
       message: error.message
     });
   }
 }
 
-function parseVehicleData(html, adKey) {
-  const data = {
-    adKey: adKey,
-    brand: null,
-    model: null,
-    year: null,
-    price: null,
-    mileage: null,
-    fuelType: null,
-    co2Emissions: null,
-    transmission: null,
-    power: null,
-    images: []
-  };
+function httpGet(urlString) {
+  return new Promise((resolve, reject) => {
+    https.get(urlString, { timeout: 35000 }, (response) => {
+      let data = '';
 
-  // Extract title
-  const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
-  if (titleMatch) {
-    const title = titleMatch[1];
-    console.log('[Parser] Title:', title);
+      response.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      response.on('end', () => {
+        resolve(data);
+      });
+
+    }).on('error', reject)
+      .on('timeout', function() {
+        this.destroy();
+        reject(new Error('Request timeout'));
+      });
+  });
+}
+
+function extractPrice(cheerio, html) {
+  const priceMatch = html.match(/EUR[\s,]*([\d,.]+)/i);
+  if (priceMatch) return parseFloat(priceMatch[1].replace(/\./g, '').replace(',', '.'));
+  
+  const priceEl = cheerio('[data-testid="price"], .listing-price, .price').first().text();
+  if (priceEl) {
+    const match = priceEl.match(/([\d,.]+)/);
+    if (match) return parseFloat(match[1].replace(/\./g, '').replace(',', '.'));
   }
+  return null;
+}
 
-  // Extract price
-  const priceMatch = html.match(/€\s*([\d.,]+)/);
-  if (priceMatch) {
-    const priceStr = priceMatch[1].replace(/\./g, '').replace(',', '');
-    data.price = parseInt(priceStr);
-    console.log('[Parser] Price:', data.price);
+function extractMileage(cheerio, html) {
+  const mileageMatch = html.match(/(\d+\.?\d*)\s*(km|Kilometer)/i);
+  if (mileageMatch) return parseInt(mileageMatch[1].replace(/\./g, ''));
+  return null;
+}
+
+function extractYear(cheerio, html) {
+  const yearMatch = html.match(/\b(19|20)\d{2}\b/);
+  if (yearMatch) return parseInt(yearMatch[0]);
+  return null;
+}
+
+function extractTransmission(cheerio, html) {
+  if (html.includes('Automatik') || html.includes('Automatic')) return 'Automática';
+  if (html.includes('Schaltgetriebe') || html.includes('Manual')) return 'Manual';
+  return null;
+}
+
+function extractFuelType(cheerio, html) {
+  if (html.includes('Elektro') || html.includes('Electric')) return 'Elétrico';
+  if (html.includes('Benzin') || html.includes('Petrol')) return 'Gasolina';
+  if (html.includes('Diesel')) return 'Diesel';
+  if (html.includes('Hybrid')) return 'Híbrido';
+  return null;
+}
+
+function extractLocation(cheerio, html) {
+  const locationMatch = html.match(/(?:PLZ|Postleitzahl)[\s\-:]*(\d+)\s*([^<\d]+)/i);
+  if (locationMatch) return locationMatch[2].trim();
+  return null;
+}
+
+function extractImage(cheerio, html) {
+  const imgMatch = html.match(/<img[^>]+src="([^"]*mobile\.de[^"]*)"[^>]*>/i);
+  if (imgMatch) return imgMatch[1];
+  
+  const srcsetMatch = html.match(/srcset="([^"]*)"[^>]*>.*?<img/i);
+  if (srcsetMatch) {
+    const urls = srcsetMatch[1].split(',');
+    if (urls.length > 0) return urls[0].trim().split(' ')[0];
   }
-
-  // Extract mileage
-  const mileageMatch = html.match(/(\d+[\s.]?\d*)\s*km/i);
-  if (mileageMatch) {
-    data.mileage = parseInt(mileageMatch[1].replace(/\s|\./, ''));
-    console.log('[Parser] Mileage:', data.mileage);
-  }
-
-  // Extract fuel type
-  if (html.match(/Diesel|diesel/i)) {
-    data.fuelType = 'Diesel';
-  } else if (html.match(/Benzin|Petrol|gasoline/i)) {
-    data.fuelType = 'Gasoline';
-  }
-
-  // Extract CO2
-  const co2Match = html.match(/(\d+)\s*g\/km|CO2.*?(\d+)\s*g/i);
-  if (co2Match) {
-    data.co2Emissions = parseInt(co2Match[1] || co2Match[2]);
-  }
-
-  // Default CO2 if not found
-  if (!data.co2Emissions) {
-    data.co2Emissions = 140;
-  }
-
-  // Extract images
-  const imgMatches = html.match(/src="([^"]*\.jpg)"/gi) || [];
-  data.images = imgMatches.slice(0, 5).map(m => m.replace(/src="|"/g, ''));
-
-  return data;
+  
+  return null;
 }
