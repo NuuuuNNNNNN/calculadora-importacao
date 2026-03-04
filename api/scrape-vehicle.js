@@ -10,8 +10,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing url in request body' });
   }
 
-  // Check API key
-  const apiKey = process.env.SCRAPINGBEE_API_KEY;
+  // Check API key (with fallback)
+  const apiKey = process.env.SCRAPINGBEE_API_KEY || 'NT61UK632R6F88RCS1YL7SM4L5Y6YWBRITBSU97QS4GDUX16CIOB0ETA1D16ESKO3UQ5ZK4QCUFA0IAL';
   if (!apiKey) {
     console.error('SCRAPINGBEE_API_KEY not configured');
     return res.status(500).json({
