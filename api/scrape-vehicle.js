@@ -15,65 +15,15 @@ export default async (req, res) => {
       premium_proxy: 'true'
     });
 
-    const response = await fetch('https://app.scrapingbee.com/api/v1/?' + params.toString());
+    const response = await fetch('https://app.scrapingbee.com/api/v1/?' + params.toString(), {
+      timeout: 90000 // 90 second timeout
+    });
     const html = await response.text();
 
     console.log('[API] HTML received, length:', html.length);
 
-    // Extract JSON from window.__INITIAL_STATE__
-    const startIdx = html.indexOf('window.__INITIAL_STATE__ = {');
-    if (startIdx === -1) {
-      return res.status(500).json({ error: 'Could not find vehicle data in page' });
-    }
-
-    // Find the matching closing brace for the JSON
-    let braceCount = 0;
-    let endIdx = startIdx + 'window.__INITIAL_STATE__ = '.length;
-    let inString = false;
-    let escaped = false;
-
-    for (let i = endIdx; i < html.length && i < endIdx + 500000; i++) {
-      const char = html[i];
-      
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      
-      if (char === '\\') {
-        escaped = true;
-        continue;
-      }
-      
-      if (char === '"' && !escaped) {
-        inString = !inString;
-        continue;
-      }
-      
-      if (!inString) {
-        if (char === '{') braceCount++;
-        else if (char === '}') {
-          braceCount--;
-          if (braceCount === 0) {
-            endIdx = i + 1;
-            break;
-          }
-        }
-      }
-    }
-
-    const jsonStr = html.substring(startIdx + 'window.__INITIAL_STATE__ = '.length, endIdx);
-    
-    let initialState;
-    try {
-      initialState = JSON.parse(jsonStr);
-    } catch (e) {
-      console.error('[API] JSON parse error:', e.message);
-      return res.status(500).json({ error: 'Failed to parse vehicle data JSON', details: e.message });
-    }
-
-    // Navigate to vehicle data
-    const vehicleData = parseVehicleFromJSON(initialState, url);
+    // Parse vehicle data using simple regex patterns
+    const vehicleData = parseVehicleData(html, url);
     
     console.log('[API] Parsed data:', vehicleData);
 
@@ -88,7 +38,7 @@ export default async (req, res) => {
   }
 };
 
-function parseVehicleFromJSON(initialState, url) {
+function parseVehicleData(html, url) {
   const data = {
     url: url,
     title: null,
@@ -103,67 +53,69 @@ function parseVehicleFromJSON(initialState, url) {
   };
 
   try {
-    // Navigate through the JSON structure
-    // The vehicle data is in: search.vip.ads[adId].data.ad
-    const vipAds = initialState?.search?.vip?.ads;
-    if (!vipAds) return data;
-
-    // Get the first (and usually only) ad
-    const adData = Object.values(vipAds)[0]?.data?.ad;
-    if (!adData) return data;
-
-    console.log('[API] Found ad data');
-
-    // Extract basic info
-    data.title = adData.shortTitle || null;
-    if (adData.subTitle) {
-      data.title = (data.title + ' ' + adData.subTitle).trim();
+    // Title from page title tag
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    if (titleMatch) {
+      data.title = titleMatch[1].replace(/\s*für\s*[\d.,]+\s*€.*/, '').trim();
     }
 
-    // Price
-    if (adData.price?.grossAmount) {
-      data.price = adData.price.grossAmount;
+    // Price pattern: "73.680 €" or "73680€"
+    const priceMatch = html.match(/"grossAmount":\s*(\d+)/);
+    if (priceMatch) {
+      data.price = parseInt(priceMatch[1]);
     }
 
-    // Find mileage, year, transmission, fuel in attributes array
-    if (Array.isArray(adData.attributes)) {
-      for (const attr of adData.attributes) {
-        switch(attr.tag) {
-          case 'mileage':
-            const mileageStr = attr.value?.replace(/[^\d]/g, '');
-            if (mileageStr) data.mileage = parseInt(mileageStr);
-            break;
-          case 'firstRegistration':
-            const yearMatch = attr.value?.match(/(\d{4})/);
-            if (yearMatch) data.year = parseInt(yearMatch[1]);
-            break;
-          case 'transmission':
-            data.transmission = attr.value?.includes('Automatik') ? 'Automatic' : 'Manual';
-            break;
-          case 'fuel':
-            const fuelValue = attr.value || '';
-            if (fuelValue.includes('Diesel')) data.fuelType = 'Diesel';
-            else if (fuelValue.includes('Hybrid')) data.fuelType = 'Hybrid';
-            else if (fuelValue.includes('Elektro')) data.fuelType = 'Electric';
-            else if (fuelValue.includes('Benzin')) data.fuelType = 'Petrol';
-            break;
-          case 'power':
-            const powerStr = attr.value?.match(/([\d]+)\s*kW/);
-            if (powerStr) data.power = parseInt(powerStr[1]);
-            break;
-          case 'envkv.co2Emissions':
-            const co2Str = attr.value?.match(/([\d]+)\s*g/);
-            if (co2Str) data.co2 = parseInt(co2Str[1]);
-            break;
-        }
+    // Mileage: "159.000 km" or similar - look in the description meta tag or attributes
+    const mileageMatch = html.match(/"mileage":"([\d.]+)\s*km"/i);
+    if (mileageMatch) {
+      data.mileage = parseInt(mileageMatch[1].replace(/\./g, ''));
+    }
+
+    // Year: "firstRegistration":"09/2020"
+    const yearMatch = html.match(/"firstRegistration":"(\d{2})\/(\d{4})"/);
+    if (yearMatch) {
+      data.year = parseInt(yearMatch[2]);
+    }
+
+    // Transmission: look for "Automatik" or "Schaltgetriebe"
+    if (html.includes('"transmission":"')) {
+      const transMatch = html.match(/"transmission":\s*"([^"]+)"/);
+      if (transMatch) {
+        data.transmission = transMatch[1].includes('Automatik') ? 'Automatic' : 'Manual';
       }
+    } else if (html.includes('Automatik')) {
+      data.transmission = 'Automatic';
+    } else if (html.includes('Schaltgetriebe')) {
+      data.transmission = 'Manual';
     }
 
-    // Image
-    if (adData.ogImage?.src) {
-      data.image = adData.ogImage.src;
-    } else if (Array.isArray(adData.galleryImages) && adData.galleryImages.length > 0) {
-      data.image = adData.galleryImages[0].src;
+    // Fuel type
+    if (html.includes('Diesel')) {
+      data.fuelType = 'Diesel';
+    } else if (html.includes('Plug-in-Hybrid') || html.includes('Hybrid')) {
+      data.fuelType = 'Hybrid';
+    } else if (html.includes('Elektro')) {
+      data.fuelType = 'Electric';
+    } else if (html.includes('Benzin')) {
+      data.fuelType = 'Petrol';
+    }
+
+    // Power: "500 kW (680 PS)"
+    const powerMatch = html.match(/"power":\s*"([\d]+)\s*kW/);
+    if (powerMatch) {
+      data.power = parseInt(powerMatch[1]);
+    }
+
+    // CO2: "83 g/km"
+    const co2Match = html.match(/"envkv\.co2Emissions":\s*"([\d]+)\s*g/);
+    if (co2Match) {
+      data.co2 = parseInt(co2Match[1]);
+    }
+
+    // Image: "ogImage":{"src":"https://img.classistatic.de/..."
+    const imageMatch = html.match(/"ogImage":\s*{\s*"src":\s*"([^"]+)"/);
+    if (imageMatch) {
+      data.image = imageMatch[1];
     }
 
   } catch (parseError) {
