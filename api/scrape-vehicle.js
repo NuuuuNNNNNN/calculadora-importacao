@@ -21,17 +21,55 @@ export default async (req, res) => {
     console.log('[API] HTML received, length:', html.length);
 
     // Extract JSON from window.__INITIAL_STATE__
-    const jsonMatch = html.match(/window\.__INITIAL_STATE__\s*=\s*({.*?});/s);
-    
-    if (!jsonMatch) {
+    const startIdx = html.indexOf('window.__INITIAL_STATE__ = {');
+    if (startIdx === -1) {
       return res.status(500).json({ error: 'Could not find vehicle data in page' });
     }
 
+    // Find the matching closing brace for the JSON
+    let braceCount = 0;
+    let endIdx = startIdx + 'window.__INITIAL_STATE__ = '.length;
+    let inString = false;
+    let escaped = false;
+
+    for (let i = endIdx; i < html.length && i < endIdx + 500000; i++) {
+      const char = html[i];
+      
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      
+      if (char === '\\') {
+        escaped = true;
+        continue;
+      }
+      
+      if (char === '"' && !escaped) {
+        inString = !inString;
+        continue;
+      }
+      
+      if (!inString) {
+        if (char === '{') braceCount++;
+        else if (char === '}') {
+          braceCount--;
+          if (braceCount === 0) {
+            endIdx = i + 1;
+            break;
+          }
+        }
+      }
+    }
+
+    const jsonStr = html.substring(startIdx + 'window.__INITIAL_STATE__ = '.length, endIdx);
+    
     let initialState;
     try {
-      initialState = JSON.parse(jsonMatch[1]);
+      initialState = JSON.parse(jsonStr);
     } catch (e) {
-      return res.status(500).json({ error: 'Failed to parse vehicle data JSON' });
+      console.error('[API] JSON parse error:', e.message);
+      return res.status(500).json({ error: 'Failed to parse vehicle data JSON', details: e.message });
     }
 
     // Navigate to vehicle data
