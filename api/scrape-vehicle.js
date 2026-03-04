@@ -8,15 +8,16 @@ export default async (req, res) => {
 
     console.log('[API] Scraping:', url);
 
-    // Fetch HTML from ScrapingBee with stealth_proxy (faster than premium_proxy)
+    // Fetch HTML from ScrapingBee with premium_proxy (required for mobile.de)
     const params = new URLSearchParams({
       api_key: 'NT61UK632R6F88RCS1YL7SM4L5Y6YWBRITBSU97QS4GDUX16CIOB0ETA1D16ESKO3UQ5ZK4QCUFA0IAL',
       url: url,
-      stealth_proxy: 'true'
+      premium_proxy: 'true',
+      render_js: 'true'  // Enable JavaScript rendering
     });
 
     const response = await fetch('https://app.scrapingbee.com/api/v1/?' + params.toString(), {
-      timeout: 90000 // 90 second timeout
+      timeout: 50000 // 50 second timeout
     });
     const html = await response.text();
 
@@ -71,18 +72,24 @@ function parseVehicleData(html, url) {
       data.mileage = parseInt(mileageMatch[1].replace(/\./g, ''));
     }
 
-    // Year: try multiple patterns
+    // Year: look for MM/YYYY format (e.g., "09/2020")
     let yearMatch = html.match(/"firstRegistration"[^}]*"value":"(\d{2})\/(\d{4})/);
-    if (yearMatch) {
-      data.year = parseInt(yearMatch[2]);
+    if (yearMatch && yearMatch[2]) {
+      const year = parseInt(yearMatch[2]);
+      if (year >= 1990 && year <= 2030) {
+        data.year = year;
+      }
     }
+    
+    // Fallback: generic MM/YYYY search
     if (!data.year) {
-      yearMatch = html.match(/"Erstzulassung"[^:]*:\s*"(\d{2})\/(\d{4})/);
-      if (yearMatch) data.year = parseInt(yearMatch[2]);
-    }
-    if (!data.year) {
-      yearMatch = html.match(/•\s*(\d{2})\/(\d{4})"/);
-      if (yearMatch) data.year = parseInt(yearMatch[2]);
+      yearMatch = html.match(/(\d{2})\/(\d{4})/);
+      if (yearMatch && yearMatch[2]) {
+        const year = parseInt(yearMatch[2]);
+        if (year >= 1990 && year <= 2030) {
+          data.year = year;
+        }
+      }
     }
 
     // Transmission (look more carefully)
@@ -124,7 +131,7 @@ function parseVehicleData(html, url) {
       data.power = parseInt(powerMatch[1]);
     }
     if (!data.power) {
-      const powerMatch2 = html.match(/([\d]+)\s*kW\s*\([\d]+\s*PS\)/);
+      const powerMatch2 = html.match(/([\d]+)\s*kW\s*\([^)]+\)/);
       if (powerMatch2) data.power = parseInt(powerMatch2[1]);
     }
 
