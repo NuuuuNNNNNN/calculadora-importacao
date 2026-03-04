@@ -27,12 +27,13 @@ export default async (req, res) => {
       return res.status(200).json({ success: true, data: response.data.substring(0, 200) });
     }
 
-    // Fallback to fetch
-    console.log('[API] Using fetch');
+    // Fallback to fetch with premium proxy
+    console.log('[API] Using fetch with premium_proxy');
     const params = new URLSearchParams({
       api_key: 'NT61UK632R6F88RCS1YL7SM4L5Y6YWBRITBSU97QS4GDUX16CIOB0ETA1D16ESKO3UQ5ZK4QCUFA0IAL',
       url: url,
-      block_resources: 'false'
+      block_resources: 'false',
+      premium_proxy: 'true'
     });
     const response = await fetch('https://app.scrapingbee.com/api/v1/?' + params.toString());
     const html = await response.text();
