@@ -56,7 +56,7 @@ module.exports = async (req, res) => {
     let vehicleData = {};
 
     if (isMobileDe) {
-      vehicleData = scrapeMobileDe(html
+      vehicleData = scrapeMobileDe(html);
         
     } else if (isAutoScout) {
       vehicleData = scrapeAutoScout24(html);
