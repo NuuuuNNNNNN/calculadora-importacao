@@ -37,24 +37,27 @@ export default async function handler(req, res) {
 
     // Call ScrapingBee API
     const scrapingBeeUrl = 'https://api.scrapingbee.com/api/v1/';
-    
-    const params = new URLSearchParams({
-      api_key: apiKey,
-      url: listingUrl,
-      render_javascript: 'true',
-      timeout: '30000',
-      premium_proxy: 'true'
-    });
 
     console.log('[API] Calling ScrapingBee...');
-    const response = await fetch(scrapingBeeUrl + '?' + params.toString(), {
-      method: 'GET',
+    
+    // Import axios
+    const axios = require('axios').default;
+    
+    const response = await axios.get(scrapingBeeUrl, {
+      params: {
+        api_key: apiKey,
+        url: listingUrl,
+        render_javascript: 'true',
+        timeout: '30000',
+        premium_proxy: 'true'
+      },
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
+      },
+      timeout: 35000
     });
 
-    const html = await response.text();
+    const html = response.data;
     console.log('[API] ScrapingBee response status:', response.status);
     console.log('[API] HTML length:', html.length);
 
