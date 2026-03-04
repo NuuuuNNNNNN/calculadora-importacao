@@ -51,69 +51,77 @@ function parseVehicleData(html, url) {
   };
 
   try {
-    // Title - usually in h1 or data attribute
-    const titleMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+    // Title from <title> tag - "Porsche Panamera für 73.680 €"
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
     if (titleMatch) {
-      data.title = titleMatch[1].trim();
+      const titleText = titleMatch[1].trim();
+      // Extract just the car name before price
+      const carName = titleText.split('für')[0].trim();
+      data.title = carName;
+      
+      // Extract price from title
+      const priceInTitle = titleText.match(/(\d+\.\d{3})\s*€/);
+      if (priceInTitle) {
+        data.price = parseInt(priceInTitle[1].replace('.', ''));
+      }
     }
 
-    // Price - look for currency symbol
-    const priceMatch = html.match(/€\s*([\d.,]+)/);
-    if (priceMatch) {
-      const priceStr = priceMatch[1].replace(/\./g, '').replace(',', '.');
-      data.price = parseInt(parseFloat(priceStr));
+    // Get description from og:description meta tag
+    const descMatch = html.match(/property="og:description"[^>]*content="([^"]+)"/);
+    const description = descMatch ? descMatch[1] : '';
+
+    if (description) {
+      console.log('[API] Description:', description);
+
+      // Parse description like: "Gebrauchtfahrzeug, Unfallfrei • 159.000 km • 500 kW (680 PS) • Hybrid (Benzin/Elektro), Plug-in-Hybrid • Automatik • 09/2020"
+      
+      // Mileage - X.XXX km
+      const mileageMatch = description.match(/([\d.]+)\s*km/i);
+      if (mileageMatch) {
+        data.mileage = parseInt(mileageMatch[1].replace('.', ''));
+      }
+
+      // Power - X kW
+      const powerMatch = description.match(/([\d]+)\s*kW/i);
+      if (powerMatch) {
+        data.power = parseInt(powerMatch[1]);
+      }
+
+      // Year/Month - MM/YYYY
+      const yearMatch = description.match(/(\d{2})\/(\d{4})/);
+      if (yearMatch) {
+        data.year = parseInt(yearMatch[2]); // Take the year part
+      }
+
+      // Transmission
+      if (description.includes('Automatik')) {
+        data.transmission = 'Automatic';
+      } else if (description.includes('Schaltgetriebe')) {
+        data.transmission = 'Manual';
+      }
+
+      // Fuel type - can be Diesel, Benzin, Hybrid, Elektro, etc.
+      if (description.includes('Diesel')) {
+        data.fuelType = 'Diesel';
+      } else if (description.includes('Hybrid')) {
+        data.fuelType = 'Hybrid';
+      } else if (description.includes('Elektro')) {
+        data.fuelType = 'Electric';
+      } else if (description.includes('Benzin')) {
+        data.fuelType = 'Petrol';
+      }
     }
 
-    // Mileage - km pattern
-    const mileageMatch = html.match(/([\d.,]+)\s*km/i);
-    if (mileageMatch) {
-      const mileStr = mileageMatch[1].replace(/\./g, '').replace(',', '');
-      data.mileage = parseInt(mileStr);
-    }
-
-    // Year - typically YYYY format
-    const yearMatch = html.match(/(\d{4})\s*\/\s*(\d{1,2})/);
-    if (yearMatch) {
-      data.year = parseInt(yearMatch[1]);
-    }
-
-    // Transmission
-    if (html.includes('Automatik')) {
-      data.transmission = 'Automatic';
-    } else if (html.includes('Schaltgetriebe')) {
-      data.transmission = 'Manual';
-    }
-
-    // Fuel type
-    if (html.includes('Diesel')) {
-      data.fuelType = 'Diesel';
-    } else if (html.includes('Benzin') || html.includes('Petrol')) {
-      data.fuelType = 'Petrol';
-    } else if (html.includes('Elektro')) {
-      data.fuelType = 'Electric';
-    }
-
-    // Power - kW pattern
-    const powerMatch = html.match(/([\d]+)\s*kW/i);
-    if (powerMatch) {
-      data.power = parseInt(powerMatch[1]);
-    }
-
-    // CO2 - g/km pattern
-    const co2Match = html.match(/([\d]+)\s*g\s*\/\s*km/i);
-    if (co2Match) {
-      data.co2 = parseInt(co2Match[1]);
-    }
-
-    // Image - look for img tags in data attributes or src
-    const imageMatch = html.match(/(?:data-src|src)="([^"]*\.(?:jpg|jpeg|png|webp))"[^>]*(?:alt|title)?="?([^"]*car[^"]*)?"?/i);
+    // Image from og:image meta tag
+    const imageMatch = html.match(/property="og:image"[^>]*content="([^"]+)"/);
     if (imageMatch) {
       data.image = imageMatch[1];
     }
 
-    // Ensure full image URL
-    if (data.image && !data.image.startsWith('http')) {
-      data.image = 'https://' + new URL(url).hostname + data.image;
+    // CO2 - g/km pattern (might not always be present)
+    const co2Match = html.match(/([\d]+)\s*g\/km/i);
+    if (co2Match) {
+      data.co2 = parseInt(co2Match[1]);
     }
 
   } catch (parseError) {
