@@ -8,10 +8,11 @@ export default async (req, res) => {
 
     console.log('[API] Scraping:', url);
 
-    // Fetch HTML from ScrapingBee (without premium_proxy due to Vercel timeout)
+    // Fetch HTML from ScrapingBee with stealth_proxy (faster than premium_proxy)
     const params = new URLSearchParams({
       api_key: 'NT61UK632R6F88RCS1YL7SM4L5Y6YWBRITBSU97QS4GDUX16CIOB0ETA1D16ESKO3UQ5ZK4QCUFA0IAL',
-      url: url
+      url: url,
+      stealth_proxy: 'true'
     });
 
     const response = await fetch('https://app.scrapingbee.com/api/v1/?' + params.toString(), {
