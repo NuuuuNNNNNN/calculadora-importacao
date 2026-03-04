@@ -29,7 +29,15 @@ module.exports = async (req, res) => {
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0'
-      },
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                      'Accept-Language': 'pt-PT,pt;q=0.9,en;q=0.8',
+                              'Accept-Encoding': 'gzip, deflate, br',
+                                      'Cache-Control': 'no-cache',
+                                              'Pragma': 'no-cache',
+                                                      'Referer': 'https://www.google.com/',
+                                                              'Sec-Fetch-Dest': 'document',
+                                                                      'Sec-Fetch-Mode': 'navigate',
+                                                                              'Sec-Fetch-Site': 'none'},
       timeout: 15000
     });
 
