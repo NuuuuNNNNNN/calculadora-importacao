@@ -1,456 +1,298 @@
+import axios from 'axios';
+
+const SCRAPINGBEE_API_KEY = process.env.SCRAPINGBEE_API_KEY;
+
 /**
- * Scrape vehicle data from mobile.de Search-API or AutoScout24 web scraping
- * POST /api/scrape-vehicle
- * Body: { url: "https://..." }
+ * Extracts ad key from mobile.de URL
+ * Expected URL formats:
+ *   - https://suchen.mobile.de/fahrzeuge/details.html?id=441261931
+ *   - https://mobile.de/fahrzeuge/details.html?id=441261931
  */
-module.exports = async (req, res) => {
+function extractAdKey(url) {
+  try {
+    const urlObj = new URL(url);
+    const id = urlObj.searchParams.get('id');
+    if (!id) {
+      throw new Error('No id parameter found in URL');
+    }
+    return id;
+  } catch (error) {
+    throw new Error(`Invalid mobile.de URL: ${error.message}`);
+  }
+}
+
+/**
+ * Scrapes vehicle data from mobile.de using ScrapingBee
+ * ScrapingBee handles anti-bot protection and JavaScript rendering
+ */
+async function scrapeVehicleFromMobileDe(url) {
+  const adKey = extractAdKey(url);
+  
+  // Construct direct listing URL
+  const listingUrl = `https://suchen.mobile.de/fahrzeuge/details.html?id=${adKey}`;
+
+  console.log(`[ScrapingBee] Scraping: ${listingUrl}`);
+  
+  try {
+    // Use ScrapingBee API with JavaScript rendering
+    const scrapingBeeUrl = 'https://api.scrapingbee.com/api/v1/';
+    
+    const response = await axios.get(scrapingBeeUrl, {
+      params: {
+        api_key: SCRAPINGBEE_API_KEY,
+        url: listingUrl,
+        render_javascript: 'true',
+        // Timeout after 30 seconds
+        timeout: '30000',
+        // Use a rotating proxy
+        premium_proxy: 'true'
+      },
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      timeout: 45000 // HTTP timeout
+    });
+
+    const html = response.data;
+    console.log(`[ScrapingBee] Got HTML (${html.length} bytes)`);
+
+    // Parse vehicle data from HTML
+    const vehicleData = parseVehicleData(html, adKey);
+    console.log('[Parser] Extracted data:', vehicleData);
+
+    return vehicleData;
+  } catch (error) {
+    console.error('[ScrapingBee Error]:', error.message);
+    throw new Error(`Failed to scrape from mobile.de: ${error.message}`);
+  }
+}
+
+/**
+ * Parses vehicle data from mobile.de HTML
+ */
+function parseVehicleData(html, adKey) {
+  const data = {
+    adKey: adKey,
+    brand: null,
+    model: null,
+    year: null,
+    price: null,
+    mileage: null,
+    fuelType: null,
+    co2Emissions: null,
+    transmission: null,
+    power: null,
+    images: [],
+    description: null
+  };
+
+  // Extract brand and model from page title or header
+  const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+  if (titleMatch) {
+    const title = titleMatch[1];
+    console.log('[Parser] Title:', title);
+    
+    // Try to extract brand and model from title
+    // Example: "2018 BMW 3 Series - 2018 BMW 3 Series 320i | mobile.de"
+    const modelMatch = title.match(/(\d+)\s+(\w+)\s+([\w\s]+?)\s*[-|]/);
+    if (modelMatch) {
+      data.year = parseInt(modelMatch[1]);
+      data.brand = modelMatch[2];
+      data.model = modelMatch[3].trim();
+    }
+  }
+
+  // Extract price - look for price in various common patterns
+  const pricePatterns = [
+    /€\s*([\d.,]+)/g,
+    /Preis:\s*€\s*([\d.,]+)/gi,
+    /Price:\s*€\s*([\d.,]+)/gi,
+    /"price":\s*"([^"]+)"/gi
+  ];
+
+  for (const pattern of pricePatterns) {
+    const match = html.match(pattern);
+    if (match) {
+      // Get the first price found
+      const priceStr = match[0];
+      const numMatch = priceStr.match(/[\d.]+/);
+      if (numMatch) {
+        data.price = parseInt(numMatch[0].replace(/\./g, ''));
+        console.log('[Parser] Price:', data.price);
+        break;
+      }
+    }
+  }
+
+  // Extract mileage
+  const mileagePatterns = [
+    /(\d+[\s.]?\d*)\s*km/gi,
+    /"mileage":\s*(\d+)/gi
+  ];
+
+  for (const pattern of mileagePatterns) {
+    const match = html.match(pattern);
+    if (match) {
+      const mileageStr = match[0];
+      const numMatch = mileageStr.match(/\d+/);
+      if (numMatch) {
+        data.mileage = parseInt(numMatch[0]);
+        console.log('[Parser] Mileage:', data.mileage);
+        break;
+      }
+    }
+  }
+
+  // Extract fuel type
+  if (html.match(/Diesel|diesel/i)) {
+    data.fuelType = 'Diesel';
+  } else if (html.match(/Benzin|Petrol|gasoline/i)) {
+    data.fuelType = 'Gasoline';
+  } else if (html.match(/Elektro|Electric/i)) {
+    data.fuelType = 'Electric';
+  }
+
+  // Extract CO2 emissions
+  const co2Match = html.match(/(\d+)\s*g\/km|CO2.*?(\d+)\s*g/i);
+  if (co2Match) {
+    data.co2Emissions = parseInt(co2Match[1] || co2Match[2]);
+    console.log('[Parser] CO2:', data.co2Emissions);
+  }
+
+  // Extract transmission
+  if (html.match(/Automatik|Automatic|CVT/i)) {
+    data.transmission = 'Automatic';
+  } else if (html.match(/Schaltgetriebe|Manual|Manuell/i)) {
+    data.transmission = 'Manual';
+  }
+
+  // Extract power in kW or PS
+  const powerMatch = html.match(/(\d+)\s*(?:kW|PS)|(?:kW|PS).*?(\d+)/i);
+  if (powerMatch) {
+    data.power = parseInt(powerMatch[1] || powerMatch[2]);
+  }
+
+  // Extract image URLs - look for common image patterns
+  const imgPatterns = [
+    /src="([^"]*cdn[^"]*\.jpg)"/gi,
+    /src="([^"]*mobile\.de[^"]*\.jpg)"/gi,
+    /backgroundImage['":\s]+url\(['"]([^'"]+\.jpg)['"]\)/gi,
+    /<img[^>]+src="([^"]+\.jpg)"/gi
+  ];
+
+  const imageUrls = new Set();
+  for (const pattern of imgPatterns) {
+    let match;
+    while ((match = pattern.exec(html)) !== null) {
+      if (match[1]) {
+        imageUrls.add(match[1]);
+      }
+    }
+  }
+
+  data.images = Array.from(imageUrls).slice(0, 5); // Get first 5 unique images
+  console.log('[Parser] Found', data.images.length, 'images');
+
+  // Extract description/features from common sections
+  const descMatch = html.match(/<div[^>]*class="[^"]*description[^"]*"[^>]*>([^<]+)<\/div>/i);
+  if (descMatch) {
+    data.description = descMatch[1].trim();
+  }
+
+  return data;
+}
+
+/**
+ * Gets CO2 data from database
+ */
+async function getCO2FromDatabase(brand, model, year) {
+  try {
+    // Note: This would connect to your database
+    // For now, returning null to indicate not found
+    return null;
+  } catch (error) {
+    console.error('[Database Error]:', error.message);
+    return null;
+  }
+}
+
+/**
+ * Validates vehicle data and fills in missing values
+ */
+async function validateAndEnrichData(vehicleData) {
+  const enriched = { ...vehicleData };
+
+  // Validate required fields
+  if (!enriched.price || enriched.price < 100) {
+    throw new Error('Invalid or missing price');
+  }
+
+  // Try to get CO2 from database if missing
+  if (!enriched.co2Emissions && enriched.brand && enriched.model && enriched.year) {
+    const dbCO2 = await getCO2FromDatabase(enriched.brand, enriched.model, enriched.year);
+    if (dbCO2) {
+      enriched.co2Emissions = dbCO2;
+      console.log('[Database] Retrieved CO2:', dbCO2);
+    }
+  }
+
+  // Provide reasonable defaults if still missing
+  if (!enriched.co2Emissions) {
+    enriched.co2Emissions = 140; // Reasonable EU average
+    enriched.co2Source = 'estimated';
+  } else {
+    enriched.co2Source = 'exact';
+  }
+
+  return enriched;
+}
+
+/**
+ * Main Vercel function handler
+ */
+export default async function handler(req, res) {
+  // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Get mobile.de URL from request body
+  const { url } = req.body;
+
+  if (!url) {
+    return res.status(400).json({ error: 'Missing url in request body' });
+  }
+
+  // Check API key is configured
+  if (!SCRAPINGBEE_API_KEY) {
+    console.error('SCRAPINGBEE_API_KEY not configured');
+    return res.status(500).json({
+      error: 'Server configuration error',
+      message: 'ScrapingBee API key not configured'
+    });
+  }
+
+  console.log('[Request] Processing URL:', url);
+
   try {
-    const { url } = req.body;
+    // Scrape vehicle data from mobile.de
+    const vehicleData = await scrapeVehicleFromMobileDe(url);
+    console.log('[Result] Raw data:', vehicleData);
 
-    if (!url) {
-      return res.status(400).json({ error: 'URL is required' });
-    }
+    // Validate and enrich with database data
+    const enrichedData = await validateAndEnrichData(vehicleData);
+    console.log('[Result] Enriched data:', enrichedData);
 
-    // Determine source
-    const isMobileDe = url.includes('mobile.de');
-    const isAutoScout = url.includes('autoscout24');
-
-    if (!isMobileDe && !isAutoScout) {
-      return res.status(400).json({ 
-        error: 'Only mobile.de and AutoScout24 URLs are supported' 
-      });
-    }
-
-    let vehicleData = {};
-
-    if (isMobileDe) {
-      vehicleData = await scrapeMobileDeAPI(url);
-    } else if (isAutoScout) {
-      vehicleData = await scrapeAutoScout24(url);
-    }
-
-    // Check if we got any data
-    if (!vehicleData || Object.keys(vehicleData).length === 0) {
-      return res.status(400).json({ 
-        error: 'Could not extract vehicle data from URL' 
-      });
-    }
-
+    // Return enriched data
     return res.status(200).json({
       success: true,
-      source: isMobileDe ? 'mobile.de' : 'autoscout24',
-      ...vehicleData
+      data: enrichedData
     });
-
   } catch (error) {
-    console.error('Scraping error:', error.message);
-    return res.status(500).json({
+    console.error('[Error] Scraping failed:', error.message);
+    return res.status(400).json({
       error: 'Failed to scrape vehicle data',
       message: error.message
     });
-  }
-};
-
-/**
- * Scrape vehicle data from mobile.de using official Search-API
- * Extracts ad-key from URL and calls the API
- */
-async function scrapeMobileDeAPI(url) {
-  try {
-    // Extract ad-key from URL
-    // URL format: https://suchen.mobile.de/fahrzeuge/details.html?id=441261931&...
-    const urlObj = new URL(url);
-    const adKey = urlObj.searchParams.get('id');
-
-    if (!adKey) {
-      throw new Error('Could not extract ad-key from mobile.de URL');
-    }
-
-    // Call mobile.de Search-API
-    // API docs: https://services.mobile.de/docs/search-api.html
-    const apiUrl = `https://services.mobile.de/search-api/ad/${adKey}`;
-    
-    // Use environment variables for credentials (safer than hardcoding)
-    const username = process.env.MOBILE_DE_USERNAME || 'npereira@theselection.pt';
-    const password = process.env.MOBILE_DE_PASSWORD || 'Nunoandre18';
-    
-    // Create Basic Auth header
-    const auth = Buffer.from(`${username}:${password}`).toString('base64');
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Accept': 'application/json',
-        'User-Agent': 'TheSelectionCalculator/1.0'
-      },
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`Mobile.de API returned ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    
-    // Parse the API response
-    const ad = data.ad || data;
-    const vehicleData = {};
-
-    // Extract basic info
-    if (ad.title) vehicleData.title = ad.title;
-    if (ad.make) vehicleData.brand = ad.make;
-    if (ad.model) vehicleData.model = ad.model;
-    
-    // Year and registration
-    if (ad.firstRegistration) {
-      const year = parseInt(ad.firstRegistration.substring(0, 4));
-      vehicleData.registrationYear = year;
-      const month = parseInt(ad.firstRegistration.substring(5, 7));
-      if (month >= 1 && month <= 12) vehicleData.registrationMonth = month;
-    }
-
-    // Price
-    if (ad.price && ad.price.value) {
-      vehicleData.price = ad.price.value;
-    }
-
-    // Mileage
-    if (ad.mileage) vehicleData.mileage = ad.mileage;
-
-    // Fuel type
-    if (ad.fuelType) {
-      const fuel = ad.fuelType.toLowerCase();
-      if (fuel.includes('diesel')) vehicleData.fuelType = 'diesel';
-      else if (fuel.includes('benz') || fuel.includes('petrol') || fuel.includes('gasoline')) vehicleData.fuelType = 'gasolina';
-      else if (fuel.includes('hybrid')) vehicleData.fuelType = 'hibrido';
-      else if (fuel.includes('elekt') || fuel.includes('electric')) vehicleData.fuelType = 'eletrico';
-    }
-
-    // Power (kW)
-    if (ad.power) vehicleData.power = ad.power;
-
-    // Displacement
-    if (ad.engineCapacity) vehicleData.displacement = ad.engineCapacity;
-
-    // CO2 emissions - try different paths in API response
-    if (ad.co2) {
-      vehicleData.co2 = ad.co2;
-    } else if (ad.emissions && ad.emissions.co2) {
-      vehicleData.co2 = ad.emissions.co2;
-    } else if (ad.wltpValues && ad.wltpValues.co2) {
-      vehicleData.co2 = ad.wltpValues.co2;
-    }
-
-    // Gearbox
-    if (ad.gearbox) {
-      const gearbox = ad.gearbox.toLowerCase();
-      vehicleData.gearbox = gearbox.includes('auto') ? 'Automática' : 'Manual';
-    }
-
-    // Images - try different API response structures
-    const images = [];
-    if (ad.images && Array.isArray(ad.images)) {
-      for (const img of ad.images) {
-        if (img.url && !images.includes(img.url)) {
-          images.push(img.url);
-        } else if (typeof img === 'string' && !images.includes(img)) {
-          images.push(img);
-        }
-      }
-    }
-    if (images.length > 0) vehicleData.images = images.slice(0, 5);
-
-    return vehicleData;
-
-  } catch (error) {
-    console.error('Mobile.de API error:', error.message);
-    // Fallback to web scraping if API fails
-    console.log('Falling back to web scraping...');
-    return await scrapeMobileDeHTML(url);
-  }
-}
-
-/**
- * Fallback: Scrape mobile.de HTML page (for when API fails)
- */
-async function scrapeMobileDeHTML(url) {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'pt-PT,pt;q=0.9,en;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        'Referer': 'https://www.google.com/'
-      },
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch: ${response.status}`);
-    }
-
-    const html = await response.text();
-    const data = {};
-
-    // Title/Brand/Model
-    const titleMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
-    if (titleMatch) {
-      const titleText = titleMatch[1].trim();
-      const parts = titleText.split(/\s+/);
-      data.brand = parts[0] || '';
-      data.model = parts.slice(1).join(' ') || '';
-      data.title = titleText;
-    }
-
-    // Year
-    const monthYearMatch = html.match(/(\d{1,2})\/(\d{4})/);
-    if (monthYearMatch) {
-      const month = parseInt(monthYearMatch[1]);
-      const year = parseInt(monthYearMatch[2]);
-      if (month >= 1 && month <= 12) {
-        data.registrationMonth = month;
-        data.registrationYear = year;
-      }
-    } else {
-      const yearMatch = html.match(/(\d{4})/);
-      if (yearMatch) {
-        const year = parseInt(yearMatch[1]);
-        if (year >= 1900 && year <= new Date().getFullYear()) {
-          data.registrationYear = year;
-        }
-      }
-    }
-
-    // Price
-    const priceMatch = html.match(/([0-9]{2,3}(?:\.[0-9]{3})*(?:,[0-9]{2})?)(?:\s*)€/);
-    if (priceMatch) {
-      const priceStr = priceMatch[1];
-      const cleaned = priceStr.replace(/\./g, '').replace(',', '.');
-      const price = parseFloat(cleaned);
-      if (!isNaN(price) && price > 100) {
-        data.price = price;
-      }
-    }
-
-    // Mileage
-    const mileageMatch = html.match(/([0-9.,]+)\s*(?:km|KM)/);
-    if (mileageMatch) {
-      const mileageStr = mileageMatch[1];
-      const cleaned = mileageStr.replace(/\./g, '').replace(',', '');
-      const mileage = parseInt(cleaned);
-      if (!isNaN(mileage)) {
-        data.mileage = mileage;
-      }
-    }
-
-    // Fuel type
-    const fuelMatch = html.match(/(Diesel|Benzin|Hybrid|Electric|Elektro)/i);
-    if (fuelMatch) {
-      const fuel = fuelMatch[1].toLowerCase();
-      if (fuel === 'diesel') data.fuelType = 'diesel';
-      else if (fuel === 'benzin') data.fuelType = 'gasolina';
-      else if (fuel === 'hybrid') data.fuelType = 'hibrido';
-      else if (fuel === 'elektro' || fuel === 'electric') data.fuelType = 'eletrico';
-    }
-
-    // Power
-    const powerMatch = html.match(/(\d{2,3})\s*(?:kW|PS)/i);
-    if (powerMatch) {
-      data.power = parseInt(powerMatch[1]);
-    }
-
-    // Displacement
-    const displacementMatch = html.match(/(\d{3,4})\s*(?:ccm?|cm³)/i);
-    if (displacementMatch) {
-      data.displacement = parseInt(displacementMatch[1]);
-    }
-
-    // CO2
-    const co2Match = html.match(/(\d+)\s*(?:g\/km|g\/km CO2)/i);
-    if (co2Match) {
-      const co2 = parseInt(co2Match[1]);
-      if (co2 > 0 && co2 < 400) {
-        data.co2 = co2;
-      }
-    }
-
-    // Gearbox
-    const gearboxMatch = html.match(/(Automatik|Manuell|Automatic|Manual)/i);
-    if (gearboxMatch) {
-      const gearbox = gearboxMatch[1].toLowerCase();
-      data.gearbox = gearbox.includes('auto') ? 'Automática' : 'Manual';
-    }
-
-    // Images
-    const imageMatches = html.match(/<img[^>]*src=["']([^"']*mobile[^"']*)["']/gi) || [];
-    const images = [];
-    for (const imgMatch of imageMatches) {
-      const srcMatch = imgMatch.match(/src=["']([^"']*)["']/i);
-      if (srcMatch) {
-        let src = srcMatch[1];
-        src = src.replace(/mo-\d+/, 'mo-1600');
-        if (!images.includes(src)) {
-          images.push(src);
-        }
-      }
-    }
-    if (images.length > 0) data.images = images.slice(0, 5);
-
-    return data;
-
-  } catch (error) {
-    console.error('Mobile.de HTML scraping fallback error:', error.message);
-    throw error;
-  }
-}
-
-/**
- * Scrape vehicle data from AutoScout24
- */
-async function scrapeAutoScout24(url) {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'pt-PT,pt;q=0.9,en;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        'Referer': 'https://www.google.com/'
-      },
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch AutoScout24: ${response.status}`);
-    }
-
-    const html = await response.text();
-    const data = {};
-
-    // Title
-    const titleMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/i) ||
-                       html.match(/<title>([^<]+)<\/title>/i);
-    if (titleMatch) {
-      const titleText = titleMatch[1].trim();
-      const parts = titleText.split(/\s+/).filter(p => p.length > 0);
-      data.brand = parts[0] || '';
-      data.model = parts.slice(1).join(' ') || '';
-      data.title = titleText;
-    }
-
-    // Year
-    const yearMatch = html.match(/(\d{4})/);
-    if (yearMatch) {
-      const year = parseInt(yearMatch[1]);
-      if (year >= 1900 && year <= new Date().getFullYear()) {
-        data.registrationYear = year;
-      }
-    }
-
-    // Price
-    const priceMatch = html.match(/([0-9]{2,3}(?:\.[0-9]{3})*(?:,[0-9]{2})?)(?:\s*)€/) ||
-                       html.match(/price["\']?\s*:\s*["\']?([0-9.,]+)["\']?/i);
-    if (priceMatch) {
-      const priceStr = priceMatch[1];
-      const cleaned = priceStr.replace(/\./g, '').replace(',', '.');
-      const price = parseFloat(cleaned);
-      if (!isNaN(price) && price > 100) {
-        data.price = price;
-      }
-    }
-
-    // Mileage
-    const mileageMatch = html.match(/([0-9.,]+)\s*(?:km|KM)/);
-    if (mileageMatch) {
-      const mileageStr = mileageMatch[1];
-      const cleaned = mileageStr.replace(/\./g, '').replace(',', '');
-      const mileage = parseInt(cleaned);
-      if (!isNaN(mileage)) {
-        data.mileage = mileage;
-      }
-    }
-
-    // Fuel type
-    const fuelMatch = html.match(/(Diesel|Benzin|Hybrid|Electric|Elektro|Petrol|Gasoline)/i);
-    if (fuelMatch) {
-      const fuel = fuelMatch[1].toLowerCase();
-      if (fuel === 'diesel') data.fuelType = 'diesel';
-      else if (fuel === 'benzin' || fuel === 'petrol' || fuel === 'gasoline') data.fuelType = 'gasolina';
-      else if (fuel === 'hybrid') data.fuelType = 'hibrido';
-      else if (fuel === 'elektro' || fuel === 'electric') data.fuelType = 'eletrico';
-    }
-
-    // Power
-    const powerMatch = html.match(/(\d{2,3})\s*(?:kW|PS)/i);
-    if (powerMatch) {
-      data.power = parseInt(powerMatch[1]);
-    }
-
-    // Displacement
-    const displacementMatch = html.match(/(\d{3,4})\s*(?:ccm?|cm³)/i);
-    if (displacementMatch) {
-      data.displacement = parseInt(displacementMatch[1]);
-    }
-
-    // CO2
-    const co2Match = html.match(/(\d+)\s*(?:g\/km|g\/km CO2)/i);
-    if (co2Match) {
-      const co2 = parseInt(co2Match[1]);
-      if (co2 > 0 && co2 < 400) {
-        data.co2 = co2;
-      }
-    }
-
-    // Gearbox
-    const gearboxMatch = html.match(/(Automatik|Manuell|Automatic|Manual)/i);
-    if (gearboxMatch) {
-      const gearbox = gearboxMatch[1].toLowerCase();
-      data.gearbox = gearbox.includes('auto') ? 'Automática' : 'Manual';
-    }
-
-    // Images
-    const imageMatches = html.match(/<img[^>]*src=["']([^"']*(?:jpg|jpeg|png))["']/gi) || [];
-    const images = [];
-    for (const imgMatch of imageMatches) {
-      const srcMatch = imgMatch.match(/src=["']([^"']*)["']/i);
-      if (srcMatch) {
-        const src = srcMatch[1];
-        if (!images.includes(src) && !src.includes('logo') && !src.includes('icon')) {
-          images.push(src);
-        }
-      }
-    }
-    if (images.length > 0) data.images = images.slice(0, 5);
-
-    return data;
-
-  } catch (error) {
-    console.error('AutoScout24 scraping error:', error.message);
-    throw error;
   }
 }
