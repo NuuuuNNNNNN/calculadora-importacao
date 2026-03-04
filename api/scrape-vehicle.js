@@ -25,6 +25,9 @@ export default async (req, res) => {
     
     console.log('[API] Parsed data:', vehicleData);
 
+    // Include raw HTML first 1000 chars for debugging
+    vehicleData.debug_html = html.substring(0, 1500);
+
     res.status(200).json(vehicleData);
 
   } catch (error) {
