@@ -1,1 +1,1 @@
-{  "outputDirectory": "public",  "rewrites": [    {      "source": "/",      "destination": "/index.html"    },    {      "source": "/api/(:path*)",      "destination": "/api/:path*"    }  ]}
+{  "public": true,  "cleanUrls": false,  "trailingSlash": false,  "rewrites": [    {      "source": "/",      "destination": "/index.html"    },    {      "source": "/(.*)",      "destination": "/index.html"    }  ],  "functions": {    "api/**/*.js": {      "maxDuration": 30,      "memory": 512    }  }}
