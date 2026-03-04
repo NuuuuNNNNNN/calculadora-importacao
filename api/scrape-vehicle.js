@@ -71,10 +71,16 @@ function parseVehicleData(html, url) {
       data.mileage = parseInt(mileageMatch[1].replace(/\./g, ''));
     }
 
-    // Year: "firstRegistration":"09/2020"
-    const yearMatch = html.match(/"tag":"firstRegistration","value":"(\d{2})\/(\d{4})/);
+    // Year: look for "firstRegistration" or "Erstzulassung"
+    const yearMatch = html.match(/"tag":"firstRegistration"[^}]*"value":"(\d{2})\/(\d{4})/);
     if (yearMatch) {
       data.year = parseInt(yearMatch[2]);
+    }
+    if (!data.year) {
+      const yearMatch2 = html.match(/"Erstzulassung"[^:]*:\s*"(\d{2})\/(\d{4})/);
+      if (yearMatch2) {
+        data.year = parseInt(yearMatch2[2]);
+      }
     }
 
     // Transmission (look more carefully)
