@@ -29,7 +29,12 @@ export default async (req, res) => {
 
     // Fallback to fetch
     console.log('[API] Using fetch');
-    const response = await fetch('https://app.scrapingbee.com/api/v1/?api_key=NT61UK632R6F88RCS1YL7SM4L5Y6YWBRITBSU97QS4GDUX16CIOB0ETA1D16ESKO3UQ5ZK4QCUFA0IAL&url=' + encodeURIComponent(url));
+    const params = new URLSearchParams({
+      api_key: 'NT61UK632R6F88RCS1YL7SM4L5Y6YWBRITBSU97QS4GDUX16CIOB0ETA1D16ESKO3UQ5ZK4QCUFA0IAL',
+      url: url,
+      block_resources: 'false'
+    });
+    const response = await fetch('https://app.scrapingbee.com/api/v1/?' + params.toString());
     const html = await response.text();
     return res.status(200).json({ success: true, data: html.substring(0, 200) });
 
