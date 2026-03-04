@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 export default async function handler(req, res) {
   // Only POST allowed
   if (req.method !== 'POST') {
@@ -39,9 +41,6 @@ export default async function handler(req, res) {
     const scrapingBeeUrl = 'https://api.scrapingbee.com/api/v1/';
 
     console.log('[API] Calling ScrapingBee...');
-    
-    // Import axios
-    const axios = require('axios').default;
     
     const response = await axios.get(scrapingBeeUrl, {
       params: {
