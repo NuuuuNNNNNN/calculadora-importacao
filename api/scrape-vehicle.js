@@ -30,6 +30,10 @@ module.exports = async (req, res) => {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0'
               'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                  const controller = new AbortController();
+                      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                      
                       'Accept-Language': 'pt-PT,pt;q=0.9,en;q=0.8',
                               'Accept-Encoding': 'gzip, deflate, br',
                                       'Cache-Control': 'no-cache',
@@ -38,7 +42,7 @@ module.exports = async (req, res) => {
                                                               'Sec-Fetch-Dest': 'document',
                                                                       'Sec-Fetch-Mode': 'navigate',
                                                                               'Sec-Fetch-Site': 'none'},
-      timeout: 15000
+      signal: controller.signal
     });
 
     if (!response.ok) {
@@ -51,7 +55,8 @@ module.exports = async (req, res) => {
     let vehicleData = {};
 
     if (isMobileDe) {
-      vehicleData = scrapeMobileDe(html);
+      vehicleData = scrapeMobileDe(html
+          clearTimeout(timeoutId););
     } else if (isAutoScout) {
       vehicleData = scrapeAutoScout24(html);
     }
