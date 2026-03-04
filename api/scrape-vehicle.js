@@ -65,49 +65,63 @@ function parseVehicleData(html, url) {
       data.price = parseInt(priceMatch[1]);
     }
 
-    // Mileage: "159.000 km" or similar - look in the description meta tag or attributes
-    const mileageMatch = html.match(/"mileage":"([\d.]+)\s*km"/i);
+    // Mileage: "159.000 km" - looks for grossAmount or mileage value
+    const mileageMatch = html.match(/"tag":"mileage","value":"([\d.]+)/);
     if (mileageMatch) {
       data.mileage = parseInt(mileageMatch[1].replace(/\./g, ''));
     }
 
     // Year: "firstRegistration":"09/2020"
-    const yearMatch = html.match(/"firstRegistration":"(\d{2})\/(\d{4})"/);
+    const yearMatch = html.match(/"tag":"firstRegistration","value":"(\d{2})\/(\d{4})/);
     if (yearMatch) {
       data.year = parseInt(yearMatch[2]);
     }
 
-    // Transmission: look for "Automatik" or "Schaltgetriebe"
-    if (html.includes('"transmission":"')) {
-      const transMatch = html.match(/"transmission":\s*"([^"]+)"/);
+    // Transmission (look more carefully)
+    if (html.includes('"tag":"transmission"')) {
+      const transMatch = html.match(/"tag":"transmission"[^}]*"value":"([^"]+)"/);
       if (transMatch) {
         data.transmission = transMatch[1].includes('Automatik') ? 'Automatic' : 'Manual';
       }
-    } else if (html.includes('Automatik')) {
-      data.transmission = 'Automatic';
-    } else if (html.includes('Schaltgetriebe')) {
-      data.transmission = 'Manual';
+    }
+    if (!data.transmission) {
+      if (html.includes('Automatik')) {
+        data.transmission = 'Automatic';
+      } else if (html.includes('Schaltgetriebe')) {
+        data.transmission = 'Manual';
+      }
     }
 
     // Fuel type
-    if (html.includes('Diesel')) {
-      data.fuelType = 'Diesel';
-    } else if (html.includes('Plug-in-Hybrid') || html.includes('Hybrid')) {
-      data.fuelType = 'Hybrid';
-    } else if (html.includes('Elektro')) {
-      data.fuelType = 'Electric';
-    } else if (html.includes('Benzin')) {
-      data.fuelType = 'Petrol';
+    if (html.includes('"tag":"fuel"')) {
+      const fuelMatch = html.match(/"tag":"fuel"[^}]*"value":"([^"]+)"/);
+      if (fuelMatch) {
+        const fuelStr = fuelMatch[1];
+        if (fuelStr.includes('Diesel')) data.fuelType = 'Diesel';
+        else if (fuelStr.includes('Hybrid')) data.fuelType = 'Hybrid';
+        else if (fuelStr.includes('Elektro')) data.fuelType = 'Electric';
+        else if (fuelStr.includes('Benzin')) data.fuelType = 'Petrol';
+      }
+    }
+    if (!data.fuelType) {
+      if (html.includes('Diesel')) data.fuelType = 'Diesel';
+      else if (html.includes('Hybrid')) data.fuelType = 'Hybrid';
+      else if (html.includes('Elektro')) data.fuelType = 'Electric';
+      else if (html.includes('Benzin')) data.fuelType = 'Petrol';
     }
 
-    // Power: "500 kW (680 PS)"
-    const powerMatch = html.match(/"power":\s*"([\d]+)\s*kW/);
+    // Power: look for kW value
+    const powerMatch = html.match(/"tag":"power"[^}]*"value":"([\d]+)\s*kW/);
     if (powerMatch) {
       data.power = parseInt(powerMatch[1]);
     }
+    if (!data.power) {
+      const powerMatch2 = html.match(/([\d]+)\s*kW\s*\([\d]+\s*PS\)/);
+      if (powerMatch2) data.power = parseInt(powerMatch2[1]);
+    }
 
-    // CO2: "83 g/km"
-    const co2Match = html.match(/"envkv\.co2Emissions":\s*"([\d]+)\s*g/);
+    // CO2
+    const co2Match = html.match(/"tag":"envkv\.co2Emissions"[^}]*"value":"([\d]+)\s*g/);
     if (co2Match) {
       data.co2 = parseInt(co2Match[1]);
     }
