@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Importação — The Selection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ts-bg: #09090B;
+  --ts-surface: #111114;
+  --ts-surface-alt: #18181C;
+  --ts-surface-hover: #1E1E24;
+  --ts-card-bg: #0F0F12;
+  --ts-border: #222228;
+  --ts-border-subtle: #1A1A20;
+  --ts-gold: #C8A96E;
+  --ts-gold-dim: #A08650;
+  --ts-gold-soft: rgba(200, 169, 110, 0.08);
+  --ts-gold-hover: #D4B97E;
+  --ts-text: #EEEEF0;
+  --ts-text-secondary: #9898A2;
+  --ts-text-muted: #555560;
+  --ts-green: #4ADE80;
+  --ts-green-soft: rgba(74, 222, 128, 0.08);
+  --ts-warning: #FBBF24;
+  --ts-warning-soft: rgba(251, 191, 36, 0.08);
+  --ts-red: #F87171;
+  --ts-radius: 14px;
+  --ts-radius-sm: 10px;
+}
+*, *::before, *::after { box-sizing: border-box; border-color: var(--ts-border); }
+body {
+  background: var(--ts-bg) !important;
+  color: var(--ts-text) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  margin: 0; line-height: 1.5;
+}
+.ts-container { max-width: 1040px; margin: 0 auto; padding: 32px 24px 48px; }
+@media (max-width: 768px) { .ts-container { padding: 16px 16px 32px; } }
+.ts-card { background: var(--ts-surface); border: 1px solid var(--ts-border); border-radius: var(--ts-radius); }
+.ts-card-alt { background: var(--ts-surface-alt); border: 1px solid var(--ts-border); border-radius: var(--ts-radius-sm); }
+.ts-heading { font-weight: 600; letter-spacing: -0.025em; line-height: 1.15; color: var(--ts-text); margin:0; }
+.ts-label { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ts-text-muted); }
+.ts-input {
+  background: var(--ts-surface) !important; border: 1px solid var(--ts-border) !important;
+  border-radius: var(--ts-radius-sm) !important; color: var(--ts-text) !important;
+  padding: 14px 16px; font-size: 14px; width: 100%; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s; font-family: inherit;
+}
+.ts-input:focus { border-color: var(--ts-gold) !important; box-shadow: 0 0 0 3px var(--ts-gold-soft); }
+.ts-input::placeholder { color: var(--ts-text-muted); }
+.ts-input-sm { padding: 8px 12px; font-size: 13px; border-radius: 8px !important; }
+.ts-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 28px; border-radius: var(--ts-radius-sm); font-size: 14px;
+  font-weight: 500; letter-spacing: 0.01em; cursor: pointer;
+  transition: all 0.2s; border: none; white-space: nowrap; font-family: inherit;
+}
+.ts-btn-gold { background: var(--ts-gold); color: #0B0B0F; }
+.ts-btn-gold:hover:not(:disabled) { background: var(--ts-gold-hover); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(200,169,110,0.2); }
+.ts-btn-gold:disabled { opacity: 0.4; cursor: not-allowed; }
+.ts-btn-outline { background: transparent; border: 1px solid var(--ts-border); color: var(--ts-text-secondary); }
+.ts-btn-outline:hover { border-color: var(--ts-text-muted); color: var(--ts-text); background: var(--ts-surface-alt); }
+.ts-btn-ghost { background: transparent; border: none; color: var(--ts-text-muted); padding: 8px 16px; font-size: 13px; }
+.ts-btn-ghost:hover { color: var(--ts-text-secondary); }
+.ts-url-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--ts-surface); border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius-sm); padding: 12px 16px;
+}
+.ts-url-bar-link {
+  font-size: 12px; color: var(--ts-text-muted); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; max-width: 600px; text-decoration: none;
+}
+.ts-main-card {
+  background: var(--ts-surface); border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius); overflow: hidden;
+  display: grid; grid-template-columns: 1fr 1fr;
+}
+.ts-main-card-image {
+  position: relative; overflow: hidden; background: var(--ts-card-bg);
+  height: 360px; align-self: start;
+}
+.ts-main-card-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ts-main-card-sim {
+  padding: 28px; display: flex; flex-direction: column; gap: 0;
+  align-self: start; overflow-y: auto; max-height: 360px;
+}
+@media (max-width: 900px) {
+  .ts-main-card { grid-template-columns: 1fr; }
+  .ts-main-card-image { min-height: 220px; max-height: 280px; }
+}
+.ts-toggle {
+  display: inline-flex; border: 1px solid var(--ts-border);
+  border-radius: 8px; overflow: hidden; background: var(--ts-card-bg);
+}
+.ts-toggle button {
+  padding: 8px 18px; font-size: 12px; font-weight: 500; cursor: pointer;
+  background: transparent; border: none; color: var(--ts-text-muted);
+  transition: all 0.2s; white-space: nowrap; font-family: inherit;
+}
+.ts-toggle button.active { background: var(--ts-gold); color: #0B0B0F; font-weight: 600; }
+.ts-toggle button:not(.active):hover { color: var(--ts-text-secondary); }
+.ts-tabs {
+  display: grid; grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--ts-border); border-radius: 10px;
+  overflow: hidden; background: var(--ts-card-bg);
+}
+.ts-tabs button {
+  padding: 12px 16px; font-size: 13px; font-weight: 500; cursor: pointer;
+  background: transparent; border: none; color: var(--ts-text-muted);
+  display: flex; align-items: center; justify-content: center; gap: 8;
+  transition: all 0.2s; font-family: inherit;
+}
+.ts-tabs button.active {
+  background: var(--ts-surface-alt); color: var(--ts-text); font-weight: 600;
+  border-bottom: 2px solid var(--ts-gold);
+}
+.ts-tabs button:not(.active):hover { color: var(--ts-text-secondary); }
+.ts-result-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 13px 0; border-bottom: 1px solid var(--ts-border-subtle);
+}
+.ts-result-row:last-child { border-bottom: none; }
+.ts-result-label { font-size: 13px; color: var(--ts-text-secondary); }
+.ts-result-sublabel { font-size: 11px; color: var(--ts-text-muted); margin-top: 2px; }
+.ts-result-value { font-size: 14px; font-weight: 600; color: var(--ts-text); text-align: right; }
+.ts-total {
+  background: var(--ts-card-bg); border: 1px solid rgba(200,169,110,0.2);
+  border-radius: 10px; padding: 18px 20px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.ts-total-label { font-size: 13px; font-weight: 500; color: var(--ts-gold); }
+.ts-total-value { font-size: 22px; font-weight: 700; color: var(--ts-gold); letter-spacing: -0.02em; }
+.ts-spec-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 1px; background: var(--ts-border); border-radius: var(--ts-radius); overflow: hidden;
+}
+@media (max-width: 640px) { .ts-spec-grid { grid-template-columns: repeat(2, 1fr); } }
+.ts-spec-cell { background: var(--ts-surface); padding: 14px 16px; }
+.ts-spec-label { font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ts-text-muted); margin-bottom: 5px; }
+.ts-spec-value { font-size: 13px; font-weight: 600; color: var(--ts-text); }
+.ts-spec-value.muted { color: var(--ts-text-muted); }
+.ts-section { display: flex; flex-direction: column; gap: 14px; }
+.ts-section-header {
+  display: flex; align-items: center; gap: 8;
+  font-size: 14px; font-weight: 600; color: var(--ts-text);
+}
+.ts-section-header .ts-info-icon {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--ts-surface-alt); border: 1px solid var(--ts-border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: var(--ts-text-muted); cursor: help;
+}
+.ts-radio-card {
+  background: var(--ts-surface); border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius-sm); padding: 16px 20px; cursor: pointer;
+  display: flex; align-items: center; gap: 14px; transition: all 0.2s;
+}
+.ts-radio-card:hover { border-color: var(--ts-text-muted); }
+.ts-radio-card.selected { border-color: var(--ts-gold); background: var(--ts-gold-soft); }
+.ts-radio-dot {
+  width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--ts-border); display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.ts-radio-card.selected .ts-radio-dot { border-color: var(--ts-gold); }
+.ts-radio-dot-inner {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--ts-gold);
+  transform: scale(0); transition: transform 0.15s;
+}
+.ts-radio-card.selected .ts-radio-dot-inner { transform: scale(1); }
+.ts-radio-content { flex: 1; }
+.ts-radio-title { font-size: 13px; font-weight: 600; color: var(--ts-text); display: flex; align-items: center; gap: 8; }
+.ts-radio-desc { font-size: 11px; color: var(--ts-text-muted); margin-top: 3px; }
+.ts-radio-price { font-size: 13px; font-weight: 600; color: var(--ts-gold); white-space: nowrap; }
+.ts-badge-rec {
+  display: inline-flex; padding: 2px 8px; border-radius: 4px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; background: var(--ts-gold); color: #0B0B0F;
+}
+.ts-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 500;
+}
+.ts-badge-gold { background: var(--ts-gold-soft); color: var(--ts-gold); }
+.ts-badge-green { background: var(--ts-green-soft); color: var(--ts-green); }
+.ts-detail-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 12px; }
+.ts-detail-label { color: var(--ts-text-secondary); }
+.ts-detail-value { font-weight: 600; color: var(--ts-text); }
+.ts-detail-value.green { color: var(--ts-green); }
+.ts-detail-value.warning { color: var(--ts-warning); }
+.ts-co2-box {
+  background: var(--ts-surface); border: 1px solid rgba(251,191,36,0.12);
+  border-radius: var(--ts-radius); padding: 20px;
+}
+.ts-cta-banner {
+  background: var(--ts-surface); border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius); padding: 32px;
+  display: flex; justify-content: space-between; align-items: center; gap: 24px;
+}
+.ts-cta-banner h3 { font-size: 18px; font-weight: 600; color: var(--ts-text); margin: 0 0 6px; }
+.ts-cta-banner p { font-size: 13px; color: var(--ts-text-secondary); margin: 0; line-height: 1.6; }
+@media (max-width: 640px) { .ts-cta-banner { flex-direction: column; text-align: center; } }
+.ts-fin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ts-fin-field label {
+  display: block; font-size: 10px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ts-text-muted); margin-bottom: 6px;
+}
+.ts-fin-field select {
+  width: 100%; padding: 10px 12px; font-size: 13px;
+  background: var(--ts-card-bg); border: 1px solid var(--ts-border);
+  border-radius: 8px; color: var(--ts-text); outline: none; cursor: pointer; font-family: inherit;
+}
+.ts-fin-field select:focus { border-color: var(--ts-gold); }
+.ts-fin-monthly {
+  text-align: center; padding: 14px;
+  background: var(--ts-gold-soft); border-radius: 10px;
+  border: 1px solid rgba(200,169,110,0.15);
+}
+.ts-fin-monthly-value { font-size: 22px; font-weight: 700; color: var(--ts-gold); }
+.ts-fin-monthly-label { font-size: 11px; color: var(--ts-text-muted); margin-top: 2px; }
+.ts-divider { height: 1px; background: var(--ts-border); }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.ts-fade-in { animation: fadeUp 0.35s ease-out; }
+@keyframes pulseGold { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.ts-pulse { animation: pulseGold 1.5s ease-in-out infinite; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--ts-border); border-radius: 4px; }
+.ts-sources { font-size: 11px; color: var(--ts-text-muted); text-align: center; letter-spacing: 0.1em; }
+.ts-disclaimer { font-size: 10px; color: var(--ts-text-muted); text-align: center; line-height: 1.6; }
+.ts-image-modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.92); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999; animation: fadeIn 0.2s ease-out;
+}
+.ts-image-modal-content { position: relative; max-width: 95vw; max-height: 95vh; border-radius: var(--ts-radius); overflow: hidden; }
+.ts-image-modal-img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.ts-image-modal-close {
+  position: absolute; top: 20px; right: 20px;
+  background: rgba(0,0,0,0.6); border: none; border-radius: 50%;
+  width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 24px; cursor: pointer; transition: all 0.2s ease; z-index: 10000;
+}
+.ts-image-modal-close:hover { background: rgba(0,0,0,0.9); transform: scale(1.1); }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.ts-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--ts-gold-dim); border-top-color: var(--ts-gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.ts-spinner-sm { width: 12px; height: 12px; border-width: 1.5px; }
+.hidden { display: none !important; }
+
+/* SVG icons inline */
+.icon { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
+</style>
+</head>
+<body>
+<div class="ts-container" id="app">
+  <!-- INITIAL STATE: URL INPUT -->
+  <div id="initial-view" class="ts-fade-in" style="display:flex;flex-direction:column;align-items:center;gap:40px;padding-top:48px">
+    <div style="text-align:center">
+      <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:32px">
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--ts-gold);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#0B0B0F">TS</div>
+        <span class="ts-label" style="font-size:11px;color:var(--ts-text-muted)">THE SELECTION</span>
+      </div>
+      <h1 class="ts-heading" style="font-size:36px;margin-bottom:16px">Descubra o preço final do veículo que quer importar</h1>
+      <p style="font-size:15px;color:var(--ts-text-secondary);line-height:1.7;max-width:520px;margin:0 auto">
+        Com o nosso Simulador, pode saber de imediato o valor chave na mão do veículo
+        que encontrou no <strong style="color:var(--ts-text)">Mobile.de</strong> ou <strong style="color:var(--ts-text)">AutoScout24</strong>.
+      </p>
+    </div>
+    <div style="width:100%;max-width:600px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;gap:10px">
+        <div style="position:relative;flex:1">
+          <svg style="position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--ts-text-muted)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <input type="url" id="url-input" class="ts-input" style="padding-left:44px" placeholder="Cole o link do anúncio aqui..." autocomplete="off">
+        </div>
+        <button type="button" id="btn-analyze" class="ts-btn ts-btn-gold" style="min-width:160px" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          Analisar
+        </button>
+      </div>
+      <p class="ts-sources">AUTOSCOUT24  ·  MOBILE.DE</p>
+    </div>
+    <div id="scrape-error" class="ts-card-alt ts-fade-in hidden" style="padding:14px 20px;display:flex;align-items:center;gap:12px;border-color:rgba(251,191,36,0.2);max-width:600px;width:100%">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ts-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+      <span id="scrape-error-text" style="font-size:13px;color:var(--ts-text-secondary)"></span>
+    </div>
+  </div>
+
+  <!-- AFTER IMPORT VIEW -->
+  <div id="imported-view" class="ts-fade-in hidden" style="display:flex;flex-direction:column;gap:24px">
+    <!-- URL Bar -->
+    <div class="ts-url-bar">
+      <div style="display:flex;align-items:center;gap:10px;overflow:hidden">
+        <span class="ts-label" style="flex-shrink:0">LINK ATUAL</span>
+        <a id="source-link" href="#" target="_blank" rel="noopener noreferrer" class="ts-url-bar-link"></a>
+      </div>
+      <button type="button" id="btn-reset" class="ts-btn ts-btn-outline" style="padding:8px 16px;font-size:12px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+        Nova Simulação
+      </button>
+    </div>
+
+    <!-- MAIN CARD: Image + Simulation -->
+    <div class="ts-main-card">
+      <div class="ts-main-card-image" id="hero-image-container">
+        <img id="hero-image" src="" alt="Veículo" style="cursor:pointer" onclick="openImageModal()">
+        <div id="hero-placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px" class="hidden">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--ts-text-muted)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3"><path d="M3 14h.01"/><path d="M6 11h.01"/><path d="m2 2 20 20"/><path d="M13.89 6H18a2 2 0 0 1 2 2v7.5"/><path d="M18 20H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h.34"/></svg>
+          <span style="font-size:12px;color:var(--ts-text-muted)">Sem imagem disponível</span>
+        </div>
+      </div>
+
+      <!-- RIGHT: Simulation Panel -->
+      <div class="ts-main-card-sim">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <span style="font-size:17px;font-weight:600;color:var(--ts-text)">Simulação</span>
+          <div class="ts-toggle">
+            <button type="button" id="btn-particular" class="active" onclick="setBuyerType('particular')">Particular</button>
+            <button type="button" id="btn-empresa" onclick="setBuyerType('empresa')">Empresa</button>
+          </div>
+        </div>
+        <div class="ts-tabs" style="margin-bottom:20px">
+          <button type="button" id="btn-pronto" class="active" onclick="setPaymentMethod('pronto')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+            A Pronto
+          </button>
+          <button type="button" id="btn-financiamento" onclick="setPaymentMethod('financiamento')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+            Financiamento
+          </button>
+        </div>
+
+        <!-- Simulation content (shown after calculation) -->
+        <div id="sim-results" class="hidden" style="flex:1;display:flex;flex-direction:column;justify-content:space-between">
+          <div id="sim-breakdown"></div>
+          <div style="margin-top:16px" id="sim-total-area"></div>
+        </div>
+        <!-- Waiting state -->
+        <div id="sim-waiting" style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px">
+          <div id="sim-waiting-co2" class="hidden" style="text-align:center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ts-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:8px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            <p style="font-size:13px;color:var(--ts-text-secondary);margin:0">Introduza o valor de CO₂ para calcular o ISV</p>
+          </div>
+          <div id="sim-waiting-calc" style="display:flex;align-items:center;gap:8px">
+            <span class="ts-spinner ts-pulse"></span>
+            <span style="font-size:13px;color:var(--ts-text-muted)">Preencha os dados e simule...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Car Title -->
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <h2 id="car-title" class="ts-heading" style="font-size:22px;text-transform:uppercase;margin-bottom:4px">Veículo Importado</h2>
+        <a id="car-link" href="#" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--ts-text-muted);display:inline-flex;align-items:center;gap:4px;text-decoration:none">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+          Ver anúncio original
+        </a>
+      </div>
+    </div>
+
+    <!-- Specs Grid -->
+    <div id="specs-grid" class="ts-spec-grid"></div>
+
+    <!-- Price & Age Inputs -->
+    <div class="ts-card" style="padding:16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label class="ts-label" style="font-size:11px">PREÇO DA VIATURA (€)</label>
+          <input type="number" id="input-price" class="ts-input" placeholder="Ex: 25000" min="0">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label class="ts-label" style="font-size:11px">IDADE DO VEÍCULO (anos)</label>
+          <input type="number" id="input-age" class="ts-input" placeholder="Ex: 3" min="0" step="0.1">
+        </div>
+      </div>
+    </div>
+
+    <!-- CO2 Missing Section -->
+    <div id="co2-section" class="ts-co2-box ts-fade-in hidden" style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ts-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        <span style="font-size:13px;font-weight:500;color:var(--ts-text-secondary)">Emissões CO₂ não disponíveis no anúncio</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="number" id="input-co2" class="ts-input ts-input-sm" style="width:100px" placeholder="g/km" min="0" max="500">
+        <span id="co2-standard-label" style="font-size:12px;color:var(--ts-text-muted)">WLTP</span>
+      </div>
+    </div>
+
+    <!-- CO2 badge when available -->
+    <div id="co2-badge-section" class="hidden" style="display:flex;align-items:center;gap:10px">
+      <span id="co2-badge" class="ts-badge ts-badge-green"></span>
+      <input type="number" id="input-co2-inline" class="ts-input ts-input-sm" style="width:72px" min="0" max="500">
+      <span style="font-size:11px;color:var(--ts-text-muted)">g/km</span>
+    </div>
+
+    <!-- SIMULATE BUTTON -->
+    <div style="display:flex;gap:10px">
+      <button type="button" id="btn-simulate" class="ts-btn ts-btn-gold" style="flex:1;padding:12px 20px" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        Simular Importação
+      </button>
+    </div>
+
+    <!-- GARANTIA Section -->
+    <div class="ts-section">
+      <div class="ts-section-header">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ts-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
+        Garantia
+        <div class="ts-info-icon" title="Garantia mecânica para proteção do seu investimento">i</div>
+      </div>
+      <div class="ts-radio-card selected" onclick="setWarranty('none')" id="warranty-none">
+        <div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div>
+        <div class="ts-radio-content"><div class="ts-radio-title">Sem garantia adicional</div></div>
+      </div>
+      <div class="ts-radio-card" onclick="setWarranty('12')" id="warranty-12">
+        <div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div>
+        <div class="ts-radio-content">
+          <div class="ts-radio-title">Garantia The Selection <span class="ts-badge-rec">RECOMENDADO</span></div>
+          <div class="ts-radio-desc">Proteção mecânica alargada · 12 Meses</div>
+        </div>
+        <span class="ts-radio-price">500 €</span>
+      </div>
+      <div class="ts-radio-card" onclick="setWarranty('24')" id="warranty-24">
+        <div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div>
+        <div class="ts-radio-content">
+          <div class="ts-radio-title">Garantia Premium</div>
+          <div class="ts-radio-desc">Cobertura total · 24 Meses</div>
+        </div>
+        <span class="ts-radio-price">900 €</span>
+      </div>
+    </div>
+
+    <!-- ENTREGA Section -->
+    <div class="ts-section">
+      <div class="ts-section-header">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ts-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>
+        Entrega da Viatura
+        <div class="ts-info-icon" title="Opções de entrega disponíveis">i</div>
+      </div>
+      <div style="background:var(--ts-surface);border:1px solid var(--ts-border);border-radius:var(--ts-radius-sm);overflow:hidden">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--ts-border)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--ts-green)"></div>
+            <span style="font-size:13px;font-weight:600">Standard</span>
+            <span style="font-size:11px;color:var(--ts-text-muted)">Em 4-6 semanas (estimativa)</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;padding-left:16px">
+            <div class="ts-radio-card selected" onclick="setDelivery('recolha')" id="delivery-recolha" style="padding:12px 16px">
+              <div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div>
+              <div class="ts-radio-content"><div class="ts-radio-title" style="font-size:12px">Recolha no Centro Logístico</div></div>
+              <span style="font-size:12px;font-weight:600;color:var(--ts-green)">Incluído</span>
+            </div>
+            <div class="ts-radio-card" onclick="setDelivery('domicilio')" id="delivery-domicilio" style="padding:12px 16px">
+              <div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div>
+              <div class="ts-radio-content"><div class="ts-radio-title" style="font-size:12px">Entrega ao Domicílio</div></div>
+              <span class="ts-radio-price" style="font-size:12px">+ 250 €</span>
+            </div>
+          </div>
+        </div>
+        <div style="padding:16px 20px">
+          <div class="ts-radio-card" onclick="setDelivery('express')" id="delivery-express" style="padding:12px 16px">
+            <div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div>
+            <div class="ts-radio-content">
+              <div class="ts-radio-title" style="font-size:12px">
+                Express
+                <span style="padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;background:var(--ts-warning);color:#0B0B0F;letter-spacing:0.05em">RÁPIDO</span>
+              </div>
+              <div class="ts-radio-desc">Em 2 semanas · Entrega ao domicílio incluída</div>
+            </div>
+            <span class="ts-radio-price" style="font-size:12px">+ 650 €</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ISV Detail (collapsible) -->
+    <div id="isv-detail-card" class="ts-card hidden" style="padding:16px">
+      <button type="button" id="btn-isv-toggle" onclick="toggleISVDetail()" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;cursor:pointer;padding:0">
+        <span style="font-size:12px;color:var(--ts-text-muted);display:flex;align-items:center;gap:6px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          Detalhe do cálculo ISV 2026
+        </span>
+        <svg id="isv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ts-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div id="isv-detail-content" class="ts-fade-in hidden" style="margin-top:14px;display:flex;flex-direction:column;gap:4px"></div>
+    </div>
+
+    <!-- Disclaimer -->
+    <p class="ts-disclaimer">Simulação indicativa · Tabelas ISV 2026 · Valores sujeitos a confirmação · TAEG indicativa</p>
+
+    <!-- CTA Banner -->
+    <div class="ts-cta-banner">
+      <div>
+        <h3>Quer garantir o melhor negócio para si?</h3>
+        <p>Disponibilizamos uma avaliação gratuita da sua simulação e esclarecemos qualquer dúvida para que avance com total confiança.</p>
+      </div>
+      <a href="https://wa.me/351910000000?text=Ol%C3%A1%2C%20gostaria%20de%20saber%20mais%20sobre%20a%20importa%C3%A7%C3%A3o%20de%20um%20ve%C3%ADculo." target="_blank" rel="noopener noreferrer" class="ts-btn ts-btn-outline" style="min-width:220px;padding:14px 24px;text-decoration:none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
+        Falar com um especialista
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- IMAGE MODAL -->
+<div id="image-modal" class="ts-image-modal-overlay hidden" onclick="closeImageModal()">
+  <div class="ts-image-modal-content" onclick="event.stopPropagation()">
+    <button type="button" class="ts-image-modal-close" onclick="closeImageModal()" aria-label="Fechar">✕</button>
+    <img id="modal-image" src="" alt="Veículo" class="ts-image-modal-img">
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+const state = {
+  imported: false,
+  sourceUrl: '',
+  scrapedData: null,
+  fuelType: 'gasolina',
+  emissionStandard: 'WLTP',
+  displacement: '',
+  co2: '',
+  vehicleAge: '',
+  purchasePrice: '',
+  buyerType: 'particular',
+  paymentMethod: 'pronto',
+  warranty: 'none',
+  delivery: 'recolha',
+  loanTerm: 72,
+  entryPercent: 20,
+  isv: null,
+  co2Source: null,
+};
+
+const WARRANTY_COST = { none: 0, '12': 500, '24': 900 };
+const DELIVERY_COST = { recolha: 0, domicilio: 250, express: 650 };
+const FINANCING_RATE = 0.059;
+
+// ═══════════════════════════════════════
+// ISV CALCULATION (2026 Tables)
+// ═══════════════════════════════════════
+const CILINDRADA_PASSAGEIROS = [
+  { min: 0, max: 1000, rate: 1.09, deduction: 849.03 },
+  { min: 1001, max: 1250, rate: 1.18, deduction: 850.69 },
+  { min: 1251, max: 999999, rate: 5.61, deduction: 6194.88 },
+];
+const CO2_GASOLINA_NEDC = [
+  { min: 0, max: 99, rate: 4.62, deduction: 427.00 },
+  { min: 100, max: 115, rate: 8.09, deduction: 750.99 },
+  { min: 116, max: 145, rate: 52.56, deduction: 5903.94 },
+  { min: 146, max: 175, rate: 61.24, deduction: 7140.17 },
+  { min: 176, max: 195, rate: 155.97, deduction: 23627.27 },
+  { min: 196, max: 999999, rate: 205.65, deduction: 33390.12 },
+];
+const CO2_GASOLINA_WLTP = [
+  { min: 0, max: 110, rate: 0.44, deduction: 43.02 },
+  { min: 111, max: 115, rate: 1.10, deduction: 115.80 },
+  { min: 116, max: 120, rate: 1.38, deduction: 147.79 },
+  { min: 121, max: 130, rate: 5.27, deduction: 619.17 },
+  { min: 131, max: 145, rate: 6.38, deduction: 762.73 },
+  { min: 146, max: 175, rate: 41.54, deduction: 5819.56 },
+  { min: 176, max: 195, rate: 51.38, deduction: 7247.39 },
+  { min: 196, max: 235, rate: 193.01, deduction: 34190.52 },
+  { min: 236, max: 999999, rate: 233.81, deduction: 41910.96 },
+];
+const CO2_GASOLEO_NEDC = [
+  { min: 0, max: 79, rate: 5.78, deduction: 439.04 },
+  { min: 80, max: 95, rate: 23.45, deduction: 1848.58 },
+  { min: 96, max: 120, rate: 79.22, deduction: 7195.63 },
+  { min: 121, max: 140, rate: 175.73, deduction: 18924.92 },
+  { min: 141, max: 160, rate: 195.43, deduction: 21720.92 },
+  { min: 161, max: 999999, rate: 268.42, deduction: 33447.90 },
+];
+const CO2_GASOLEO_WLTP = [
+  { min: 0, max: 110, rate: 1.72, deduction: 11.50 },
+  { min: 111, max: 120, rate: 18.96, deduction: 1906.19 },
+  { min: 121, max: 140, rate: 65.04, deduction: 7360.85 },
+  { min: 141, max: 150, rate: 127.40, deduction: 16080.57 },
+  { min: 151, max: 160, rate: 160.81, deduction: 21176.06 },
+  { min: 161, max: 170, rate: 221.69, deduction: 29227.38 },
+  { min: 171, max: 190, rate: 274.08, deduction: 36987.98 },
+  { min: 191, max: 999999, rate: 282.35, deduction: 38271.32 },
+];
+const AGE_DISCOUNT_MAP = [0.10, 0.20, 0.28, 0.35, 0.43, 0.52, 0.60, 0.65, 0.70, 0.75];
+
+function findBracket(brackets, value) {
+  for (const b of brackets) { if (value >= b.min && value <= b.max) return b; }
+  return brackets[brackets.length - 1];
+}
+function calcComponent(brackets, value) {
+  const b = findBracket(brackets, value);
+  return Math.max(0, value * b.rate - b.deduction);
+}
+function getAgeDiscount(age) {
+  if (age < 0) return 0;
+  const idx = Math.floor(age);
+  if (idx >= AGE_DISCOUNT_MAP.length) return 0.80;
+  return AGE_DISCOUNT_MAP[idx];
+}
+function getCO2Table(fuel, standard) {
+  const isGasolina = ['gasolina','gpl','hibrido','hibrido_plugin','gas_natural'].includes(fuel);
+  if (isGasolina && standard === 'NEDC') return CO2_GASOLINA_NEDC;
+  if (isGasolina && standard === 'WLTP') return CO2_GASOLINA_WLTP;
+  if (fuel === 'gasoleo' && standard === 'NEDC') return CO2_GASOLEO_NEDC;
+  if (fuel === 'gasoleo' && standard === 'WLTP') return CO2_GASOLEO_WLTP;
+  return null;
+}
+function getHybridBenefit(fuel) {
+  if (fuel === 'hibrido') return { multiplier: 0.60, label: 'Híbrido (paga 60%)' };
+  if (fuel === 'hibrido_plugin') return { multiplier: 0.25, label: 'Híbrido Plug-in (paga 25%)' };
+  if (fuel === 'gas_natural') return { multiplier: 0.40, label: 'Gás Natural (paga 40%)' };
+  return { multiplier: 1.0, label: '' };
+}
+
+function calculateISV(displacement, co2, fuelType, emissionStandard, vehicleAge) {
+  if (fuelType === 'eletrico') {
+    return { componenteCilindrada:0, componenteAmbiental:0, isvBruto:0, descontoIdade:0, percentagemDesconto:0, taxaParticulas:0, beneficioFiscal:0, percentagemBeneficio:0, isvFinal:0 };
+  }
+  const componenteCilindrada = calcComponent(CILINDRADA_PASSAGEIROS, displacement);
+  const co2Table = getCO2Table(fuelType, emissionStandard);
+  let componenteAmbiental = 0;
+  if (co2Table) {
+    const b = findBracket(co2Table, co2);
+    componenteAmbiental = co2 * b.rate - b.deduction;
+  }
+  const isvBruto = componenteCilindrada + componenteAmbiental;
+  const percentagemDesconto = getAgeDiscount(vehicleAge);
+  const descontoIdade = isvBruto * percentagemDesconto;
+  let afterAge = Math.max(0, isvBruto - descontoIdade);
+  const benefit = getHybridBenefit(fuelType);
+  let beneficioFiscal = 0, percentagemBeneficio = 0;
+  if (benefit.multiplier < 1.0) {
+    percentagemBeneficio = 1 - benefit.multiplier;
+    beneficioFiscal = afterAge * percentagemBeneficio;
+    afterAge = afterAge * benefit.multiplier;
+  }
+  const taxaParticulas = (fuelType === 'gasoleo') ? 500 : 0;
+  const isvFinal = Math.max(0, afterAge) + taxaParticulas;
+  return { componenteCilindrada, componenteAmbiental, isvBruto, descontoIdade, percentagemDesconto, taxaParticulas, beneficioFiscal, percentagemBeneficio, isvFinal };
+}
+
+function calculateImportCost(price) {
+  if (price <= 0) return 1500;
+  const cost = price * 0.05;
+  return Math.max(1500, Math.min(30000, Math.round(cost)));
+}
+
+// ═══════════════════════════════════════
+// FORMATTERS
+// ═══════════════════════════════════════
+function fmtPrice(n) {
+  return new Intl.NumberFormat('pt-PT', { style:'currency', currency:'EUR', minimumFractionDigits:0, maximumFractionDigits:0 }).format(Math.round(n));
+}
+function fmtCurrency(n) {
+  return new Intl.NumberFormat('pt-PT', { style:'currency', currency:'EUR', minimumFractionDigits:2, maximumFractionDigits:2 }).format(n);
+}
+function fmtPercent(v) { return (v * 100).toFixed(0) + '%'; }
+
+const FUEL_LABELS = {
+  gasolina:'Gasolina', gasoleo:'Gasóleo', eletrico:'Elétrico',
+  hibrido:'Híbrido', hibrido_plugin:'Plug-in Hybrid', gpl:'GPL', gas_natural:'Gás Natural',
+};
+
+// ═══════════════════════════════════════
+// DOM HELPERS
+// ═══════════════════════════════════════
+const $ = id => document.getElementById(id);
+function show(el) { if (typeof el === 'string') el = $(el); el.classList.remove('hidden'); }
+function hide(el) { if (typeof el === 'string') el = $(el); el.classList.add('hidden'); }
+
+// ═══════════════════════════════════════
+// UI ACTIONS
+// ═══════════════════════════════════════
+function setBuyerType(type) {
+  state.buyerType = type;
+  $('btn-particular').className = type === 'particular' ? 'active' : '';
+  $('btn-empresa').className = type === 'empresa' ? 'active' : '';
+  if (state.isv) renderSimulation();
+}
+
+function setPaymentMethod(method) {
+  state.paymentMethod = method;
+  $('btn-pronto').className = method === 'pronto' ? 'active' : '';
+  $('btn-financiamento').className = method === 'financiamento' ? 'active' : '';
+  if (state.isv) renderSimulation();
+}
+
+function setWarranty(opt) {
+  state.warranty = opt;
+  ['none','12','24'].forEach(k => {
+    const el = $('warranty-' + k);
+    el.className = 'ts-radio-card' + (k === opt ? ' selected' : '');
+  });
+  if (state.isv) renderSimulation();
+}
+
+function setDelivery(opt) {
+  state.delivery = opt;
+  ['recolha','domicilio','express'].forEach(k => {
+    const el = $('delivery-' + k);
+    el.className = 'ts-radio-card' + (k === opt ? ' selected' : '');
+  });
+  if (state.isv) renderSimulation();
+}
+
+function toggleISVDetail() {
+  const content = $('isv-detail-content');
+  const chevron = $('isv-chevron');
+  if (content.classList.contains('hidden')) {
+    show(content);
+    chevron.innerHTML = '<path d="m18 15-6-6-6 6"/>';
+  } else {
+    hide(content);
+    chevron.innerHTML = '<path d="m6 9 6 6 6-6"/>';
+  }
+}
+
+function openImageModal() {
+  if (!state.scrapedData || !state.scrapedData.imageUrl) return;
+  $('modal-image').src = state.scrapedData.imageUrl;
+  show('image-modal');
+}
+function closeImageModal() { hide('image-modal'); }
+
+// ═══════════════════════════════════════
+// RENDER SIMULATION PANEL
+// ═══════════════════════════════════════
+function renderSimulation() {
+  const isv = state.isv;
+  if (!isv) return;
+  const price = Number(state.purchasePrice) || 0;
+  const importCost = calculateImportCost(price);
+  const warrantyCost = WARRANTY_COST[state.warranty];
+  const deliveryCost = DELIVERY_COST[state.delivery];
+  const grandTotal = price + isv.isvFinal + importCost + warrantyCost + deliveryCost;
+  const ivaRecovery = state.buyerType === 'empresa' ? Math.round(importCost * 0.23 / 1.23) : 0;
+  const finalTotal = grandTotal - ivaRecovery;
+
+  // Breakdown
+  let html = '';
+  html += `<div class="ts-result-row"><span class="ts-result-label">Valor da Viatura</span><span class="ts-result-value">${fmtPrice(price)}</span></div>`;
+  html += `<div class="ts-result-row"><span class="ts-result-label">ISV</span><span class="ts-result-value">${fmtPrice(isv.isvFinal)}</span></div>`;
+  html += `<div class="ts-result-row"><div><span class="ts-result-label">Serviço The Selection</span>`;
+  if (state.buyerType === 'empresa' && ivaRecovery > 0) {
+    html += `<div class="ts-result-sublabel">Inclui IVA de ${fmtPrice(Math.round(importCost * 0.23 / 1.23))}</div>`;
+  }
+  html += `</div><span class="ts-result-value">${fmtPrice(importCost)}</span></div>`;
+  if (warrantyCost > 0) {
+    html += `<div class="ts-result-row"><div><span class="ts-result-label">Garantia</span><div class="ts-result-sublabel">Garantia ${state.warranty} Meses</div></div><span class="ts-result-value">${fmtPrice(warrantyCost)}</span></div>`;
+  }
+  const deliveryLabel = state.delivery === 'recolha' ? 'Recolha no Centro Logístico' : state.delivery === 'domicilio' ? 'Entrega ao Domicílio' : 'Entrega Express';
+  const deliveryValue = state.delivery === 'recolha'
+    ? '<span class="ts-result-value" style="color:var(--ts-green)">Incluído</span>'
+    : `<span class="ts-result-value">${fmtPrice(deliveryCost)}</span>`;
+  html += `<div class="ts-result-row"><div><span class="ts-result-label">Entrega</span><div class="ts-result-sublabel">${deliveryLabel}</div></div>${deliveryValue}</div>`;
+  if (state.buyerType === 'empresa' && ivaRecovery > 0) {
+    html += `<div class="ts-result-row"><span class="ts-result-label" style="color:var(--ts-green)">IVA Dedutível</span><span class="ts-result-value" style="color:var(--ts-green)">-${fmtPrice(ivaRecovery)}</span></div>`;
+  }
+  $('sim-breakdown').innerHTML = html;
+
+  // Total area
+  if (state.paymentMethod === 'pronto') {
+    $('sim-total-area').innerHTML = `
+      <div class="ts-total">
+        <div><div class="ts-total-label">Preço Chave na Mão</div></div>
+        <div class="ts-total-value">${fmtPrice(finalTotal)}</div>
+      </div>`;
+  } else {
+    const entryAmount = Math.round(finalTotal * (state.entryPercent / 100));
+    const financedAmount = finalTotal - entryAmount;
+    const monthlyRate = FINANCING_RATE / 12;
+    const monthly = financedAmount > 0 && state.loanTerm > 0
+      ? Math.round(financedAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -state.loanTerm)))
+      : 0;
+
+    $('sim-total-area').innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="ts-fin-grid">
+          <div class="ts-fin-field">
+            <label>Entrada (${state.entryPercent}%)</label>
+            <select id="sel-entry" onchange="state.entryPercent=Number(this.value);renderSimulation()">
+              ${[10,15,20,30,40,50].map(p => `<option value="${p}" ${p===state.entryPercent?'selected':''}>${p}% — ${fmtPrice(Math.round(finalTotal*p/100))}</option>`).join('')}
+            </select>
+          </div>
+          <div class="ts-fin-field">
+            <label>Prazo</label>
+            <select id="sel-term" onchange="state.loanTerm=Number(this.value);renderSimulation()">
+              ${[48,60,72,84,96].map(t => `<option value="${t}" ${t===state.loanTerm?'selected':''}>${t} meses</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="ts-fin-monthly">
+          <div class="ts-fin-monthly-value">${fmtPrice(monthly)}/mês</div>
+          <div class="ts-fin-monthly-label">TAEG ${(FINANCING_RATE*100).toFixed(1)}% · Entrada ${fmtPrice(entryAmount)}</div>
+        </div>
+        <div class="ts-total" style="padding:14px 20px">
+          <div class="ts-total-label" style="font-size:12px">Total Financiado</div>
+          <div class="ts-total-value" style="font-size:18px">${fmtPrice(finalTotal)}</div>
+        </div>
+      </div>`;
+  }
+
+  show('sim-results');
+  hide('sim-waiting');
+
+  // ISV detail
+  renderISVDetail(isv);
+}
+
+function renderISVDetail(isv) {
+  show('isv-detail-card');
+  let html = '';
+  if (isv.isvFinal === 0 && isv.componenteCilindrada === 0) {
+    html += '<div class="ts-badge ts-badge-green" style="align-self:flex-start;margin-bottom:4px">Veículo isento de ISV</div>';
+  }
+  if (isv.componenteCilindrada > 0) {
+    html += `<div class="ts-detail-row"><span class="ts-detail-label">Componente Cilindrada</span><span class="ts-detail-value">${fmtCurrency(isv.componenteCilindrada)}</span></div>`;
+  }
+  if (isv.componenteAmbiental !== 0) {
+    const cls = isv.componenteAmbiental < 0 ? ' green' : '';
+    html += `<div class="ts-detail-row"><span class="ts-detail-label">Componente Ambiental (CO₂)</span><span class="ts-detail-value${cls}">${fmtCurrency(isv.componenteAmbiental)}</span></div>`;
+  }
+  if (isv.isvBruto > 0) {
+    html += `<div class="ts-divider" style="margin:6px 0"></div>`;
+    html += `<div class="ts-detail-row"><span style="font-weight:600;color:var(--ts-text);font-size:12px">ISV Bruto</span><span style="font-weight:700;color:var(--ts-text);font-size:12px">${fmtCurrency(isv.isvBruto)}</span></div>`;
+  }
+  if (isv.descontoIdade > 0) {
+    html += `<div class="ts-detail-row"><span class="ts-detail-label" style="display:flex;align-items:center;gap:4px;color:var(--ts-green)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg> Desc. Idade (${fmtPercent(isv.percentagemDesconto)})</span><span class="ts-detail-value green">-${fmtCurrency(isv.descontoIdade)}</span></div>`;
+  }
+  if (isv.beneficioFiscal > 0) {
+    html += `<div class="ts-detail-row"><span class="ts-detail-label" style="display:flex;align-items:center;gap:4px;color:var(--ts-green)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg> Benef. Fiscal (${fmtPercent(isv.percentagemBeneficio)})</span><span class="ts-detail-value green">-${fmtCurrency(isv.beneficioFiscal)}</span></div>`;
+  }
+  if (isv.taxaParticulas > 0) {
+    html += `<div class="ts-detail-row"><span class="ts-detail-label" style="display:flex;align-items:center;gap:4px;color:var(--ts-warning)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> Taxa Partículas</span><span class="ts-detail-value warning">+${fmtCurrency(isv.taxaParticulas)}</span></div>`;
+  }
+  html += `<div class="ts-divider" style="margin:6px 0"></div>`;
+  html += `<div class="ts-detail-row"><span style="font-weight:700;color:var(--ts-gold);font-size:12px">ISV Final</span><span style="font-weight:700;font-size:14px;color:var(--ts-gold)">${fmtCurrency(isv.isvFinal)}</span></div>`;
+  $('isv-detail-content').innerHTML = html;
+}
+
+// ═══════════════════════════════════════
+// SPECS GRID
+// ═══════════════════════════════════════
+function renderSpecs(data) {
+  let html = '';
+  if (data.mileage != null) {
+    html += `<div class="ts-spec-cell"><div class="ts-spec-label">Quilómetros</div><div class="ts-spec-value">${Number(data.mileage).toLocaleString('pt-PT')} km</div></div>`;
+  }
+  if (data.registrationYear) {
+    const regDate = data.registrationMonth
+      ? `${String(data.registrationMonth).padStart(2,'0')}/${data.registrationYear}`
+      : String(data.registrationYear);
+    html += `<div class="ts-spec-cell"><div class="ts-spec-label">Data 1º Registo</div><div class="ts-spec-value">${regDate}</div></div>`;
+  }
+  if (data.displacement) {
+    html += `<div class="ts-spec-cell"><div class="ts-spec-label">Cilindrada</div><div class="ts-spec-value">${Number(data.displacement).toLocaleString('pt-PT')} ccm</div></div>`;
+  }
+  if (data.power) {
+    html += `<div class="ts-spec-cell"><div class="ts-spec-label">Potência</div><div class="ts-spec-value">${data.power}</div></div>`;
+  }
+  if (data.fuelType) {
+    const fuelIcon = ['eletrico','hibrido','hibrido_plugin'].includes(data.fuelType)
+      ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>'
+      : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22a2 2 0 0 1-2-2V6l3-4h8l3 4v14a2 2 0 0 1-2 2Z"/><path d="M13 11H1"/></svg>';
+    html += `<div class="ts-spec-cell"><div class="ts-spec-label">Combustível</div><div class="ts-spec-value" style="display:flex;align-items:center;gap:6px">${fuelIcon} ${FUEL_LABELS[data.fuelType] || data.fuelType}</div></div>`;
+  }
+  if (data.gearbox) {
+    html += `<div class="ts-spec-cell"><div class="ts-spec-label">Tipo de Caixa</div><div class="ts-spec-value">${data.gearbox}</div></div>`;
+  }
+  if (data.fuelType === 'hibrido_plugin' || data.fuelType === 'hibrido') {
+    html += `<div class="ts-spec-cell"><div class="ts-spec-label">Híbrido Plug-In</div><div class="ts-spec-value">${data.fuelType === 'hibrido_plugin' ? 'Sim' : 'Não'}</div></div>`;
+  }
+  const co2Val = state.co2 && Number(state.co2) > 0 ? state.co2 : '—';
+  const co2Class = co2Val === '—' ? ' muted' : '';
+  html += `<div class="ts-spec-cell"><div class="ts-spec-label">Emissões CO₂</div><div class="ts-spec-value${co2Class}">${co2Val}</div></div>`;
+  $('specs-grid').innerHTML = html;
+}
+
+// ═══════════════════════════════════════
+// SIMULATION BUTTON STATE
+// ═══════════════════════════════════════
+function updateSimButton() {
+  const btn = $('btn-simulate');
+  const needsCO2 = state.fuelType !== 'eletrico';
+  const hasCO2 = state.co2 !== '' && Number(state.co2) > 0;
+  const canCalc = state.imported && state.displacement && state.vehicleAge && state.purchasePrice && (hasCO2 || !needsCO2);
+  btn.disabled = !canCalc;
+  if (!state.purchasePrice) {
+    btn.innerHTML = '💰 Introduza o preço';
+  } else if (!state.vehicleAge) {
+    btn.innerHTML = '📅 Introduza a idade';
+  } else if (!hasCO2 && needsCO2) {
+    btn.innerHTML = '💨 Introduza CO₂';
+  } else {
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg> Simular Importação';
+  }
+
+  // CO2 sections visibility
+  if (needsCO2 && !hasCO2) {
+    show('co2-section');
+    hide('co2-badge-section');
+    show('sim-waiting-co2');
+    hide('sim-waiting-calc');
+  } else if (needsCO2 && hasCO2 && state.co2Source) {
+    hide('co2-section');
+    show('co2-badge-section');
+    $('co2-badge').innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg> ${state.co2Source}`;
+    $('input-co2-inline').value = state.co2;
+    hide('sim-waiting-co2');
+    show('sim-waiting-calc');
+  } else {
+    hide('co2-section');
+    hide('co2-badge-section');
+    hide('sim-waiting-co2');
+    show('sim-waiting-calc');
+  }
+}
+
+// ═══════════════════════════════════════
+// SCRAPE + IMPORT
+// ═══════════════════════════════════════
+async function handleImportUrl() {
+  const url = $('url-input').value.trim();
+  if (!url) return;
+  if (!url.includes('autoscout24') && !url.includes('mobile.de')) {
+    showScrapeError('Apenas links do AutoScout24 e mobile.de são suportados.');
+    return;
+  }
+
+  // Loading state
+  const btn = $('btn-analyze');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="ts-spinner" style="border-top-color:#0B0B0F;border-color:rgba(11,11,15,0.3);border-top-color:#0B0B0F"></span> A analisar...';
+  hide('scrape-error');
+
+  try {
+    const resp = await fetch('/api/scrape-vehicle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+
+    if (data.error) {
+      showScrapeError(data.error);
+      resetAnalyzeBtn();
+      return;
+    }
+    if (!data.price && !data.displacement && !data.fuelType && !data.registrationYear) {
+      showScrapeError('Não foi possível extrair dados. Verifique se o link é de um anúncio individual.');
+      resetAnalyzeBtn();
+      return;
+    }
+
+    // Success - populate state
+    state.scrapedData = data;
+    state.sourceUrl = url;
+    state.imported = true;
+    if (data.fuelType) state.fuelType = data.fuelType;
+    if (data.displacement) state.displacement = String(data.displacement);
+    if (data.co2) state.co2 = String(data.co2);
+    if (data.price) state.purchasePrice = String(data.price);
+    if (data.registrationYear) {
+      const age = calculateVehicleAge(data.registrationYear, data.registrationMonth);
+      state.vehicleAge = String(age);
+      state.emissionStandard = data.registrationYear >= 2020 ? 'WLTP' : 'NEDC';
+    }
+
+    // Try to get CO2 from API if not available
+    if (!data.co2 && state.fuelType !== 'eletrico') {
+      try {
+        const co2Resp = await fetch('/api/get-co2', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            brand: data.brand || (data.title ? data.title.split(' ')[0] : ''),
+            model: data.model || (data.title ? data.title.split(' ').slice(1,3).join(' ') : ''),
+            fuelType: state.fuelType,
+            engineSize: Number(state.displacement) || 0,
+          }),
+        });
+        if (co2Resp.ok) {
+          const co2Data = await co2Resp.json();
+          if (co2Data.co2) {
+            state.co2 = String(co2Data.co2);
+            state.co2Source = co2Data.source || 'Base de dados';
+          }
+        }
+      } catch (e) { console.log('CO2 lookup failed:', e); }
+    }
+
+    // Show imported view
+    showImportedView();
+
+  } catch (err) {
+    const msg = err.message || String(err);
+    if (msg.includes('timeout') || msg.includes('TIMEOUT')) {
+      showScrapeError(url.includes('mobile.de')
+        ? 'O mobile.de demorou demasiado. Use um link do AutoScout24.'
+        : 'O site demorou demasiado. Tente novamente.');
+    } else {
+      showScrapeError('Erro ao aceder ao link. Verifique o URL e tente novamente.');
+    }
+    resetAnalyzeBtn();
+  }
+}
+
+function calculateVehicleAge(year, month) {
+  const now = new Date();
+  const regDate = new Date(year, (month || 1) - 1, 1);
+  let age = (now - regDate) / (365.25 * 24 * 60 * 60 * 1000);
+  return Math.max(0, Math.round(age * 10) / 10);
+}
+
+function showScrapeError(msg) {
+  $('scrape-error-text').textContent = msg;
+  show('scrape-error');
+}
+
+function resetAnalyzeBtn() {
+  const btn = $('btn-analyze');
+  btn.disabled = !$('url-input').value.trim();
+  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg> Analisar';
+}
+
+function showImportedView() {
+  hide('initial-view');
+  show('imported-view');
+
+  const data = state.scrapedData;
+
+  // Source link
+  $('source-link').href = state.sourceUrl;
+  $('source-link').textContent = state.sourceUrl;
+
+  // Image
+  if (data.imageUrl) {
+    $('hero-image').src = data.imageUrl;
+    $('hero-image').style.display = 'block';
+    hide('hero-placeholder');
+    $('hero-image').onerror = function() {
+      this.style.display = 'none';
+      show('hero-placeholder');
+    };
+  } else {
+    $('hero-image').style.display = 'none';
+    show('hero-placeholder');
+  }
+
+  // Title
+  $('car-title').textContent = data.title || 'Veículo Importado';
+  $('car-link').href = state.sourceUrl;
+
+  // Populate inputs
+  $('input-price').value = state.purchasePrice;
+  $('input-age').value = state.vehicleAge;
+  if (state.co2) {
+    $('input-co2').value = state.co2;
+    $('input-co2-inline').value = state.co2;
+  }
+  $('co2-standard-label').textContent = state.emissionStandard;
+
+  // Render specs
+  renderSpecs(data);
+  updateSimButton();
+
+  // Reset simulation panel
+  hide('sim-results');
+  show('sim-waiting');
+  hide('isv-detail-card');
+}
+
+function handleReset() {
+  state.imported = false;
+  state.sourceUrl = '';
+  state.scrapedData = null;
+  state.fuelType = 'gasolina';
+  state.emissionStandard = 'WLTP';
+  state.displacement = '';
+  state.co2 = '';
+  state.vehicleAge = '';
+  state.purchasePrice = '';
+  state.buyerType = 'particular';
+  state.paymentMethod = 'pronto';
+  state.warranty = 'none';
+  state.delivery = 'recolha';
+  state.loanTerm = 72;
+  state.entryPercent = 20;
+  state.isv = null;
+  state.co2Source = null;
+
+  hide('imported-view');
+  show('initial-view');
+  $('url-input').value = '';
+  hide('scrape-error');
+  resetAnalyzeBtn();
+
+  // Reset toggles
+  setBuyerType('particular');
+  setPaymentMethod('pronto');
+  setWarranty('none');
+  setDelivery('recolha');
+}
+
+function handleSimulate() {
+  const displacement = Number(state.displacement) || 0;
+  const co2 = Number(state.co2) || 0;
+  const vehicleAge = Number(state.vehicleAge) || 0;
+
+  state.isv = calculateISV(displacement, co2, state.fuelType, state.emissionStandard, vehicleAge);
+  renderSimulation();
+  renderSpecs(state.scrapedData);
+}
+
+// ═══════════════════════════════════════
+// EVENT LISTENERS
+// ═══════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function() {
+  $('url-input').addEventListener('input', function() {
+    $('btn-analyze').disabled = !this.value.trim();
+    hide('scrape-error');
+  });
+  $('url-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); handleImportUrl(); }
+  });
+  $('btn-analyze').addEventListener('click', handleImportUrl);
+  $('btn-reset').addEventListener('click', handleReset);
+  $('btn-simulate').addEventListener('click', handleSimulate);
+
+  // Input listeners for price/age/co2
+  $('input-price').addEventListener('input', function() {
+    state.purchasePrice = this.value;
+    updateSimButton();
+    // Auto-recalculate if ISV already computed
+    if (state.isv) {
+      renderSimulation();
+    }
+  });
+  $('input-age').addEventListener('input', function() {
+    state.vehicleAge = this.value;
+    updateSimButton();
+  });
+  $('input-co2').addEventListener('input', function() {
+    state.co2 = this.value;
+    state.co2Source = null;
+    updateSimButton();
+    renderSpecs(state.scrapedData);
+  });
+  $('input-co2-inline').addEventListener('input', function() {
+    state.co2 = this.value;
+    state.co2Source = null;
+    updateSimButton();
+    renderSpecs(state.scrapedData);
+  });
+
+  // Keyboard: Escape closes modal
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeImageModal();
+  });
+});
+</script>
+</body>
+</html>
