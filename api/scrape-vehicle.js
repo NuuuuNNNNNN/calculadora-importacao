@@ -1,6 +1,6 @@
-import axios from 'axios';
+const axios = require('axios');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Only POST allowed
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid mobile.de URL - no id parameter' });
     }
 
-    // Call ScrapingBee API using axios (as per their documentation)
+    // Call ScrapingBee API using axios
     const SCRAPINGBEE_API_KEY = 'NT61UK632R6F88RCS1YL7SM4L5Y6YWBRITBSU97QS4GDUX16CIOB0ETA1D16ESKO3UQ5ZK4QCUFA0IAL';
     
     console.log('[API] Calling ScrapingBee with axios...');
@@ -67,4 +67,4 @@ export default async function handler(req, res) {
       message: error.message
     });
   }
-}
+};
