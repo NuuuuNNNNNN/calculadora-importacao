@@ -52,16 +52,15 @@ module.exports = async (req, res) => {
     }
 
     const html = await response.text();
+        clearTimeout(timeoutId);
     let vehicleData = {};
 
     if (isMobileDe) {
       vehicleData = scrapeMobileDe(html
-          clearTimeout(timeoutId););
+        
     } else if (isAutoScout) {
       vehicleData = scrapeAutoScout24(html);
-    }
-
-    // Check if we got any data
+    }    // Check if we got any data
     if (!vehicleData || Object.keys(vehicleData).length === 0) {
       return res.status(400).json({ 
         error: 'Could not extract vehicle data from URL' 
