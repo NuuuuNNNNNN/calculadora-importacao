@@ -1,1 +1,1 @@
-{  "public": true,  "cleanUrls": false,  "trailingSlash": false,  "rewrites": [    {      "source": "/",      "destination": "/index.html"    },    {      "source": "/(.*)",      "destination": "/index.html"    }  ],  "functions": {    "api/**/*.js": {      "maxDuration": 30,      "memory": 512    }  }}
+{  "public": true,  "cleanUrls": true,  "trailingSlash": false,  "functions": {    "api/**/*.js": {      "maxDuration": 30,      "memory": 512    }  }}
