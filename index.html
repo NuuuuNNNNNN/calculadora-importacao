@@ -617,29 +617,53 @@ function getHybridBenefit(fuel) {
 
 function calculateISV(displacement, co2, fuelType, emissionStandard, vehicleAge) {
   if (fuelType === 'eletrico') {
-    return { componenteCilindrada:0, componenteAmbiental:0, isvBruto:0, descontoIdade:0, percentagemDesconto:0, taxaParticulas:0, beneficioFiscal:0, percentagemBeneficio:0, isvFinal:0 };
+    return { componenteCilindrada:0, componenteAmbiental:0, isvBruto:0, descontoIdade:0, percentagemDesconto:0, taxaParticulas:0, beneficioFiscal:0, percentagemBeneficio:0, isvFinal:0, taxaAplicavel:0 };
   }
+
+  // 01. Componente cilindrada (sempre >= 0)
   const componenteCilindrada = calcComponent(CILINDRADA_PASSAGEIROS, displacement);
+
+  // 02. Componente ambiental (pode ser negativo para CO2 baixo)
   const co2Table = getCO2Table(fuelType, emissionStandard);
   let componenteAmbiental = 0;
   if (co2Table) {
     const b = findBracket(co2Table, co2);
     componenteAmbiental = co2 * b.rate - b.deduction;
   }
+
+  // ISV bruto (soma das duas componentes, antes de qualquer redução)
   const isvBruto = componenteCilindrada + componenteAmbiental;
-  const percentagemDesconto = getAgeDiscount(vehicleAge);
-  const descontoIdade = isvBruto * percentagemDesconto;
-  let afterAge = Math.max(0, isvBruto - descontoIdade);
+
+  // Benefício híbrido - aplica-se ao ISV TOTAL (não só à ambiental)
+  // Fórmula AT: (cilindrada + ambiental) × percentagem híbrido
   const benefit = getHybridBenefit(fuelType);
-  let beneficioFiscal = 0, percentagemBeneficio = 0;
-  if (benefit.multiplier < 1.0) {
-    percentagemBeneficio = 1 - benefit.multiplier;
-    beneficioFiscal = afterAge * percentagemBeneficio;
-    afterAge = afterAge * benefit.multiplier;
-  }
+  const hybridMultiplier = benefit.multiplier;
+  const percentagemBeneficio = 1 - hybridMultiplier;
+  const beneficioFiscal = isvBruto * percentagemBeneficio;
+
+  // 03. Taxa aplicável da tabela = ISV bruto × multiplicador híbrido
+  const taxaAplicavel = isvBruto * hybridMultiplier;
+
+  // Percentagem de desconto por idade
+  const percentagemDesconto = getAgeDiscount(vehicleAge);
+
+  // 04a. Redução Anos Uso (Cilindrada) = (cilindrada × híbrido%) × idade%
+  const reducaoCilindrada = (componenteCilindrada * hybridMultiplier) * percentagemDesconto;
+
+  // 04b. Redução Anos Uso (Ambiental) = (ambiental × híbrido%) × idade%
+  // Reduções negativas são ignoradas (cap a 0) - regra AT oficial
+  const reducaoAmbiental = Math.max(0, (componenteAmbiental * hybridMultiplier) * percentagemDesconto);
+
+  // Total desconto por idade
+  const descontoIdade = reducaoCilindrada + reducaoAmbiental;
+
+  // 05. Taxa de partículas (só gasóleo, €500)
   const taxaParticulas = (fuelType === 'gasoleo') ? 500 : 0;
-  const isvFinal = Math.max(0, afterAge) + taxaParticulas;
-  return { componenteCilindrada, componenteAmbiental, isvBruto, descontoIdade, percentagemDesconto, taxaParticulas, beneficioFiscal, percentagemBeneficio, isvFinal };
+
+  // 06. Total ISV = taxa aplicável - descontos idade + partículas (mínimo €100)
+  const isvFinal = Math.max(100, taxaAplicavel - descontoIdade + taxaParticulas);
+
+  return { componenteCilindrada, componenteAmbiental, isvBruto, descontoIdade, percentagemDesconto, taxaParticulas, beneficioFiscal, percentagemBeneficio, isvFinal, taxaAplicavel };
 }
 
 function calculateImportCost(price) {
