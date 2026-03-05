@@ -121,7 +121,9 @@ function parseVehicleData(html, url) {
     power: null,
     displacement: null,
     co2: null,
-    image: null
+    image: null,
+    sellerCountry: null,
+    vatDeductible: null
   };
 
   try {
@@ -185,22 +187,45 @@ function parseVehicleData(html, url) {
       }
     }
 
-    // Fuel type
+    // Fuel type with Plug-In Hybrid detection
     if (html.includes('"tag":"fuel"')) {
       const fuelMatch = html.match(/"tag":"fuel"[^}]*"value":"([^"]+)"/);
       if (fuelMatch) {
         const fuelStr = fuelMatch[1];
         if (fuelStr.includes('Diesel')) data.fuelType = 'Diesel';
-        else if (fuelStr.includes('Hybrid')) data.fuelType = 'Hybrid';
-        else if (fuelStr.includes('Elektro')) data.fuelType = 'Electric';
-        else if (fuelStr.includes('Benzin')) data.fuelType = 'Petrol';
+        else if (fuelStr.includes('Plug-In') || fuelStr.includes('PlugIn')) data.fuelType = 'PlugIn Hybrid';
+        else if (fuelStr.includes('Hybrid') || fuelStr.includes('Elektro/Benzin') || fuelStr.includes('Benzin/Elektro')) {
+          data.fuelType = 'Hybrid';
+        }
+        else if (fuelStr.includes('Elektro') || fuelStr.includes('Electric')) data.fuelType = 'Electric';
+        else if (fuelStr.includes('Benzin') || fuelStr.includes('Petrol')) data.fuelType = 'Petrol';
+        else if (fuelStr.includes('Erdgas') || fuelStr.includes('CNG')) data.fuelType = 'CNG';
+        else if (fuelStr.includes('Autogas') || fuelStr.includes('LPG')) data.fuelType = 'LPG';
       }
     }
     if (!data.fuelType) {
       if (html.includes('Diesel')) data.fuelType = 'Diesel';
+      else if (html.includes('Plug-In') && html.includes('Hybrid')) data.fuelType = 'PlugIn Hybrid';
       else if (html.includes('Hybrid')) data.fuelType = 'Hybrid';
       else if (html.includes('Elektro')) data.fuelType = 'Electric';
       else if (html.includes('Benzin')) data.fuelType = 'Petrol';
+    }
+
+    // Enhanced Plug-In Hybrid detection: check title and HTML for plug-in indicators
+    if (data.fuelType === 'Hybrid') {
+      const plugInPatterns = [
+        /Plug-?In/i,
+        /PHEV/i,
+        /\be-?Hybrid\b/i,
+        /"plugIn"\s*:\s*true/i,
+        /"isPlugIn"\s*:\s*true/i,
+        /Plug-In-Hybrid/i
+      ];
+      const isPlugIn = plugInPatterns.some(p => p.test(html));
+      if (isPlugIn) {
+        data.fuelType = 'PlugIn Hybrid';
+        console.log('[API] Detected Plug-In Hybrid from HTML patterns');
+      }
     }
 
     // Power: look for kW value
@@ -237,6 +262,43 @@ function parseVehicleData(html, url) {
     const co2Match = html.match(/"tag":"envkv\.co2Emissions"[^}]*"value":"([\d]+)\s*g/);
     if (co2Match) {
       data.co2 = parseInt(co2Match[1]);
+    }
+
+    // Seller country detection
+    const countryMatch = html.match(/"sellerAddress"[^}]*"countryCode"\s*:\s*"([^"]+)"/);
+    if (countryMatch) {
+      data.sellerCountry = countryMatch[1].toUpperCase();
+    }
+    if (!data.sellerCountry) {
+      // Try other patterns for country
+      const countryMatch2 = html.match(/"country"\s*:\s*"([A-Z]{2})"/);
+      if (countryMatch2) data.sellerCountry = countryMatch2[1];
+    }
+    if (!data.sellerCountry) {
+      // Try location-based detection
+      const locationMatch = html.match(/"location"[^}]*"country(?:Code)?"\s*:\s*"([^"]+)"/);
+      if (locationMatch) data.sellerCountry = locationMatch[1].toUpperCase();
+    }
+    if (!data.sellerCountry) {
+      // Default for mobile.de: most sellers are in Germany
+      if (html.includes('mobile.de')) data.sellerCountry = 'DE';
+    }
+
+    // VAT (MwSt.) deductibility detection
+    if (html.includes('MwSt. ausweisbar') || html.includes('mwst_ausweisbar') || html.includes('MwSt ausweisbar')) {
+      data.vatDeductible = true;
+    } else if (html.includes('differenzbesteuert') || html.includes('Differenzbesteuert')) {
+      data.vatDeductible = false; // Margin scheme - no VAT to reclaim
+    } else if (html.match(/"vatType"\s*:\s*"[^"]*regular/i)) {
+      data.vatDeductible = true;
+    } else if (html.match(/"vatType"\s*:\s*"[^"]*margin/i)) {
+      data.vatDeductible = false;
+    }
+    // Also check for gross/net price indicators
+    if (data.vatDeductible === null) {
+      if (html.includes('Netto') || html.includes('"netAmount"')) {
+        data.vatDeductible = true;
+      }
     }
 
     // Image: "ogImage":{"src":"https://img.classistatic.de/..."
