@@ -15,50 +15,73 @@ export default async (req, res) => {
 
     console.log('[API] Scraping:', url);
 
-    // Try ScrapingBee first (premium_proxy required for mobile.de)
+    // Try ScrapingBee with automatic retry (premium_proxy required for mobile.de)
     let html = null;
     let usedScrapingBee = false;
     
-    try {
-      console.log('[API] Attempting ScrapingBee...');
-      // Build URL manually to avoid double-encoding issues
-      const apiKey = encodeURIComponent(process.env.SCRAPINGBEE_API_KEY);
-      const encodedUrl = encodeURIComponent(url);
-      const fullUrl = `https://app.scrapingbee.com/api/v1/?api_key=${apiKey}&url=${encodedUrl}&block_resources=false&premium_proxy=true`;
-      console.log('[API] Full URL (last 100 chars):', fullUrl.substring(fullUrl.length - 100));
+    const apiKey = encodeURIComponent(process.env.SCRAPINGBEE_API_KEY);
+    const encodedUrl = encodeURIComponent(url);
+    
+    // Retry configurations - try different params on each attempt
+    const retryConfigs = [
+      { params: 'block_resources=false&premium_proxy=true&wait=5000&timeout=30000', label: 'premium+wait5s' },
+      { params: 'block_resources=false&premium_proxy=true&wait=8000&timeout=45000', label: 'premium+wait8s' },
+      { params: 'block_resources=false&premium_proxy=true&country_code=de&wait=5000&timeout=30000', label: 'premium+DE' },
+    ];
+    
+    let lastError = null;
+    
+    for (let i = 0; i < retryConfigs.length; i++) {
+      const config = retryConfigs[i];
+      try {
+        console.log(`[API] ScrapingBee attempt ${i+1}/${retryConfigs.length} (${config.label})...`);
+        const fullUrl = `https://app.scrapingbee.com/api/v1/?api_key=${apiKey}&url=${encodedUrl}&${config.params}`;
 
-      const response = await fetch(fullUrl, {
-        timeout: 50000 // 50 second timeout
-      });
-      
-      const text = await response.text();
-      
-      console.log('[API] ScrapingBee response status:', response.status);
-      console.log('[API] ScrapingBee response length:', text.length);
-      
-      // Check if we hit the monthly limit
-      if (text.includes('Monthly API calls limit reached')) {
-        console.log('[API] ScrapingBee limit reached, using fallback...');
-        throw new Error('API_LIMIT_REACHED');
+        const controller = new AbortController();
+        const fetchTimeout = setTimeout(() => controller.abort(), 55000);
+        
+        const response = await fetch(fullUrl, { signal: controller.signal });
+        clearTimeout(fetchTimeout);
+        
+        const text = await response.text();
+        
+        console.log(`[API] Attempt ${i+1} status: ${response.status}, length: ${text.length}`);
+        
+        // Check if we hit the monthly limit
+        if (text.includes('Monthly API calls limit reached')) {
+          console.log('[API] ScrapingBee limit reached');
+          lastError = new Error('API_LIMIT_REACHED');
+          break; // No point retrying
+        }
+        
+        if (response.ok && text.length > 5000) {
+          html = text;
+          usedScrapingBee = true;
+          console.log(`[API] ScrapingBee success on attempt ${i+1}, HTML length: ${html.length}`);
+          break;
+        }
+        
+        // Non-OK or too small response - log and retry
+        lastError = new Error(`HTTP ${response.status}, ${text.length} bytes`);
+        console.log(`[API] Attempt ${i+1} failed: ${lastError.message}`);
+        
+        // Wait before retry (increasing delay)
+        if (i < retryConfigs.length - 1) {
+          const delay = (i + 1) * 3000;
+          console.log(`[API] Waiting ${delay}ms before retry...`);
+          await new Promise(r => setTimeout(r, delay));
+        }
+      } catch (attemptError) {
+        lastError = attemptError;
+        console.log(`[API] Attempt ${i+1} error: ${attemptError.message}`);
+        if (i < retryConfigs.length - 1) {
+          await new Promise(r => setTimeout(r, 3000));
+        }
       }
-      
-      if (!response.ok) {
-        // Return error details
-        return res.status(200).json({
-          error: 'Failed to scrape',
-          message: `ScrapingBee HTTP ${response.status}`,
-          debug: {
-            responseLength: text.length,
-            responseStart: text.substring(0, 200)
-          }
-        });
-      }
-      
-      html = text;
-      usedScrapingBee = true;
-      console.log('[API] ScrapingBee success, HTML length:', html.length);
-    } catch (sbError) {
-      console.log('[API] ScrapingBee failed:', sbError.message);
+    }
+    
+    if (!html && lastError) {
+      console.log('[API] All ScrapingBee attempts failed:', lastError.message);
       console.log('[API] Falling back to direct fetch...');
       
       // Fallback: direct fetch with user-agent
