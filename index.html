@@ -39,7 +39,7 @@ body {
   -webkit-font-smoothing: antialiased;
   margin: 0; line-height: 1.5;
 }
-.ts-container { max-width: 1040px; margin: 0 auto; padding: 32px 24px 48px; }
+.ts-container { max-width: 1040px; margin: 0 auto; padding: 14px 20px 20px; }
 @media (max-width: 768px) { .ts-container { padding: 16px 16px 32px; } }
 .ts-card { background: var(--ts-surface); border: 1px solid var(--ts-border); border-radius: var(--ts-radius); }
 .ts-card-alt { background: var(--ts-surface-alt); border: 1px solid var(--ts-border); border-radius: var(--ts-radius-sm); }
@@ -70,7 +70,7 @@ body {
 .ts-url-bar {
   display: flex; align-items: center; justify-content: space-between;
   background: var(--ts-surface); border: 1px solid var(--ts-border);
-  border-radius: var(--ts-radius-sm); padding: 12px 16px;
+  border-radius: var(--ts-radius-sm); padding: 8px 14px;
 }
 .ts-url-bar-link {
   font-size: 12px; color: var(--ts-text-muted); overflow: hidden;
@@ -83,12 +83,12 @@ body {
 }
 .ts-main-card-image {
   position: relative; overflow: hidden; background: var(--ts-card-bg);
-  height: 360px; align-self: start;
+  height: 240px; align-self: start;
 }
 .ts-main-card-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ts-main-card-sim {
-  padding: 28px; display: flex; flex-direction: column; gap: 0;
-  align-self: start; overflow-y: auto; max-height: 360px;
+  padding: 16px 20px; display: flex; flex-direction: column; gap: 0;
+  align-self: start; overflow-y: auto; max-height: 240px;
 }
 @media (max-width: 900px) {
   .ts-main-card { grid-template-columns: 1fr; }
@@ -99,7 +99,7 @@ body {
   border-radius: 8px; overflow: hidden; background: var(--ts-card-bg);
 }
 .ts-toggle button {
-  padding: 8px 18px; font-size: 12px; font-weight: 500; cursor: pointer;
+  padding: 6px 14px; font-size: 11px; font-weight: 500; cursor: pointer;
   background: transparent; border: none; color: var(--ts-text-muted);
   transition: all 0.2s; white-space: nowrap; font-family: inherit;
 }
@@ -111,7 +111,7 @@ body {
   overflow: hidden; background: var(--ts-card-bg);
 }
 .ts-tabs button {
-  padding: 12px 16px; font-size: 13px; font-weight: 500; cursor: pointer;
+  padding: 8px 12px; font-size: 12px; font-weight: 500; cursor: pointer;
   background: transparent; border: none; color: var(--ts-text-muted);
   display: flex; align-items: center; justify-content: center; gap: 8;
   transition: all 0.2s; font-family: inherit;
@@ -123,31 +123,31 @@ body {
 .ts-tabs button:not(.active):hover { color: var(--ts-text-secondary); }
 .ts-result-row {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 13px 0; border-bottom: 1px solid var(--ts-border-subtle);
+  padding: 8px 0; border-bottom: 1px solid var(--ts-border-subtle);
 }
 .ts-result-row:last-child { border-bottom: none; }
-.ts-result-label { font-size: 13px; color: var(--ts-text-secondary); }
+.ts-result-label { font-size: 12px; color: var(--ts-text-secondary); }
 .ts-result-sublabel { font-size: 11px; color: var(--ts-text-muted); margin-top: 2px; }
-.ts-result-value { font-size: 14px; font-weight: 600; color: var(--ts-text); text-align: right; }
+.ts-result-value { font-size: 13px; font-weight: 600; color: var(--ts-text); text-align: right; }
 .ts-total {
   background: linear-gradient(135deg, rgba(200,169,110,0.08) 0%, rgba(200,169,110,0.04) 100%);
   border: 1px solid rgba(200,169,110,0.35);
-  border-radius: 10px; padding: 20px 24px;
+  border-radius: 10px; padding: 12px 16px;
   display: flex; justify-content: space-between; align-items: center;
   box-shadow: 0 2px 12px rgba(200,169,110,0.08);
 }
-.ts-total-label { font-size: 13px; font-weight: 500; color: var(--ts-gold); }
-.ts-total-value { font-size: 22px; font-weight: 700; color: var(--ts-gold); letter-spacing: -0.02em; }
+.ts-total-label { font-size: 12px; font-weight: 500; color: var(--ts-gold); }
+.ts-total-value { font-size: 18px; font-weight: 700; color: var(--ts-gold); letter-spacing: -0.02em; }
 .ts-spec-grid {
   display: grid; grid-template-columns: repeat(4, 1fr);
   gap: 1px; background: var(--ts-border); border-radius: var(--ts-radius); overflow: hidden;
 }
 @media (max-width: 640px) { .ts-spec-grid { grid-template-columns: repeat(2, 1fr); } }
-.ts-spec-cell { background: var(--ts-surface); padding: 14px 16px; }
-.ts-spec-label { font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ts-text-muted); margin-bottom: 5px; }
+.ts-spec-cell { background: var(--ts-surface); padding: 8px 12px; }
+.ts-spec-label { font-size: 9px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ts-text-muted); margin-bottom: 2px; }
 .ts-spec-value { font-size: 13px; font-weight: 600; color: var(--ts-text); }
 .ts-spec-value.muted { color: var(--ts-text-muted); }
-.ts-section { display: flex; flex-direction: column; gap: 14px; }
+.ts-section { display: flex; flex-direction: column; gap: 8px; }
 .ts-section-header {
   display: flex; align-items: center; gap: 8;
   font-size: 14px; font-weight: 600; color: var(--ts-text);
@@ -160,13 +160,13 @@ body {
 }
 .ts-radio-card {
   background: var(--ts-surface); border: 1px solid var(--ts-border);
-  border-radius: var(--ts-radius-sm); padding: 16px 20px; cursor: pointer;
+  border-radius: var(--ts-radius-sm); padding: 10px 14px; cursor: pointer;
   display: flex; align-items: center; gap: 14px; transition: all 0.2s;
 }
 .ts-radio-card:hover { border-color: var(--ts-text-muted); }
 .ts-radio-card.selected { border-color: var(--ts-gold); background: var(--ts-gold-soft); }
 .ts-radio-dot {
-  width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+  width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
   border: 2px solid var(--ts-border); display: flex; align-items: center; justify-content: center;
   transition: all 0.2s;
 }
@@ -198,15 +198,15 @@ body {
 .ts-detail-value.warning { color: var(--ts-warning); }
 .ts-co2-box {
   background: var(--ts-surface); border: 1px solid rgba(251,191,36,0.12);
-  border-radius: var(--ts-radius); padding: 20px;
+  border-radius: var(--ts-radius); padding: 12px 16px;
 }
 .ts-cta-banner {
   background: var(--ts-surface); border: 1px solid var(--ts-border);
-  border-radius: var(--ts-radius); padding: 32px;
+  border-radius: var(--ts-radius); padding: 16px 20px;
   display: flex; justify-content: space-between; align-items: center; gap: 24px;
 }
-.ts-cta-banner h3 { font-size: 18px; font-weight: 600; color: var(--ts-text); margin: 0 0 6px; }
-.ts-cta-banner p { font-size: 13px; color: var(--ts-text-secondary); margin: 0; line-height: 1.6; }
+.ts-cta-banner h3 { font-size: 14px; font-weight: 600; color: var(--ts-text); margin: 0 0 6px; }
+.ts-cta-banner p { font-size: 11px; color: var(--ts-text-secondary); margin: 0; line-height: 1.6; }
 @media (max-width: 640px) { .ts-cta-banner { flex-direction: column; text-align: center; } }
 .ts-fin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .ts-fin-field label {
@@ -225,7 +225,7 @@ body {
   background: var(--ts-gold-soft); border-radius: 10px;
   border: 1px solid rgba(200,169,110,0.15);
 }
-.ts-fin-monthly-value { font-size: 22px; font-weight: 700; color: var(--ts-gold); }
+.ts-fin-monthly-value { font-size: 18px; font-weight: 700; color: var(--ts-gold); }
 .ts-fin-monthly-label { font-size: 11px; color: var(--ts-text-muted); margin-top: 2px; }
 .ts-divider { height: 1px; background: var(--ts-border); }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
@@ -297,7 +297,7 @@ body {
   </div>
 
   <!-- AFTER IMPORT VIEW -->
-  <div id="imported-view" class="ts-fade-in hidden" style="display:flex;flex-direction:column;gap:24px">
+  <div id="imported-view" class="ts-fade-in hidden" style="display:flex;flex-direction:column;gap:10px">
     <!-- URL Bar -->
     <div class="ts-url-bar">
       <div style="display:flex;align-items:center;gap:10px;overflow:hidden">
@@ -322,14 +322,14 @@ body {
 
       <!-- RIGHT: Simulation Panel -->
       <div class="ts-main-card-sim">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-          <span style="font-size:17px;font-weight:600;color:var(--ts-text)">Simulação</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:15px;font-weight:600;color:var(--ts-text)">Simulação</span>
           <div class="ts-toggle">
             <button type="button" id="btn-particular" class="active" onclick="setBuyerType('particular')">Particular</button>
             <button type="button" id="btn-empresa" onclick="setBuyerType('empresa')">Empresa</button>
           </div>
         </div>
-        <div class="ts-tabs" style="margin-bottom:20px">
+        <div class="ts-tabs" style="margin-bottom:8px">
           <button type="button" id="btn-pronto" class="active" onclick="setPaymentMethod('pronto')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
             A Pronto
@@ -343,10 +343,10 @@ body {
         <!-- Simulation content (shown after calculation) -->
         <div id="sim-results" class="hidden" style="flex:1;display:flex;flex-direction:column;justify-content:space-between">
           <div id="sim-breakdown"></div>
-          <div style="margin-top:16px" id="sim-total-area"></div>
+          <div style="margin-top:8px" id="sim-total-area"></div>
         </div>
         <!-- Waiting state -->
-        <div id="sim-waiting" style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px">
+        <div id="sim-waiting" style="flex:1;display:flex;align-items:center;justify-content:center;padding:10px">
           <div id="sim-waiting-co2" class="hidden" style="text-align:center">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ts-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:8px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
             <p style="font-size:13px;color:var(--ts-text-secondary);margin:0">Introduza o valor de CO₂ para calcular o ISV</p>
@@ -362,7 +362,7 @@ body {
     <!-- Car Title -->
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div>
-        <h2 id="car-title" class="ts-heading" style="font-size:22px;text-transform:uppercase;margin-bottom:4px">Veículo Importado</h2>
+        <h2 id="car-title" class="ts-heading" style="font-size:18px;text-transform:uppercase;margin-bottom:2px">Veículo Importado</h2>
         <a id="car-link" href="#" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--ts-text-muted);display:inline-flex;align-items:center;gap:4px;text-decoration:none">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
           Ver anúncio original
@@ -432,13 +432,13 @@ body {
         <div class="ts-info-icon" title="Opções de entrega disponíveis">i</div>
       </div>
       <div style="background:var(--ts-surface);border:1px solid var(--ts-border);border-radius:var(--ts-radius-sm);overflow:hidden">
-        <div style="padding:16px 20px;border-bottom:1px solid var(--ts-border)">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--ts-border)">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
             <div style="width:8px;height:8px;border-radius:50%;background:var(--ts-green)"></div>
             <span style="font-size:13px;font-weight:600">Standard</span>
             <span style="font-size:11px;color:var(--ts-text-muted)">Em 4-6 semanas (estimativa)</span>
           </div>
-          <div style="display:flex;flex-direction:column;gap:8px;padding-left:16px">
+          <div style="display:flex;flex-direction:column;gap:6px;padding-left:12px">
             <div class="ts-radio-card selected" onclick="setDelivery('recolha')" id="delivery-recolha" style="padding:12px 16px">
               <div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div>
               <div class="ts-radio-content"><div class="ts-radio-title" style="font-size:12px">Recolha no Centro Logístico</div></div>
@@ -451,7 +451,7 @@ body {
             </div>
           </div>
         </div>
-        <div style="padding:16px 20px">
+        <div style="padding:10px 14px">
           <div class="ts-radio-card" onclick="setDelivery('express')" id="delivery-express" style="padding:12px 16px">
             <div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div>
             <div class="ts-radio-content">
@@ -468,7 +468,7 @@ body {
     </div>
 
     <!-- ISV Detail (collapsible) -->
-    <div id="isv-detail-card" class="ts-card hidden" style="padding:16px">
+    <div id="isv-detail-card" class="ts-card hidden" style="padding:10px 14px">
       <button type="button" id="btn-isv-toggle" onclick="toggleISVDetail()" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;cursor:pointer;padding:0">
         <span style="font-size:12px;color:var(--ts-text-muted);display:flex;align-items:center;gap:6px">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
