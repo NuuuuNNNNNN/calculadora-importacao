@@ -1182,6 +1182,15 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeImageModal();
   });
+
+  // TEST MODE: ?test=true loads mock data
+  if (new URLSearchParams(window.location.search).get('test')) {
+    state.scrapedData={title:'Porsche Panamera 4 E-Hybrid',imageUrl:'https://img.classistatic.de/api/v1/mo-prod/images/fc/fc3b6b47-1cf4-4a8c-a94e-a2d78e26e3d6?rule=mo-1600.jpg',mileage:159000,registrationYear:2020,registrationMonth:9,displacement:3996,power:500,fuelType:'hibrido',co2:83,price:73680,gearbox:'Automatik'};
+    state.sourceUrl='https://suchen.mobile.de/fahrzeug/details.html?id=395857670';
+    state.imported=true;state.fuelType='hibrido';state.displacement='3996';state.co2='83';
+    state.purchasePrice='73680';state.vehicleAge='5.5';state.emissionStandard='WLTP';
+    showImportedView();
+  }
 });
 </script>
 </body>
