@@ -1,29 +1,95 @@
 export default async (req, res) => {
   try {
-    const { url } = req.body;
+    console.log('[DEBUG] req.body type:', typeof req.body);
+    console.log('[DEBUG] req.body:', JSON.stringify(req.body).substring(0, 100));
+    console.log('[DEBUG] process.env.SCRAPINGBEE_API_KEY exists:', !!process.env.SCRAPINGBEE_API_KEY);
+    console.log('[DEBUG] API key first 20 chars:', process.env.SCRAPINGBEE_API_KEY?.substring(0, 20));
+    
+    const { url } = req.body || {};
+    
+    console.log('[DEBUG] Extracted URL:', url);
     
     if (!url) {
-      return res.status(400).json({ error: 'Missing url' });
+      return res.status(400).json({ error: 'Missing url', debug: { bodyType: typeof req.body, bodyKeys: Object.keys(req.body || {}) } });
     }
 
     console.log('[API] Scraping:', url);
 
-    // Fetch HTML from ScrapingBee with premium_proxy (required for mobile.de)
-    const params = new URLSearchParams({
-      api_key: 'NT61UK632R6F88RCS1YL7SM4L5Y6YWBRITBSU97QS4GDUX16CIOB0ETA1D16ESKO3UQ5ZK4QCUFA0IAL',
-      url: url,
-      premium_proxy: 'true',
-      render_js: 'true'  // Enable JavaScript rendering
-    });
+    // Try ScrapingBee first (premium_proxy required for mobile.de)
+    let html = null;
+    let usedScrapingBee = false;
+    
+    try {
+      console.log('[API] Attempting ScrapingBee...');
+      const params = new URLSearchParams({
+        api_key: process.env.SCRAPINGBEE_API_KEY,
+        url: url,
+        render_js: 'true'  // Enable JavaScript rendering
+      });
 
-    const response = await fetch('https://app.scrapingbee.com/api/v1/?' + params.toString(), {
-      timeout: 50000 // 50 second timeout
-    });
-    const html = await response.text();
+      const response = await fetch('https://app.scrapingbee.com/api/v1/?' + params.toString(), {
+        timeout: 50000 // 50 second timeout
+      });
+      
+      const text = await response.text();
+      
+      // Check if we hit the monthly limit
+      if (text.includes('Monthly API calls limit reached')) {
+        console.log('[API] ScrapingBee limit reached, using fallback...');
+        throw new Error('API_LIMIT_REACHED');
+      }
+      
+      if (!response.ok) {
+        throw new Error(`ScrapingBee HTTP ${response.status}`);
+      }
+      
+      html = text;
+      usedScrapingBee = true;
+      console.log('[API] ScrapingBee success, HTML length:', html.length);
+    // DEBUG: Return HTML snippet to see if we're getting data
+    if (process.env.DEBUG_MODE) {
+      return res.status(200).json({
+        debug: 'HTML_SAMPLE',
+        htmlLength: html.length,
+        htmlSnippet: html.substring(0, 500)
+      });
+    }
+    } catch (sbError) {
+      console.log('[API] ScrapingBee failed:', sbError.message);
+      console.log('[API] Falling back to direct fetch...');
+      
+      // Fallback: direct fetch with user-agent
+      try {
+        const headers = {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Accept-Language': 'pt-PT,pt;q=0.9,en;q=0.8',
+          'Cache-Control': 'no-cache'
+        };
 
-    console.log('[API] HTML received, length:', html.length);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000);
 
-    // Parse vehicle data using simple regex patterns
+        const fallbackResponse = await fetch(url, {
+          headers,
+          signal: controller.signal,
+          redirect: 'follow'
+        });
+        
+        clearTimeout(timeout);
+
+        if (!fallbackResponse.ok) {
+          throw new Error(`Direct fetch HTTP ${fallbackResponse.status}`);
+        }
+
+        html = await fallbackResponse.text();
+        console.log('[API] Direct fetch success, HTML length:', html.length);
+      } catch (fallbackError) {
+        throw new Error(`All methods failed: ${sbError.message}, fallback: ${fallbackError.message}`);
+      }
+    }
+
+    // Parse vehicle data using regex patterns
     const vehicleData = parseVehicleData(html, url);
     
     console.log('[API] Parsed data:', vehicleData);
