@@ -822,7 +822,7 @@ function renderSimulation() {
   } else {
     html += `<div class="ts-result-row"><span class="ts-result-label">Valor da Viatura</span><span class="ts-result-value">${fmtPrice(price)}</span></div>`;
   }
-  html += `<div class="ts-result-row"><span class="ts-result-label">ISV</span><span class="ts-result-value">${fmtPrice(isv.isvFinal)}</span></div>`;
+  html += `<div class="ts-result-row"><span class="ts-result-label">ISV</span><span class="ts-result-value">${isv.isvFinal === 0 && state.fuelType === 'eletrico' ? '<span style="color:var(--ts-green)">Isento</span>' : fmtPrice(isv.isvFinal)}</span></div>`;
   html += `<div class="ts-result-row"><div><span class="ts-result-label">Serviço The Selection</span>`;
   if (isEmpresa) {
     const svcVat = Math.round(importCost * PT_VAT / (1 + PT_VAT));
@@ -954,8 +954,9 @@ function renderSpecs(data) {
   if (data.fuelType === 'hibrido_plugin' || data.fuelType === 'hibrido') {
     html += `<div class="ts-spec-cell"><div class="ts-spec-label">Híbrido Plug-In</div><div class="ts-spec-value">${data.fuelType === 'hibrido_plugin' ? 'Sim' : 'Não'}</div></div>`;
   }
-  const co2Val = state.co2 && Number(state.co2) > 0 ? state.co2 : '—';
-  const co2Class = co2Val === '—' ? ' muted' : '';
+  const isElectric = state.fuelType === 'eletrico';
+  const co2Val = isElectric ? '0 g/km' : (state.co2 && Number(state.co2) > 0 ? state.co2 + ' g/km' : '—');
+  const co2Class = co2Val === '—' ? ' muted' : (isElectric ? '' : '');
   html += `<div class="ts-spec-cell"><div class="ts-spec-label">Emissões CO₂</div><div class="ts-spec-value${co2Class}">${co2Val}</div></div>`;
   $('specs-grid').innerHTML = html;
 }
@@ -1054,7 +1055,8 @@ async function handleImportUrl() {
       'Gasoline': 'gasolina', 'Petrol': 'gasolina', 'Benzin': 'gasolina',
       'Diesel': 'gasoleo', 'Gasóleo': 'gasoleo',
       'Electric': 'eletrico', 'Elektro': 'eletrico',
-      'Hybrid': 'hibrido', 'PlugIn Hybrid': 'hibrido_plugin', 'Plug-in Hybrid': 'hibrido_plugin',
+      'Hybrid': 'hibrido', 'PlugIn Hybrid': 'hibrido_plugin',
+              'Electric': 'eletrico', 'Plug-in Hybrid': 'hibrido_plugin',
       'LPG': 'gpl', 'CNG': 'gas_natural', 'Natural Gas': 'gas_natural',
       'Hydrogen': 'eletrico',
     };

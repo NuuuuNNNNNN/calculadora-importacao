@@ -192,23 +192,39 @@ function parseVehicleData(html, url) {
       const fuelMatch = html.match(/"tag":"fuel"[^}]*"value":"([^"]+)"/);
       if (fuelMatch) {
         const fuelStr = fuelMatch[1];
-        if (fuelStr.includes('Diesel')) data.fuelType = 'Diesel';
-        else if (fuelStr.includes('Plug-In') || fuelStr.includes('PlugIn')) data.fuelType = 'PlugIn Hybrid';
-        else if (fuelStr.includes('Hybrid') || fuelStr.includes('Elektro/Benzin') || fuelStr.includes('Benzin/Elektro')) {
+        // Check Plug-In first (before generic Hybrid/Diesel)
+        if (fuelStr.includes('Plug-In') || fuelStr.includes('PlugIn')) data.fuelType = 'PlugIn Hybrid';
+        // Check pure Electric before hybrid combos (Elektro alone, not Elektro/Benzin)
+        else if ((fuelStr === 'Elektro' || fuelStr === 'Electric') || 
+                 (fuelStr.includes('Elektro') && !fuelStr.includes('Benzin') && !fuelStr.includes('Diesel'))) {
+          data.fuelType = 'Electric';
+        }
+        // Hybrid combos
+        else if (fuelStr.includes('Hybrid') || fuelStr.includes('Elektro/Benzin') || fuelStr.includes('Benzin/Elektro') ||
+                 fuelStr.includes('Elektro/Diesel') || fuelStr.includes('Diesel/Elektro')) {
           data.fuelType = 'Hybrid';
         }
-        else if (fuelStr.includes('Elektro') || fuelStr.includes('Electric')) data.fuelType = 'Electric';
+        else if (fuelStr.includes('Diesel')) data.fuelType = 'Diesel';
         else if (fuelStr.includes('Benzin') || fuelStr.includes('Petrol')) data.fuelType = 'Petrol';
         else if (fuelStr.includes('Erdgas') || fuelStr.includes('CNG')) data.fuelType = 'CNG';
         else if (fuelStr.includes('Autogas') || fuelStr.includes('LPG')) data.fuelType = 'LPG';
       }
     }
     if (!data.fuelType) {
-      if (html.includes('Diesel')) data.fuelType = 'Diesel';
-      else if (html.includes('Plug-In') && html.includes('Hybrid')) data.fuelType = 'PlugIn Hybrid';
-      else if (html.includes('Hybrid')) data.fuelType = 'Hybrid';
-      else if (html.includes('Elektro')) data.fuelType = 'Electric';
-      else if (html.includes('Benzin')) data.fuelType = 'Petrol';
+      // Check fuel tag more broadly - look in structured data first
+      const fuelPatterns = [
+        { regex: /Elektrofahrzeug|Elektro\/Elektro|"fuel"[^}]*Elektro(?!\/Benzin|\/Diesel)/i, type: 'Electric' },
+        { regex: /Plug-In[- ]?Hybrid|PlugIn[- ]?Hybrid/i, type: 'PlugIn Hybrid' },
+        { regex: /Hybrid|Elektro\/Benzin|Benzin\/Elektro|Elektro\/Diesel|Diesel\/Elektro/i, type: 'Hybrid' },
+        { regex: /"fuel"[^}]*Diesel|Kraftstoff[^<]*Diesel/i, type: 'Diesel' },
+        { regex: /"fuel"[^}]*Benzin|Kraftstoff[^<]*Benzin/i, type: 'Petrol' },
+      ];
+      for (const p of fuelPatterns) {
+        if (p.regex.test(html)) {
+          data.fuelType = p.type;
+          break;
+        }
+      }
     }
 
     // Enhanced Plug-In Hybrid detection: check title and HTML for plug-in indicators
@@ -226,6 +242,13 @@ function parseVehicleData(html, url) {
         data.fuelType = 'PlugIn Hybrid';
         console.log('[API] Detected Plug-In Hybrid from HTML patterns');
       }
+    }
+
+    // Electric vehicle overrides: always 0 displacement and 0 CO2
+    if (data.fuelType === 'Electric') {
+      data.displacement = 0;
+      data.co2 = 0;
+      console.log('[API] Electric vehicle detected - setting displacement=0, co2=0');
     }
 
     // Power: look for kW value
