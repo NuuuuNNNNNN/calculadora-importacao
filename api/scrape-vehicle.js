@@ -21,13 +21,10 @@ export default async (req, res) => {
     
     try {
       console.log('[API] Attempting ScrapingBee...');
-      const params = new URLSearchParams({
-        api_key: process.env.SCRAPINGBEE_API_KEY,
-        url: url,
-        block_resources: 'False'  // ScrapingBee error suggested this
-      });
-
-      const fullUrl = 'https://app.scrapingbee.com/api/v1/?' + params.toString();
+      // Build URL manually to avoid double-encoding issues
+      const apiKey = encodeURIComponent(process.env.SCRAPINGBEE_API_KEY);
+      const encodedUrl = encodeURIComponent(url);
+      const fullUrl = `https://app.scrapingbee.com/api/v1/?api_key=${apiKey}&url=${encodedUrl}`;
       console.log('[API] Full URL (last 100 chars):', fullUrl.substring(fullUrl.length - 100));
 
       const response = await fetch(fullUrl, {
