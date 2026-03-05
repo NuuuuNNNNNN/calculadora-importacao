@@ -23,8 +23,8 @@ export default async (req, res) => {
       console.log('[API] Attempting ScrapingBee...');
       const params = new URLSearchParams({
         api_key: process.env.SCRAPINGBEE_API_KEY,
-        url: url,
-        render_js: 'true'  // Enable JavaScript rendering
+        url: url
+        // render_js not needed - mobile.de data is in initial HTML
       });
 
       const response = await fetch('https://app.scrapingbee.com/api/v1/?' + params.toString(), {
