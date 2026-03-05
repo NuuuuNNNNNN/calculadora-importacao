@@ -1,8 +1,5 @@
 {
   "version": 2,
   "buildCommand": "next build",
-  "outputDirectory": ".next",
-  "env": {
-    "SCRAPINGBEE_API_KEY": "@SCRAPINGBEE_API_KEY"
-  }
+  "outputDirectory": ".next"
 }
