@@ -947,7 +947,37 @@ async function handleImportUrl() {
       return;
     }
 
-    // Success - populate state
+    // Success - normalize API fields to frontend fields
+    // API returns: image, year, fuelType (English), power, co2, price, mileage, transmission, title
+    // Frontend expects: imageUrl, registrationYear, fuelType (Portuguese), displacement, etc.
+    
+    // Map image field
+    if (data.image && !data.imageUrl) {
+      data.imageUrl = data.image.replace(/\\u002F/g, '/').replace(/\\u([0-9a-fA-F]{4})/g, (m, g) => String.fromCharCode(parseInt(g, 16)));
+    }
+    // Map year field
+    if (data.year && !data.registrationYear) {
+      data.registrationYear = Number(data.year);
+    }
+    // Map fuel type from English/German to Portuguese keys
+    const FUEL_MAP = {
+      'Gasoline': 'gasolina', 'Petrol': 'gasolina', 'Benzin': 'gasolina',
+      'Diesel': 'gasoleo', 'Gasóleo': 'gasoleo',
+      'Electric': 'eletrico', 'Elektro': 'eletrico',
+      'Hybrid': 'hibrido', 'PlugIn Hybrid': 'hibrido_plugin', 'Plug-in Hybrid': 'hibrido_plugin',
+      'LPG': 'gpl', 'CNG': 'gas_natural', 'Natural Gas': 'gas_natural',
+      'Hydrogen': 'eletrico',
+    };
+    if (data.fuelType && FUEL_MAP[data.fuelType]) {
+      data.fuelType = FUEL_MAP[data.fuelType];
+    }
+    // Extract displacement from power if not available (estimate: kW * 2.5 ≈ cc for average car)
+    // Better: try to parse from title or set a reasonable default
+    if (!data.displacement && data.power) {
+      // For ISV calculation, we need displacement. Estimate from power (rough: kW * 3)
+      data.displacement = Math.round(Number(data.power) * 3);
+    }
+    
     state.scrapedData = data;
     state.sourceUrl = url;
     state.imported = true;

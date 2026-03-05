@@ -115,9 +115,11 @@ function parseVehicleData(html, url) {
     price: null,
     mileage: null,
     year: null,
+    registrationMonth: null,
     transmission: null,
     fuelType: null,
     power: null,
+    displacement: null,
     co2: null,
     image: null
   };
@@ -126,7 +128,12 @@ function parseVehicleData(html, url) {
     // Title from page title tag
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
     if (titleMatch) {
-      data.title = titleMatch[1].replace(/\s*für\s*[\d.,]+\s*€.*/, '').trim();
+      data.title = titleMatch[1]
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/\s*für\s*[\d.,\s]+€.*/, '')
+        .replace(/\s*-\s*mobile\.de.*$/i, '')
+        .replace(/\s+/g, ' ')
+        .trim();
     }
 
     // Price pattern: "73.680 €" or "73680€"
@@ -141,9 +148,10 @@ function parseVehicleData(html, url) {
       data.mileage = parseInt(mileageMatch[1].replace(/\./g, ''));
     }
 
-    // Year: look for MM/YYYY format (e.g., "09/2020")
+    // Year + Month: look for MM/YYYY format (e.g., "09/2020")
     let yearMatch = html.match(/"firstRegistration"[^}]*"value":"(\d{2})\/(\d{4})/);
-    if (yearMatch && yearMatch[2]) {
+    if (yearMatch && yearMatch[1] && yearMatch[2]) {
+      data.registrationMonth = parseInt(yearMatch[1]);
       const year = parseInt(yearMatch[2]);
       if (year >= 1990 && year <= 2030) {
         data.year = year;
@@ -154,6 +162,7 @@ function parseVehicleData(html, url) {
     if (!data.year) {
       yearMatch = html.match(/(\d{2})\/(\d{4})/);
       if (yearMatch && yearMatch[2]) {
+        data.registrationMonth = parseInt(yearMatch[1]);
         const year = parseInt(yearMatch[2]);
         if (year >= 1990 && year <= 2030) {
           data.year = year;
@@ -202,6 +211,26 @@ function parseVehicleData(html, url) {
     if (!data.power) {
       const powerMatch2 = html.match(/([\d]+)\s*kW\s*\([^)]+\)/);
       if (powerMatch2) data.power = parseInt(powerMatch2[1]);
+    }
+
+    // Displacement (Hubraum/cubic capacity)
+    const dispMatch = html.match(/"tag":"cubicCapacity"[^}]*"value":"([\d.,]+)/);
+    if (dispMatch) {
+      data.displacement = parseInt(dispMatch[1].replace(/\./g, '').replace(',', ''));
+    }
+    if (!data.displacement) {
+      // Try "Hubraum" pattern: "2.979 cm³" or "2979 ccm"
+      const dispMatch2 = html.match(/([\d.,]+)\s*(?:cm³|ccm)/i);
+      if (dispMatch2) {
+        data.displacement = parseInt(dispMatch2[1].replace(/\./g, '').replace(',', ''));
+      }
+    }
+    if (!data.displacement) {
+      // Try generic pattern in JSON: "cubicCapacity":2979
+      const dispMatch3 = html.match(/"cubicCapacity"[:\s]*(\d+)/);
+      if (dispMatch3) {
+        data.displacement = parseInt(dispMatch3[1]);
+      }
     }
 
     // CO2
