@@ -371,21 +371,7 @@ body {
     <!-- Specs Grid -->
     <div id="specs-grid" class="ts-spec-grid"></div>
 
-    <!-- Price & Age Inputs -->
-    <div class="ts-card" style="padding:16px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <label class="ts-label" style="font-size:11px">PREÇO DA VIATURA (€)</label>
-          <input type="number" id="input-price" class="ts-input" placeholder="Ex: 25000" min="0">
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <label class="ts-label" style="font-size:11px">IDADE DO VEÍCULO (anos)</label>
-          <input type="number" id="input-age" class="ts-input" placeholder="Ex: 3" min="0" step="0.1">
-        </div>
-      </div>
-    </div>
-
-    <!-- CO2 Missing Section -->
+    <!-- CO2 Missing Section (only shows if CO2 not available from scrape) -->
     <div id="co2-section" class="ts-co2-box ts-fade-in hidden" style="display:flex;flex-direction:column;gap:14px">
       <div style="display:flex;align-items:center;gap:8px">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ts-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
@@ -394,6 +380,9 @@ body {
       <div style="display:flex;align-items:center;gap:10px">
         <input type="number" id="input-co2" class="ts-input ts-input-sm" style="width:100px" placeholder="g/km" min="0" max="500">
         <span id="co2-standard-label" style="font-size:12px;color:var(--ts-text-muted)">WLTP</span>
+        <button type="button" id="btn-recalc-co2" class="ts-btn ts-btn-gold" style="padding:8px 16px;font-size:12px" onclick="handleSimulate()">
+          Recalcular
+        </button>
       </div>
     </div>
 
@@ -402,14 +391,6 @@ body {
       <span id="co2-badge" class="ts-badge ts-badge-green"></span>
       <input type="number" id="input-co2-inline" class="ts-input ts-input-sm" style="width:72px" min="0" max="500">
       <span style="font-size:11px;color:var(--ts-text-muted)">g/km</span>
-    </div>
-
-    <!-- SIMULATE BUTTON -->
-    <div style="display:flex;gap:10px">
-      <button type="button" id="btn-simulate" class="ts-btn ts-btn-gold" style="flex:1;padding:12px 20px" disabled>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        Simular Importação
-      </button>
     </div>
 
     <!-- GARANTIA Section -->
@@ -1047,9 +1028,12 @@ function showImportedView() {
   $('source-link').href = state.sourceUrl;
   $('source-link').textContent = state.sourceUrl;
 
-  // Image
+  // Image - decode unicode escapes like \u002F
   if (data.imageUrl) {
-    $('hero-image').src = data.imageUrl;
+    const decodedImageUrl = data.imageUrl.replace(/\\u002F/g, '/').replace(/\\u([0-9a-fA-F]{4})/g, (m, g) => String.fromCharCode(parseInt(g, 16)));
+    data.imageUrl = decodedImageUrl;
+    state.scrapedData.imageUrl = decodedImageUrl;
+    $('hero-image').src = decodedImageUrl;
     $('hero-image').style.display = 'block';
     hide('hero-placeholder');
     $('hero-image').onerror = function() {
@@ -1061,13 +1045,15 @@ function showImportedView() {
     show('hero-placeholder');
   }
 
-  // Title
-  $('car-title').textContent = data.title || 'Veículo Importado';
+  // Title - decode HTML entities like &nbsp;
+  const rawTitle = data.title || 'Veículo Importado';
+  const titleDecoder = document.createElement('textarea');
+  titleDecoder.innerHTML = rawTitle;
+  const cleanTitle = titleDecoder.value.replace(/\s+/g, ' ').trim();
+  $('car-title').textContent = cleanTitle;
   $('car-link').href = state.sourceUrl;
 
-  // Populate inputs
-  $('input-price').value = state.purchasePrice;
-  $('input-age').value = state.vehicleAge;
+  // Populate CO2 inputs if available
   if (state.co2) {
     $('input-co2').value = state.co2;
     $('input-co2-inline').value = state.co2;
@@ -1076,11 +1062,24 @@ function showImportedView() {
 
   // Render specs
   renderSpecs(data);
-  updateSimButton();
 
-  // Reset simulation panel
-  hide('sim-results');
-  show('sim-waiting');
+  // AUTO-SIMULATE if we have enough data
+  const needsCO2 = state.fuelType !== 'eletrico';
+  const hasCO2 = state.co2 !== '' && Number(state.co2) > 0;
+  const canAutoSim = state.displacement && state.vehicleAge && state.purchasePrice && (hasCO2 || !needsCO2);
+
+  if (canAutoSim) {
+    handleSimulate();
+  } else if (needsCO2 && !hasCO2) {
+    // Show CO2 input section, hide simulation
+    show('co2-section');
+    hide('co2-badge-section');
+    hide('sim-results');
+    show('sim-waiting');
+  } else {
+    hide('sim-results');
+    show('sim-waiting');
+  }
   hide('isv-detail-card');
 }
 
@@ -1139,32 +1138,19 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   $('btn-analyze').addEventListener('click', handleImportUrl);
   $('btn-reset').addEventListener('click', handleReset);
-  $('btn-simulate').addEventListener('click', handleSimulate);
 
-  // Input listeners for price/age/co2
-  $('input-price').addEventListener('input', function() {
-    state.purchasePrice = this.value;
-    updateSimButton();
-    // Auto-recalculate if ISV already computed
-    if (state.isv) {
-      renderSimulation();
-    }
-  });
-  $('input-age').addEventListener('input', function() {
-    state.vehicleAge = this.value;
-    updateSimButton();
-  });
+  // CO2 input listeners (for manual CO2 entry when not available from scrape)
   $('input-co2').addEventListener('input', function() {
     state.co2 = this.value;
-    state.co2Source = null;
-    updateSimButton();
-    renderSpecs(state.scrapedData);
+    state.co2Source = 'Manual';
+    if (state.scrapedData) renderSpecs(state.scrapedData);
   });
   $('input-co2-inline').addEventListener('input', function() {
     state.co2 = this.value;
-    state.co2Source = null;
-    updateSimButton();
-    renderSpecs(state.scrapedData);
+    state.co2Source = 'Manual';
+    if (state.scrapedData) renderSpecs(state.scrapedData);
+    // Auto-recalculate if we now have CO2
+    if (state.co2 && Number(state.co2) > 0) handleSimulate();
   });
 
   // Keyboard: Escape closes modal
