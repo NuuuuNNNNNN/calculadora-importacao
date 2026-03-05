@@ -27,11 +27,17 @@ export default async (req, res) => {
         // render_js not needed - mobile.de data is in initial HTML
       });
 
-      const response = await fetch('https://app.scrapingbee.com/api/v1/?' + params.toString(), {
+      const fullUrl = 'https://app.scrapingbee.com/api/v1/?' + params.toString();
+      console.log('[API] Full URL (last 100 chars):', fullUrl.substring(fullUrl.length - 100));
+
+      const response = await fetch(fullUrl, {
         timeout: 50000 // 50 second timeout
       });
       
       const text = await response.text();
+      
+      console.log('[API] ScrapingBee response status:', response.status);
+      console.log('[API] ScrapingBee response length:', text.length);
       
       // Check if we hit the monthly limit
       if (text.includes('Monthly API calls limit reached')) {
@@ -40,20 +46,20 @@ export default async (req, res) => {
       }
       
       if (!response.ok) {
-        throw new Error(`ScrapingBee HTTP ${response.status}`);
+        // Return error details
+        return res.status(200).json({
+          error: 'Failed to scrape',
+          message: `ScrapingBee HTTP ${response.status}`,
+          debug: {
+            responseLength: text.length,
+            responseStart: text.substring(0, 200)
+          }
+        });
       }
       
       html = text;
       usedScrapingBee = true;
       console.log('[API] ScrapingBee success, HTML length:', html.length);
-    // DEBUG: Return HTML snippet to see if we're getting data
-    if (process.env.DEBUG_MODE) {
-      return res.status(200).json({
-        debug: 'HTML_SAMPLE',
-        htmlLength: html.length,
-        htmlSnippet: html.substring(0, 500)
-      });
-    }
     } catch (sbError) {
       console.log('[API] ScrapingBee failed:', sbError.message);
       console.log('[API] Falling back to direct fetch...');
