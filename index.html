@@ -526,6 +526,8 @@ const state = {
   vehicleAge: '',
   purchasePrice: '',
   buyerType: 'particular',
+  sellerCountry: null,
+  vatDeductible: null,
   paymentMethod: 'pronto',
   warranty: 'none',
   delivery: 'recolha',
@@ -538,6 +540,25 @@ const state = {
 const WARRANTY_COST = { none: 0, '12': 500, '24': 900 };
 const DELIVERY_COST = { recolha: 0, domicilio: 250, express: 650 };
 const FINANCING_RATE = 0.059;
+
+// EU VAT rates by country code
+const VAT_RATES = {
+  'DE': 0.19, 'FR': 0.20, 'NL': 0.21, 'BE': 0.21, 'ES': 0.21,
+  'IT': 0.22, 'AT': 0.20, 'PL': 0.23, 'PT': 0.23, 'CZ': 0.21,
+  'DK': 0.25, 'SE': 0.25, 'FI': 0.255, 'IE': 0.23, 'LU': 0.17,
+  'HU': 0.27, 'RO': 0.19, 'BG': 0.20, 'HR': 0.25, 'SK': 0.20,
+  'SI': 0.22, 'LT': 0.21, 'LV': 0.21, 'EE': 0.22, 'CY': 0.19,
+  'MT': 0.18, 'GR': 0.24
+};
+const COUNTRY_NAMES = {
+  'DE': 'Alemanha', 'FR': 'França', 'NL': 'Holanda', 'BE': 'Bélgica', 'ES': 'Espanha',
+  'IT': 'Itália', 'AT': 'Áustria', 'PL': 'Polónia', 'PT': 'Portugal', 'CZ': 'Chéquia',
+  'DK': 'Dinamarca', 'SE': 'Suécia', 'FI': 'Finlândia', 'IE': 'Irlanda', 'LU': 'Luxemburgo',
+  'HU': 'Hungria', 'RO': 'Roménia', 'BG': 'Bulgária', 'HR': 'Croácia', 'SK': 'Eslováquia',
+  'SI': 'Eslovénia', 'LT': 'Lituânia', 'LV': 'Letónia', 'EE': 'Estónia', 'CY': 'Chipre',
+  'MT': 'Malta', 'GR': 'Grécia'
+};
+const PT_VAT = 0.23;
 
 // ═══════════════════════════════════════
 // ISV CALCULATION (2026 Tables)
@@ -759,17 +780,53 @@ function renderSimulation() {
   const importCost = calculateImportCost(price);
   const warrantyCost = WARRANTY_COST[state.warranty];
   const deliveryCost = DELIVERY_COST[state.delivery];
-  const grandTotal = price + isv.isvFinal + importCost + warrantyCost + deliveryCost;
-  const ivaRecovery = state.buyerType === 'empresa' ? Math.round(importCost * 0.23 / 1.23) : 0;
+  // ══ IVA calculation based on buyer type and seller country ══
+  const isEmpresa = state.buyerType === 'empresa';
+  const country = state.sellerCountry || 'DE';
+  const foreignVatRate = VAT_RATES[country] || 0.19;
+  const countryName = COUNTRY_NAMES[country] || country;
+  const vatPct = Math.round(foreignVatRate * 100);
+
+  let vehicleDisplayPrice = price;
+  let vehicleNetPrice = price;
+  let foreignVatAmount = 0;
+  let ptVatOnVehicle = 0;
+  let ivaRecovery = 0;
+
+  if (isEmpresa && state.vatDeductible) {
+    // Empresa + MwSt. ausweisbar: deduct foreign VAT, apply PT VAT (deductible)
+    vehicleNetPrice = Math.round(price / (1 + foreignVatRate));
+    foreignVatAmount = price - vehicleNetPrice;
+    ptVatOnVehicle = Math.round(vehicleNetPrice * PT_VAT);
+    // IVA dedutível = PT VAT on vehicle + PT VAT on services (already included in service prices)
+    const servicesVat = Math.round((importCost + warrantyCost + deliveryCost) * PT_VAT / (1 + PT_VAT));
+    ivaRecovery = ptVatOnVehicle + servicesVat;
+  } else if (isEmpresa) {
+    // Empresa sem MwSt. / margin scheme: only services VAT deductible
+    ivaRecovery = Math.round((importCost + warrantyCost + deliveryCost) * PT_VAT / (1 + PT_VAT));
+  }
+
+  const grandTotal = isEmpresa && state.vatDeductible
+    ? vehicleNetPrice + ptVatOnVehicle + isv.isvFinal + importCost + warrantyCost + deliveryCost
+    : price + isv.isvFinal + importCost + warrantyCost + deliveryCost;
   const finalTotal = grandTotal - ivaRecovery;
 
   // Breakdown
   let html = '';
-  html += `<div class="ts-result-row"><span class="ts-result-label">Valor da Viatura</span><span class="ts-result-value">${fmtPrice(price)}</span></div>`;
+  if (isEmpresa && state.vatDeductible) {
+    // Show price breakdown: advertised → net → PT VAT
+    html += `<div class="ts-result-row"><span class="ts-result-label">Preço Anunciado</span><span class="ts-result-value">${fmtPrice(price)}</span></div>`;
+    html += `<div class="ts-result-row"><span class="ts-result-label" style="color:var(--ts-green)">Dedução IVA ${countryName} (${vatPct}%)</span><span class="ts-result-value" style="color:var(--ts-green)">-${fmtPrice(foreignVatAmount)}</span></div>`;
+    html += `<div class="ts-result-row"><span class="ts-result-label">Valor Líquido Viatura</span><span class="ts-result-value">${fmtPrice(vehicleNetPrice)}</span></div>`;
+    html += `<div class="ts-result-row"><span class="ts-result-label">IVA Portugal (23%)</span><span class="ts-result-value">${fmtPrice(ptVatOnVehicle)}</span></div>`;
+  } else {
+    html += `<div class="ts-result-row"><span class="ts-result-label">Valor da Viatura</span><span class="ts-result-value">${fmtPrice(price)}</span></div>`;
+  }
   html += `<div class="ts-result-row"><span class="ts-result-label">ISV</span><span class="ts-result-value">${fmtPrice(isv.isvFinal)}</span></div>`;
   html += `<div class="ts-result-row"><div><span class="ts-result-label">Serviço The Selection</span>`;
-  if (state.buyerType === 'empresa' && ivaRecovery > 0) {
-    html += `<div class="ts-result-sublabel">Inclui IVA de ${fmtPrice(Math.round(importCost * 0.23 / 1.23))}</div>`;
+  if (isEmpresa) {
+    const svcVat = Math.round(importCost * PT_VAT / (1 + PT_VAT));
+    html += `<div class="ts-result-sublabel">Inclui IVA de ${fmtPrice(svcVat)}</div>`;
   }
   html += `</div><span class="ts-result-value">${fmtPrice(importCost)}</span></div>`;
   if (warrantyCost > 0) {
@@ -780,8 +837,8 @@ function renderSimulation() {
     ? '<span class="ts-result-value" style="color:var(--ts-green)">Incluído</span>'
     : `<span class="ts-result-value">${fmtPrice(deliveryCost)}</span>`;
   html += `<div class="ts-result-row"><div><span class="ts-result-label">Entrega</span><div class="ts-result-sublabel">${deliveryLabel}</div></div>${deliveryValue}</div>`;
-  if (state.buyerType === 'empresa' && ivaRecovery > 0) {
-    html += `<div class="ts-result-row"><span class="ts-result-label" style="color:var(--ts-green)">IVA Dedutível</span><span class="ts-result-value" style="color:var(--ts-green)">-${fmtPrice(ivaRecovery)}</span></div>`;
+  if (isEmpresa && ivaRecovery > 0) {
+    html += `<div class="ts-result-row"><span class="ts-result-label" style="color:var(--ts-green)">IVA Dedutível (Empresa)</span><span class="ts-result-value" style="color:var(--ts-green)">-${fmtPrice(ivaRecovery)}</span></div>`;
   }
   $('sim-breakdown').innerHTML = html;
 
@@ -1018,6 +1075,8 @@ async function handleImportUrl() {
     if (data.displacement) state.displacement = String(data.displacement);
     if (data.co2) state.co2 = String(data.co2);
     if (data.price) state.purchasePrice = String(data.price);
+    if (data.sellerCountry) state.sellerCountry = data.sellerCountry;
+    state.vatDeductible = data.vatDeductible === true ? true : data.vatDeductible === false ? false : null;
     if (data.registrationYear) {
       const age = calculateVehicleAge(data.registrationYear, data.registrationMonth);
       state.vehicleAge = String(age);
@@ -1157,6 +1216,8 @@ function handleReset() {
   state.vehicleAge = '';
   state.purchasePrice = '';
   state.buyerType = 'particular';
+  state.sellerCountry = null;
+  state.vatDeductible = null;
   state.paymentMethod = 'pronto';
   state.warranty = 'none';
   state.delivery = 'recolha';
@@ -1223,7 +1284,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // TEST MODE: ?test=true loads mock data
   if (new URLSearchParams(window.location.search).get('test')) {
-    state.scrapedData={title:'Porsche Panamera 4 E-Hybrid',imageUrl:'https://img.classistatic.de/api/v1/mo-prod/images/fc/fc3b6b47-1cf4-4a8c-a94e-a2d78e26e3d6?rule=mo-1600.jpg',mileage:159000,registrationYear:2020,registrationMonth:9,displacement:3996,power:500,fuelType:'hibrido',co2:83,price:73680,gearbox:'Automatik'};
+    state.scrapedData={title:'Porsche Panamera 4 E-Hybrid',imageUrl:'https://img.classistatic.de/api/v1/mo-prod/images/fc/fc3b6b47-1cf4-4a8c-a94e-a2d78e26e3d6?rule=mo-1600.jpg',mileage:159000,registrationYear:2020,registrationMonth:9,displacement:3996,power:500,fuelType:'hibrido_plugin',co2:83,price:73680,gearbox:'Automatik',sellerCountry:'DE',vatDeductible:true};
     state.sourceUrl='https://suchen.mobile.de/fahrzeug/details.html?id=395857670';
     state.imported=true;state.fuelType='hibrido';state.displacement='3996';state.co2='83';
     state.purchasePrice='73680';state.vehicleAge='5.5';state.emissionStandard='WLTP';
