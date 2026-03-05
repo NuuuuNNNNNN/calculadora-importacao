@@ -24,7 +24,7 @@ export default async (req, res) => {
       // Build URL manually to avoid double-encoding issues
       const apiKey = encodeURIComponent(process.env.SCRAPINGBEE_API_KEY);
       const encodedUrl = encodeURIComponent(url);
-      const fullUrl = `https://app.scrapingbee.com/api/v1/?api_key=${apiKey}&url=${encodedUrl}&block_resources=false`;
+      const fullUrl = `https://app.scrapingbee.com/api/v1/?api_key=${apiKey}&url=${encodedUrl}&block_resources=false&premium_proxy=true`;
       console.log('[API] Full URL (last 100 chars):', fullUrl.substring(fullUrl.length - 100));
 
       const response = await fetch(fullUrl, {
