@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "cheerio": "^1.0.0-rc.12",
-    "@neondatabase/serverless": "^0.10.4"
+    "@neondatabase/serverless": "^0.10.4",
+    "stripe": "^14.0.0"
   }
 }
