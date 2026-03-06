@@ -1905,11 +1905,17 @@ async function handleImportUrl() {
   updateSkeletonStatus('A extrair dados do anúncio...');
 
   try {
+    // Add timeout to prevent infinite skeleton
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 35000);
+    
     const resp = await fetch('/api/scrape-vehicle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 

@@ -1,6 +1,14 @@
 {
   "version": 2,
   "cleanUrls": true,
+  "functions": {
+    "api/scrape-vehicle.js": { "maxDuration": 60 },
+    "api/market-price.js": { "maxDuration": 60 },
+    "api/lead.js": { "maxDuration": 15 },
+    "api/referral-track.js": { "maxDuration": 15 },
+    "api/stripe-checkout.js": { "maxDuration": 30 },
+    "api/stripe-webhook.js": { "maxDuration": 30 }
+  },
   "rewrites": [
     { "source": "/api/scrape-vehicle", "destination": "/api/scrape-vehicle" },
     { "source": "/api/market-price", "destination": "/api/market-price" },
