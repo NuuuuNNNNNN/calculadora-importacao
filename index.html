@@ -465,214 +465,35 @@ input[type="range"].ts-range::-moz-range-thumb {
 // ═══════════════════════════════════════
 // PHASE 2: Savings Comparison
 // ═══════════════════════════════════════
-
-// ═══════════════════════════════════════
-// PHASE 2: PDF Export
-// ═══════════════════════════════════════
-function generatePDF() {
-  if (!window.jspdf) { alert('A carregar biblioteca PDF. Tente novamente.'); return; }
-  if (!state.isv) { alert('Faça primeiro uma simulação.'); return; }
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p', 'mm', 'a4');
-  const pw = 210, mx = 20;
-  const gold = [200, 170, 110], darkBg = [9, 9, 11], white = [255, 255, 255];
-  const gray = [140, 140, 150], green = [76, 175, 80];
-
-  // ─── Header ───
-  doc.setFillColor(...darkBg);
-  doc.rect(0, 0, pw, 36, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.setTextColor(...gold);
-  doc.text('THE SELECTION', mx, 17);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...gray);
-  doc.text('Simulador de Importação de Veículos', mx, 26);
-  doc.setFontSize(8);
-  doc.text(new Date().toLocaleDateString('pt-PT'), pw - mx, 26, { align: 'right' });
-  doc.setDrawColor(...gold);
-  doc.setLineWidth(0.5);
-  doc.line(mx, 33, pw - mx, 33);
-
-  let y = 46;
-
-  // ─── Vehicle Title ───
-  const title = state.scrapedData?.title || 'Veículo';
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.setTextColor(30, 30, 30);
-  doc.text(title, mx, y);
-  y += 6;
-  if (state.sourceUrl) {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
-    doc.setTextColor(100, 100, 200);
-    doc.textWithLink(state.sourceUrl.substring(0, 90), mx, y, { url: state.sourceUrl });
-    y += 8;
-  } else { y += 4; }
-
-  // ─── Specs Grid ───
-  doc.setFillColor(245, 245, 248);
-  doc.roundedRect(mx, y, pw - 2*mx, 28, 2, 2, 'F');
-  const fuelLabels = { gasolina:'Gasolina', gasoleo:'Gasóleo', hibrido:'Híbrido', hibrido_plugin:'Híbrido Plug-In', eletrico:'Eléctrico', gpl:'GPL' };
-  const specs = [];
-  specs.push(['Combustível', fuelLabels[state.fuelType] || state.fuelType]);
-  if (state.fuelType !== 'eletrico') specs.push(['Cilindrada', state.displacement + ' ccm']);
-  specs.push(['CO₂', state.fuelType === 'eletrico' ? '0 g/km' : state.co2 + ' g/km']);
-  if (state.scrapedData?.power) specs.push(['Potência', state.scrapedData.power + ' cv']);
-  if (state.scrapedData?.gearbox) {
-    const gb = state.scrapedData.gearbox;
-    specs.push(['Caixa', /auto|dsg|dkt|tiptronic|s.tronic|pdk/i.test(gb) ? 'Automática' : /manual|schalt/i.test(gb) ? 'Manual' : gb]);
-  }
-  if (state.registrationYear) specs.push(['Registo', (state.registrationMonth ? state.registrationMonth+'/' : '') + state.registrationYear]);
-  if (state.scrapedData?.mileage) specs.push(['Quilómetros', new Intl.NumberFormat('pt-PT').format(state.scrapedData.mileage) + ' km']);
-  const cn = COUNTRY_NAMES[state.sellerCountry];
-  if (cn) specs.push(['País', cn]);
-  specs.push(['IVA (MwSt.)', state.vatDeductible ? 'Dedutível' : 'Não dedutível']);
-
-  doc.setFontSize(7.5);
-  const colW = (pw - 2*mx - 16) / 3;
-  specs.forEach((s, i) => {
-    const cx = mx + 6 + (i % 3) * colW;
-    const cy = y + 6 + Math.floor(i / 3) * 10;
-    doc.setFont('helvetica', 'normal'); doc.setTextColor(120, 120, 130); doc.text(s[0], cx, cy);
-    doc.setFont('helvetica', 'bold'); doc.setTextColor(40, 40, 40); doc.text(s[1], cx, cy + 4);
-  });
-  y += 34;
-
-  // ─── Price Breakdown ───
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(30, 30, 30);
-  doc.text('Custos de Importação', mx, y);
-  y += 2;
-  doc.setDrawColor(220, 220, 225); doc.setLineWidth(0.3); doc.line(mx, y, pw - mx, y);
-  y += 7;
-
-  const isv = state.isv;
-  const price = Number(state.purchasePrice) || 0;
-  const importCost = calculateImportCost(price);
-  const warrantyCost = WARRANTY_COST[state.warranty];
-  const deliveryCost = DELIVERY_COST[state.delivery];
-  const isEmpresa = state.buyerType === 'empresa';
-  const country = state.sellerCountry || 'DE';
-  const foreignVatRate = VAT_RATES[country] || 0.19;
-  const countryName = COUNTRY_NAMES[country] || country;
-  const vatPct = Math.round(foreignVatRate * 100);
-
-  const rows = [];
-  let vehicleNetPrice = price, ptVatOnVehicle = 0, ivaRecovery = 0;
-  if (isEmpresa && state.vatDeductible) {
-    vehicleNetPrice = Math.round(price / (1 + foreignVatRate));
-    const foreignVatAmount = price - vehicleNetPrice;
-    ptVatOnVehicle = Math.round(vehicleNetPrice * PT_VAT);
-    rows.push(['Preço Anunciado', fmtPrice(price), false]);
-    rows.push(['Dedução IVA ' + countryName + ' (' + vatPct + '%)', '-' + fmtPrice(foreignVatAmount), true]);
-    rows.push(['Valor Líquido Viatura', fmtPrice(vehicleNetPrice), false]);
-    rows.push(['IVA Portugal (23%)', fmtPrice(ptVatOnVehicle), false]);
-  } else {
-    rows.push(['Valor da Viatura', fmtPrice(price), false]);
-  }
-  rows.push(['ISV', isv.isvFinal === 0 && state.fuelType === 'eletrico' ? 'Isento' : fmtPrice(isv.isvFinal), state.fuelType === 'eletrico']);
-  rows.push(['Serviço The Selection', fmtPrice(importCost), false]);
-  const referralDiscount = state.referralCode ? Math.round(importCost * 0.05) : 0;
-  if (referralDiscount > 0) rows.push(['Desc. Referência (5%)', '-' + fmtPrice(referralDiscount), true]);
-  if (warrantyCost > 0) rows.push(['Garantia ' + state.warranty + ' Meses', fmtPrice(warrantyCost), false]);
-  const dlbl = { recolha:'Entrega no Showroom', domicilio:'Entrega ao Domicílio', express:'Entrega Express' };
-  rows.push([dlbl[state.delivery] || 'Entrega', state.delivery === 'recolha' ? 'Incluído' : fmtPrice(deliveryCost), state.delivery === 'recolha']);
-  if (isEmpresa && state.vatDeductible) {
-    const sVat = Math.round((importCost + warrantyCost + deliveryCost) * PT_VAT / (1 + PT_VAT));
-    ivaRecovery = ptVatOnVehicle + sVat;
-  } else if (isEmpresa) {
-    ivaRecovery = Math.round((importCost + warrantyCost + deliveryCost) * PT_VAT / (1 + PT_VAT));
-  }
-  if (ivaRecovery > 0) rows.push(['IVA Dedutível (Empresa)', '-' + fmtPrice(ivaRecovery), true]);
-
-  doc.setFontSize(10);
-  rows.forEach(r => {
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(r[2] ? 76 : 60, r[2] ? 175 : 60, r[2] ? 80 : 65);
-    doc.text(r[0], mx, y);
-    doc.setFont('helvetica', 'bold');
-    doc.text(r[1], pw - mx, y, { align: 'right' });
-    y += 7;
-  });
-
-  // ─── Total Box ───
-  y += 3;
-  let grandTotal;
-  if (isEmpresa && state.vatDeductible) {
-    grandTotal = vehicleNetPrice + ptVatOnVehicle + isv.isvFinal + importCost + warrantyCost + deliveryCost - referralDiscount;
-  } else {
-    grandTotal = price + isv.isvFinal + importCost + warrantyCost + deliveryCost - referralDiscount;
-  }
-  const finalTotal = grandTotal - ivaRecovery;
-
-  doc.setFillColor(...darkBg);
-  doc.roundedRect(mx, y, pw - 2*mx, 16, 2, 2, 'F');
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...white);
-  doc.text('PREÇO CHAVE NA MÃO', mx + 8, y + 10);
-  doc.setFontSize(14); doc.setTextColor(...gold);
-  doc.text(fmtPrice(finalTotal), pw - mx - 8, y + 11, { align: 'right' });
-  y += 24;
-
-  // ─── Savings (if entered) ───
-  if (state.marketPrice) {
-    const ptP = state.marketPrice;
-    if (ptP > 0) {
-      const sv = ptP - finalTotal;
-      if (sv > 0) {
-        doc.setFillColor(235, 248, 235);
-        doc.roundedRect(mx, y, pw - 2*mx, 12, 2, 2, 'F');
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...green);
-        doc.text('POUPANÇA VS PORTUGAL: ' + fmtPrice(sv) + ' (-' + Math.round(sv/ptP*100) + '%)', pw/2, y + 8, { align: 'center' });
-        y += 18;
-      }
-    }
-  }
-
-  // ─── Financing (if selected) ───
-  if (state.paymentMethod === 'financiamento') {
-    y += 2;
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(30, 30, 30);
-    doc.text('Financiamento', mx, y);
-    y += 6;
-    const entryAmount = Math.round(finalTotal * (state.entryPercent / 100));
-    const financedAmount = finalTotal - entryAmount;
-    const selBank = FINANCING_BANKS.find(b => b.id === state.selectedBank) || FINANCING_BANKS[0];
-    const monthlyRate = selBank.taeg / 12;
-    const monthly = financedAmount > 0 && state.loanTerm > 0
-      ? Math.round(financedAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -state.loanTerm)))
-      : 0;
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(60, 60, 65);
-    doc.text('Parceiro: ' + selBank.name + ' (' + selBank.subtitle + ')', mx, y); y += 5;
-    doc.text('Entrada (' + state.entryPercent + '%): ' + fmtPrice(entryAmount), mx, y); y += 5;
-    doc.text('Prazo: ' + state.loanTerm + ' meses', mx, y); y += 5;
-    doc.text('Prestação mensal: ' + fmtPrice(monthly) + '/mês', mx, y); y += 5;
-    doc.text('TAN ' + (selBank.tan*100).toFixed(1) + '% · TAEG ' + (selBank.taeg*100).toFixed(1) + '%', mx, y); y += 8;
-  }
-
-  // ─── Footer ───
-  const fy = 270;
-  doc.setDrawColor(220, 220, 225); doc.setLineWidth(0.3); doc.line(mx, fy, pw - mx, fy);
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...gray);
-  doc.text('The Selection · theselection.pt · +351 935 711 561 · WhatsApp', mx, fy + 5);
-  doc.text('Simulação indicativa · Tabelas ISV 2026 · Valores sujeitos a confirmação · TAEG indicativa', mx, fy + 9);
-  doc.text('Este documento não constitui proposta vinculativa. Consulte a nossa equipa para valores finais.', mx, fy + 13);
-
-  // Save
-  const safeName = title.replace(/[^a-zA-Z0-9\u00C0-\u017F ]/g, '').replace(/\s+/g, '-').substring(0, 40);
-  doc.save('Simulacao-' + safeName + '.pdf');
-}
-
 // ═══════════════════════════════════════
 // PHASE 2: Lead Capture (unified with reserve form)
 // ═══════════════════════════════════════
+function showFieldsWarning() {
+  const msg = $('reserve-validation-msg');
+  const spacer = $('reserve-fields-spacer');
+  if (msg) { msg.style.display = 'block'; if (spacer) spacer.style.display = 'none'; }
+  // highlight empty fields
+  ['reserve-name','reserve-email','reserve-phone'].forEach(id => {
+    const el = $(id);
+    if (el && !el.value.trim()) el.style.borderColor = 'rgba(200,170,110,0.5)';
+  });
+  setTimeout(() => { if (msg) { msg.style.display = 'none'; if (spacer) spacer.style.display = 'block'; } }, 4000);
+}
+function clearFieldsWarning() {
+  const msg = $('reserve-validation-msg');
+  const spacer = $('reserve-fields-spacer');
+  if (msg) { msg.style.display = 'none'; if (spacer) spacer.style.display = 'block'; }
+  ['reserve-name','reserve-email','reserve-phone'].forEach(id => {
+    const el = $(id); if (el) el.style.borderColor = '';
+  });
+}
+
 async function submitLeadFromReserve() {
   const name = $('reserve-name').value.trim();
   const email = $('reserve-email').value.trim();
   const phone = $('reserve-phone').value.trim();
-  if (!email && !phone) { alert('Por favor preencha email ou telefone'); return; }
-  if (!name) { alert('Por favor preencha o nome'); return; }
+  if (!name || !email || !phone) { showFieldsWarning(); return; }
+  clearFieldsWarning();
 
   const btn = $('lead-submit-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'A enviar...'; btn.style.opacity = '1'; }
@@ -1125,11 +946,15 @@ async function submitLeadFromReserve() {
         <span style="font-size:13px;font-weight:600;color:var(--ts-text)">Avançar com este veículo</span>
       </div>
       <!-- Shared fields -->
-      <div style="display:flex;gap:8px;margin-bottom:14px">
+      <div style="display:flex;gap:8px;margin-bottom:4px">
         <input type="text" id="reserve-name" class="ts-reserve-input" placeholder="Nome completo" required style="flex:1.2" />
         <input type="email" id="reserve-email" class="ts-reserve-input" placeholder="Email" required style="flex:1" />
         <input type="tel" id="reserve-phone" class="ts-reserve-input" placeholder="Telefone" style="flex:0.8" />
       </div>
+      <div id="reserve-validation-msg" style="display:none;margin-bottom:10px;padding:6px 10px;border-radius:6px;background:rgba(200,170,110,0.08);border:1px solid rgba(200,170,110,0.2);font-size:10px;color:#c8aa6e;text-align:center">
+        Preencha o nome, email e telefone para continuar
+      </div>
+      <div id="reserve-fields-spacer" style="height:10px"></div>
       <!-- Primary CTA: Pre-Reserve -->
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
         <button id="reserve-btn" class="ts-reserve-btn" onclick="startReservation()" style="flex:1;margin:0;padding:12px 20px;font-size:13px">
@@ -2589,6 +2414,12 @@ function openWhatsApp() {
 function generatePDF() {
   if (!window.jspdf) { alert('A carregar biblioteca PDF. Tente novamente.'); return; }
   if (!state.isv) { alert('Faça primeiro uma simulação.'); return; }
+  // Validate contact fields
+  const rName = $('reserve-name')?.value?.trim();
+  const rEmail = $('reserve-email')?.value?.trim();
+  const rPhone = $('reserve-phone')?.value?.trim();
+  if (!rName || !rEmail || !rPhone) { showFieldsWarning(); return; }
+  clearFieldsWarning();
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF('p', 'mm', 'a4');
   const pw = 210, mx = 20;
