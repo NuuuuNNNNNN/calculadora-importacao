@@ -277,22 +277,12 @@ body::-webkit-scrollbar {
 .ts-gallery-nav.prev { left:8px; }
 .ts-gallery-nav.next { right:8px; }
 .ts-gallery-counter { position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.6);color:#fff;font-size:10px;padding:3px 8px;border-radius:10px;z-index:10;font-family:Inter,sans-serif;backdrop-filter:blur(4px); }
-.ts-thumbstrip { display:flex;gap:4px;padding:6px 0;overflow-x:auto;scrollbar-width:none; }
-.ts-thumbstrip::-webkit-scrollbar { display:none; }
-.ts-thumb { width:52px;height:36px;border-radius:4px;object-fit:cover;cursor:pointer;border:2px solid transparent;opacity:0.5;transition:all 0.2s;flex-shrink:0; }
-.ts-thumb:hover { opacity:0.8; }
-.ts-thumb.active { border-color:var(--ts-gold);opacity:1; }
 /* Gallery Modal */
 .ts-gallery-modal-nav { position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);color:#fff;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10001;transition:all 0.2s;backdrop-filter:blur(4px); }
 .ts-gallery-modal-nav:hover { background:rgba(0,0,0,0.8);border-color:var(--ts-gold); }
 .ts-gallery-modal-nav.prev { left:16px; }
 .ts-gallery-modal-nav.next { right:16px; }
 .ts-gallery-modal-counter { position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);color:#fff;font-size:12px;padding:4px 12px;border-radius:12px;z-index:10001;font-family:Inter,sans-serif;backdrop-filter:blur(4px); }
-.ts-gallery-modal-thumbs { position:absolute;bottom:48px;left:50%;transform:translateX(-50%);display:flex;gap:4px;max-width:80vw;overflow-x:auto;scrollbar-width:none;z-index:10001;padding:4px; }
-.ts-gallery-modal-thumbs::-webkit-scrollbar { display:none; }
-.ts-gallery-modal-thumb { width:56px;height:40px;border-radius:4px;object-fit:cover;cursor:pointer;border:2px solid transparent;opacity:0.4;transition:all 0.2s;flex-shrink:0; }
-.ts-gallery-modal-thumb:hover { opacity:0.7; }
-.ts-gallery-modal-thumb.active { border-color:var(--ts-gold);opacity:1; }
 .hidden { display: none !important; }
 
 /* SVG icons inline */
@@ -782,7 +772,6 @@ async function submitLead(e) {
           <span style="font-size:11px;color:var(--ts-text-muted)">Imagem não disponível</span>
         </div>
       </div>
-      <div id="gallery-thumbstrip" class="ts-thumbstrip hidden"></div>
 
       <!-- RIGHT: Simulation Panel -->
       <div class="ts-main-card-sim">
@@ -1005,7 +994,6 @@ async function submitLead(e) {
   <button type="button" id="modal-prev" class="ts-gallery-modal-nav prev hidden" onclick="event.stopPropagation();galleryNav(-1)">‹</button>
   <button type="button" id="modal-next" class="ts-gallery-modal-nav next hidden" onclick="event.stopPropagation();galleryNav(1)">›</button>
   <div id="modal-counter" class="ts-gallery-modal-counter hidden">1 / 1</div>
-  <div id="modal-thumbstrip" class="ts-gallery-modal-thumbs hidden"></div>
 </div>
 
 <script>
@@ -1271,15 +1259,10 @@ function initGallery(images) {
   if (gallery.images.length > 1) {
     // Show navigation on hero
     show('gallery-prev'); show('gallery-next'); show('gallery-counter');
-    // Build thumbnail strip
-    const strip = $('gallery-thumbstrip');
-    strip.innerHTML = gallery.images.map((img, i) =>
-      '<img class="ts-thumb' + (i === 0 ? ' active' : '') + '" src="' + img.thumb + '" onclick="galleryGoTo(' + i + ')" alt="Foto ' + (i+1) + '">'
-    ).join('');
-    show('gallery-thumbstrip');
+
     updateGalleryCounter();
   } else {
-    hide('gallery-prev'); hide('gallery-next'); hide('gallery-counter'); hide('gallery-thumbstrip');
+    hide('gallery-prev'); hide('gallery-next'); hide('gallery-counter');
   }
 }
 
@@ -1322,11 +1305,7 @@ function updateGalleryThumbs() {
   // Scroll active into view
   const activeHero = document.querySelector('#gallery-thumbstrip .ts-thumb.active');
   if (activeHero) activeHero.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-  // Modal thumbs
-  const modalThumbs = document.querySelectorAll('#modal-thumbstrip .ts-gallery-modal-thumb');
-  modalThumbs.forEach((t, i) => t.className = 'ts-gallery-modal-thumb' + (i === gallery.index ? ' active' : ''));
-  const activeModal = document.querySelector('#modal-thumbstrip .ts-gallery-modal-thumb.active');
-  if (activeModal) activeModal.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
 }
 
 function openImageModal() {
@@ -1336,12 +1315,7 @@ function openImageModal() {
     $('modal-image').src = gallery.images[gallery.index].full;
     if (gallery.images.length > 1) {
       show('modal-prev'); show('modal-next'); show('modal-counter');
-      // Build modal thumbnails
-      const strip = $('modal-thumbstrip');
-      strip.innerHTML = gallery.images.map((img, i) =>
-        '<img class="ts-gallery-modal-thumb' + (i === gallery.index ? ' active' : '') + '" src="' + img.thumb + '" onclick="event.stopPropagation();galleryGoTo(' + i + ')" alt="Foto ' + (i+1) + '">'
-      ).join('');
-      show('modal-thumbstrip');
+
       updateGalleryCounter();
     }
   } else {
