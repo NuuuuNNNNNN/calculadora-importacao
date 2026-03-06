@@ -56,14 +56,18 @@ module.exports = async (req, res) => {
   if (req.method === 'POST') {
     const b = req.body || {};
     if (b.action === 'lead') {
+      // ANTI-EXPLOIT: Block if referral_code === my_referral_code (self-referral)
+      if (b.referral_code && b.my_referral_code && b.referral_code === b.my_referral_code) {
+        return res.status(400).json({ error: 'self_referral', message: 'Auto-referência não permitida' });
+      }
       const ic = Number(b.import_cost) || 0;
-      const cb = ic ? Math.round(ic * 0.05) : 0;
+      const cb = (ic && b.referral_code) ? Math.round(ic * 0.05) : 0;
       await sql`INSERT INTO referral_leads (name, email, phone, referral_code, vehicle_url, vehicle_title, vehicle_price, import_cost, cashback_amount)
         VALUES (${b.name||''}, ${b.email||''}, ${b.phone||''}, ${b.referral_code||null}, ${b.vehicle_url||''}, ${b.vehicle_title||''}, ${Number(b.vehicle_price)||0}, ${ic}, ${cb})`;
       return res.json({ ok: true, cashback: cb });
     }
-    await sql`INSERT INTO referral_events (event_type, referral_code, vehicle_url, vehicle_title, vehicle_price, source_page)
-      VALUES (${b.event_type||'view'}, ${b.referral_code||null}, ${b.vehicle_url||''}, ${b.vehicle_title||''}, ${Number(b.vehicle_price)||0}, ${b.source_page||''})`;
+    await sql`INSERT INTO referral_events (event_type, referral_code, my_referral_code, vehicle_url, vehicle_title, vehicle_price, source_page)
+      VALUES (${b.event_type||'view'}, ${b.referral_code||null}, ${b.my_referral_code||''}, ${b.vehicle_url||''}, ${b.vehicle_title||''}, ${Number(b.vehicle_price)||0}, ${b.source_page||''})`;
     return res.json({ ok: true });
   }
 

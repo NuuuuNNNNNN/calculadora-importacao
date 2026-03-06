@@ -660,6 +660,8 @@ async function submitLead(e) {
     url: state.sourceUrl || '',
     timestamp: new Date().toISOString(),
     referralCode: state.referralCode || null,
+      myReferralCode: getMyReferralCode(),
+      referredBy: localStorage.getItem('ts_referred_by') || null,
       import_cost: calculateImportCost(Number(state.purchasePrice) || 0)
   };
 
@@ -1163,6 +1165,8 @@ function trackEvent(eventType, extra = {}) {
   const payload = {
     event_type: eventType,
     referral_code: state.referralCode || null,
+        my_referral_code: getMyReferralCode(),
+        referred_by: localStorage.getItem('ts_referred_by') || null,
     vehicle_url: state.sourceUrl || null,
     vehicle_make: state.scrapedData?.make || null,
     vehicle_model: state.scrapedData?.model || null,
@@ -2140,9 +2144,22 @@ document.addEventListener('DOMContentLoaded', function() {
   // Always check for referral banner FIRST (before any rendering)
   var refParam = new URLSearchParams(window.location.search).get('ref');
   if (refParam) {
-    state.referralCode = refParam;
-    var rb1 = $('referral-banner'); if (rb1) rb1.classList.remove('hidden');
-    var rb2 = $('referral-banner-initial'); if (rb2) rb2.classList.remove('hidden');
+    var myExistingCode = localStorage.getItem('ts_ref_code');
+    // ANTI-EXPLOIT: Block self-referral (same person sharing to themselves)
+    if (myExistingCode && myExistingCode === refParam) {
+      state.referralCode = null;
+      console.log('[THESV] Auto-referência bloqueada');
+    } else {
+      state.referralCode = refParam;
+      localStorage.setItem('ts_referred_by', refParam);
+      // Ensure recipient has their OWN unique code (different from referrer)
+      if (!myExistingCode) {
+        var nc; do { nc = 'TS' + Math.random().toString(36).substring(2,8).toUpperCase(); } while(nc === refParam);
+        localStorage.setItem('ts_ref_code', nc);
+      }
+      var rb1 = $('referral-banner'); if (rb1) rb1.classList.remove('hidden');
+      var rb2 = $('referral-banner-initial'); if (rb2) rb2.classList.remove('hidden');
+    }
   }
 
   // TEST MODE: ?test=true loads mock data
@@ -2167,7 +2184,10 @@ document.addEventListener('DOMContentLoaded', function() {
 function getMyReferralCode() {
   let code = localStorage.getItem('ts_ref_code');
   if (!code) {
-    code = 'TS' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    var referredBy = localStorage.getItem('ts_referred_by');
+    do {
+      code = 'TS' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    } while (referredBy && code === referredBy);
     localStorage.setItem('ts_ref_code', code);
   }
   return code;
@@ -2250,12 +2270,21 @@ function checkReferral() {
   const ref = params.get('ref');
   const vehicleUrl = params.get('url');
   
-  // Store referral code if present
   if (ref) {
-    state.referralCode = ref;
-    // Show referral banner
-    var b1 = $('referral-banner'); if (b1) b1.classList.remove('hidden');
-    var b2 = $('referral-banner-initial'); if (b2) b2.classList.remove('hidden');
+    var myCode = localStorage.getItem('ts_ref_code');
+    // ANTI-EXPLOIT: Block self-referral
+    if (myCode && myCode === ref) {
+      state.referralCode = null;
+    } else {
+      state.referralCode = ref;
+      localStorage.setItem('ts_referred_by', ref);
+      if (!myCode) {
+        var nc; do { nc = 'TS' + Math.random().toString(36).substring(2,8).toUpperCase(); } while(nc === ref);
+        localStorage.setItem('ts_ref_code', nc);
+      }
+      var b1 = $('referral-banner'); if (b1) b1.classList.remove('hidden');
+      var b2 = $('referral-banner-initial'); if (b2) b2.classList.remove('hidden');
+    }
   }
   
   // Auto-load vehicle URL if present
