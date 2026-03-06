@@ -7,11 +7,12 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { name, email, phone, vehicle, price, url, timestamp } = req.body;
+    const { name, email, phone, vehicle, price, url, timestamp, referralCode } = req.body;
 
     // Log the lead (visible in Vercel Function Logs)
     console.log('=== NEW LEAD ===');
-    console.log(JSON.stringify({ name, email, phone, vehicle, price, url, timestamp }, null, 2));
+    console.log(JSON.stringify({ name, email, phone, vehicle, price, url, timestamp, referralCode }, null, 2));
+    if (referralCode) console.log('REFERRAL: ' + referralCode);
     console.log('================');
 
     return res.status(200).json({ success: true, message: 'Lead captured' });
