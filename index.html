@@ -1127,11 +1127,15 @@ async function submitLead(e) {
           Exportar PDF
         </button>
         <div class="ts-share-container">
-          <button onclick="toggleShareDropdown()" class="ts-share-btn">
+          <button onclick="handleShareClick()" class="ts-share-btn" id="share-main-btn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             Partilhar &amp; Ganhar
           </button>
           <div id="share-dropdown" class="ts-share-dropdown">
+            <div id="share-partner-info" style="padding:6px 10px 8px;border-bottom:1px solid var(--ts-border);margin-bottom:4px;display:none">
+              <div style="font-size:10px;color:var(--ts-muted)">O seu código</div>
+              <div id="share-my-code" style="font-size:14px;font-weight:700;color:var(--ts-accent);letter-spacing:2px"></div>
+            </div>
             <button class="ts-share-option" onclick="shareViaClipboard()">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
               Copiar link
@@ -1144,9 +1148,9 @@ async function submitLead(e) {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
               Enviar por Email
             </button>
+            <a href="/painel" target="_blank" style="display:block;text-align:center;font-size:10px;color:var(--ts-muted);padding:6px 0 2px;text-decoration:none;border-top:1px solid var(--ts-border);margin-top:4px">📊 O meu painel</a>
           </div>
           <div id="share-copied" class="ts-share-copied">Link copiado!</div>
-          <a href="/painel" target="_blank" style="display:block;text-align:center;font-size:10px;color:var(--ts-muted);margin-top:6px;text-decoration:none;opacity:0.7;transition:opacity 0.2s" onmouseover="this.style.opacity=1;this.style.color='var(--ts-accent)'" onmouseout="this.style.opacity=0.7;this.style.color='var(--ts-muted)'">📊 Ver o meu painel de referências</a>
         </div>
       </div>
     </div>
@@ -2350,33 +2354,140 @@ async function startReservation() {
 // REFERRAL PROGRAM
 // ═══════════════════════════════════════
 
-// Generate or retrieve referral code
-function getMyReferralCode() {
-  let code = localStorage.getItem('ts_ref_code');
-  if (!code) {
-    var referredBy = localStorage.getItem('ts_referred_by');
-    do {
-      code = 'TS' + Math.random().toString(36).substring(2, 8).toUpperCase();
-    } while (referredBy && code === referredBy);
-    localStorage.setItem('ts_ref_code', code);
-  }
-  return code;
+// ─── PARTNER REGISTRATION SYSTEM ───
+
+// Get stored partner info
+function getPartner() {
+  try {
+    const data = localStorage.getItem('ts_partner');
+    return data ? JSON.parse(data) : null;
+  } catch(e) { return null; }
 }
 
-// Build share URL with vehicle + referral
+function savePartner(data) {
+  localStorage.setItem('ts_partner', JSON.stringify(data));
+  // Also keep legacy key for backward compat
+  localStorage.setItem('ts_ref_code', data.referral_code);
+}
+
+// Get referral code (from partner account or legacy)
+function getMyReferralCode() {
+  const partner = getPartner();
+  if (partner) return partner.referral_code;
+  // Legacy fallback
+  return localStorage.getItem('ts_ref_code') || '';
+}
+
+// Build share URL
 function buildShareUrl() {
+  const code = getMyReferralCode();
+  if (!code) return window.location.origin + window.location.pathname;
   const base = window.location.origin + window.location.pathname;
   const params = new URLSearchParams();
   if (state.sourceUrl) params.set('url', state.sourceUrl);
-  params.set('ref', getMyReferralCode());
+  params.set('ref', code);
   return base + '?' + params.toString();
+}
+
+// Handle share button click — register first if needed
+function handleShareClick() {
+  const partner = getPartner();
+  if (partner) {
+    // Already registered — show share dropdown with code
+    var codeEl = $('share-my-code');
+    var infoEl = $('share-partner-info');
+    if (codeEl) { codeEl.textContent = partner.referral_code; }
+    if (infoEl) { infoEl.style.display = 'block'; }
+    toggleShareDropdown();
+  } else {
+    // Not registered — show registration modal
+    openPartnerModal();
+  }
+}
+
+// Modal management
+function openPartnerModal() {
+  var modal = $('partner-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    $('partner-form-fields').style.display = 'block';
+    $('partner-success').style.display = 'none';
+    $('partner-error').style.display = 'none';
+    var nameEl = $('partner-name');
+    if (nameEl) nameEl.focus();
+  }
+}
+
+function closePartnerModal() {
+  var modal = $('partner-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+// Register partner
+async function registerPartner() {
+  var name = ($('partner-name')?.value || '').trim();
+  var email = ($('partner-email')?.value || '').trim();
+  var phone = ($('partner-phone')?.value || '').trim();
+  var errEl = $('partner-error');
+  var btnEl = $('partner-submit-btn');
+
+  if (!name || !email || !phone) {
+    errEl.textContent = 'Preencha todos os campos.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (!email.includes('@') || !email.includes('.')) {
+    errEl.textContent = 'Email inválido.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (phone.replace(/\D/g,'').length < 6) {
+    errEl.textContent = 'Número de telefone inválido.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  errEl.style.display = 'none';
+  btnEl.textContent = 'A criar conta...';
+  btnEl.disabled = true;
+
+  try {
+    var res = await fetch('/api/referral-track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'register', name: name, email: email, phone: phone })
+    });
+    var data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = data.message || 'Erro ao criar conta.';
+      errEl.style.display = 'block';
+      btnEl.textContent = 'Criar a Minha Conta';
+      btnEl.disabled = false;
+      return;
+    }
+    // Save partner data
+    savePartner({
+      name: data.name,
+      referral_code: data.referral_code,
+      access_token: data.access_token,
+      email: email
+    });
+    // Show success
+    $('partner-form-fields').style.display = 'none';
+    $('partner-success').style.display = 'block';
+    $('partner-code-display').textContent = data.referral_code;
+  } catch(e) {
+    errEl.textContent = 'Erro de ligação. Tente novamente.';
+    errEl.style.display = 'block';
+  }
+  btnEl.textContent = 'Criar a Minha Conta';
+  btnEl.disabled = false;
 }
 
 // Share dropdown toggle
 function toggleShareDropdown() {
   const dd = $('share-dropdown');
   dd.classList.toggle('active');
-  // Close on outside click
   if (dd.classList.contains('active')) {
     setTimeout(function() {
       document.addEventListener('click', closeShareDropdown, { once: true });
@@ -2388,7 +2499,7 @@ function closeShareDropdown(e) {
   if (dd && !dd.contains(e?.target)) dd.classList.remove('active');
 }
 
-// Copy link to clipboard
+// Copy link
 function shareViaClipboard() {
   trackEvent('share', { source_page: 'clipboard' });
   const url = buildShareUrl();
@@ -2397,14 +2508,13 @@ function shareViaClipboard() {
     el.classList.add('show');
     setTimeout(function() { el.classList.remove('show'); }, 2000);
   }).catch(function() {
-    // Fallback
-    const ta = document.createElement('textarea');
+    var ta = document.createElement('textarea');
     ta.value = buildShareUrl();
     document.body.appendChild(ta);
     ta.select();
     document.execCommand('copy');
     document.body.removeChild(ta);
-    const el = $('share-copied');
+    var el = $('share-copied');
     el.classList.add('show');
     setTimeout(function() { el.classList.remove('show'); }, 2000);
   });
@@ -2414,10 +2524,10 @@ function shareViaClipboard() {
 // Share via WhatsApp
 function shareViaWhatsApp() {
   trackEvent('share', { source_page: 'whatsapp' });
-  const title = state.scrapedData?.title || 'um veículo';
-  const totalEl = document.querySelector('.ts-total-value');
-  const total = totalEl ? totalEl.textContent : '';
-  const msg = 'Olha esta simulação de importação! Tens 5% de desconto no serviço se usares o meu link! ' + title + (total ? ' por ' + total : '') + ' \n\n' + buildShareUrl();
+  var title = state.scrapedData?.title || 'um veículo';
+  var totalEl = document.querySelector('.ts-total-value');
+  var total = totalEl ? totalEl.textContent : '';
+  var msg = 'Olha esta simulação de importação! Tens 5% de desconto no serviço se usares o meu link! ' + title + (total ? ' por ' + total : '') + ' \n\n' + buildShareUrl();
   window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
   $('share-dropdown').classList.remove('active');
 }
@@ -2425,12 +2535,12 @@ function shareViaWhatsApp() {
 // Share via Email
 function shareViaEmail() {
   trackEvent('share', { source_page: 'email' });
-  const title = state.scrapedData?.title || 'Simulação de importação';
-  const totalEl = document.querySelector('.ts-total-value');
-  const total = totalEl ? totalEl.textContent : '';
-  const subj = encodeURIComponent('Simulação THESV - ' + title);
-  const body = encodeURIComponent('Vê esta simulação de importação com 5% de desconto no serviço:\n\n' + title + (total ? '\nPreço estimado: ' + total : '') + '\n\n' + buildShareUrl() + '\n\nSimulação feita em theselection.pt');
-  window.location.href = 'mailto:?subject=' + subj + '&body=' + body;
+  var title = state.scrapedData?.title || 'Simulação de importação';
+  var totalEl = document.querySelector('.ts-total-value');
+  var total = totalEl ? totalEl.textContent : '';
+  var subj = encodeURIComponent('Simulação THESV - ' + title);
+  var body = encodeURIComponent('Vê esta simulação de importação com 5% de desconto no serviço:\n\n' + title + (total ? '\nPreço estimado: ' + total : '') + '\n\n' + buildShareUrl() + '\n\nSimulação feita em theselection.pt');
+  window.top.location.href = 'mailto:?subject=' + subj + '&body=' + body;
   $('share-dropdown').classList.remove('active');
 }
 
@@ -2829,6 +2939,47 @@ async function submitLead(e) {
     }
 
 </script>
-<div style="text-align:center;padding:8px;opacity:0.3;font-size:10px;color:#666">v2.5</div>
+<!-- PARTNER REGISTRATION MODAL -->
+<div id="partner-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px">
+  <div style="background:#131316;border:1px solid #27272A;border-radius:16px;padding:28px;max-width:420px;width:100%;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+    <button onclick="closePartnerModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:#A1A1AA;font-size:20px;cursor:pointer;padding:4px">✕</button>
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:28px;margin-bottom:8px">🤝</div>
+      <h3 style="color:#FAFAFA;font-size:18px;font-weight:600;margin:0 0 6px">Programa de Referências</h3>
+      <p style="color:#A1A1AA;font-size:12px;line-height:1.5;margin:0">Registe-se para partilhar simulações com amigos.<br>Eles recebem <strong style="color:#D4AF37">5% de desconto</strong> e você ganha <strong style="color:#D4AF37">5% de cashback</strong>!</p>
+    </div>
+    <div id="partner-form-fields">
+      <div style="margin-bottom:12px">
+        <label style="display:block;font-size:11px;color:#A1A1AA;margin-bottom:4px;font-weight:500">Nome completo</label>
+        <input type="text" id="partner-name" placeholder="O seu nome" style="width:100%;padding:10px 14px;background:#09090B;border:1px solid #27272A;border-radius:10px;color:#FAFAFA;font-size:14px;font-family:Inter,sans-serif;outline:none" onfocus="this.style.borderColor='#D4AF37'" onblur="this.style.borderColor='#27272A'">
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="display:block;font-size:11px;color:#A1A1AA;margin-bottom:4px;font-weight:500">Email</label>
+        <input type="email" id="partner-email" placeholder="exemplo@email.com" style="width:100%;padding:10px 14px;background:#09090B;border:1px solid #27272A;border-radius:10px;color:#FAFAFA;font-size:14px;font-family:Inter,sans-serif;outline:none" onfocus="this.style.borderColor='#D4AF37'" onblur="this.style.borderColor='#27272A'">
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="display:block;font-size:11px;color:#A1A1AA;margin-bottom:4px;font-weight:500">Telefone</label>
+        <input type="tel" id="partner-phone" placeholder="+351 9XX XXX XXX" style="width:100%;padding:10px 14px;background:#09090B;border:1px solid #27272A;border-radius:10px;color:#FAFAFA;font-size:14px;font-family:Inter,sans-serif;outline:none" onfocus="this.style.borderColor='#D4AF37'" onblur="this.style.borderColor='#27272A'">
+      </div>
+      <div id="partner-error" style="display:none;color:#EF4444;font-size:12px;text-align:center;margin-bottom:10px"></div>
+      <button id="partner-submit-btn" onclick="registerPartner()" style="width:100%;padding:12px;background:#D4AF37;color:#000;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;transition:opacity 0.2s">
+        Criar a Minha Conta
+      </button>
+      <p style="text-align:center;font-size:10px;color:#71717A;margin-top:10px;line-height:1.4">Os seus dados são usados apenas para o programa de referências e nunca são partilhados com terceiros.</p>
+    </div>
+    <div id="partner-success" style="display:none;text-align:center">
+      <div style="font-size:40px;margin-bottom:12px">🎉</div>
+      <h3 style="color:#FAFAFA;font-size:16px;font-weight:600;margin:0 0 6px">Conta criada com sucesso!</h3>
+      <p style="color:#A1A1AA;font-size:12px;margin:0 0 16px">O seu código de referência pessoal:</p>
+      <div id="partner-code-display" style="background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.3);border-radius:10px;padding:12px;font-size:24px;font-weight:700;color:#D4AF37;letter-spacing:3px;margin-bottom:16px"></div>
+      <p style="color:#A1A1AA;font-size:11px;margin:0 0 16px;line-height:1.5">Use este código para partilhar simulações com amigos.<br>Acompanhe tudo no <a href="/painel" target="_blank" style="color:#D4AF37">painel de referências</a>.</p>
+      <button onclick="closePartnerModal();toggleShareDropdown()" style="width:100%;padding:12px;background:#D4AF37;color:#000;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer">
+        Partilhar Agora →
+      </button>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;padding:8px;opacity:0.3;font-size:10px;color:#666">v2.6</div>
 </body>
 </html>
