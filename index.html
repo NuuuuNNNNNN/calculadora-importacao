@@ -276,34 +276,7 @@ input[type="range"].ts-range::-moz-range-thumb {
 }
 
 /* Bank cards */
-.ts-banks { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
-.ts-bank-card {
-  display: flex; align-items: center; gap: 14px; padding: 14px 16px;
-  background: var(--ts-card-bg); border: 1px solid var(--ts-border);
-  border-radius: 10px; cursor: pointer; transition: all 0.2s; position: relative;
-}
-.ts-bank-card:hover { border-color: rgba(200,169,110,0.4); }
-.ts-bank-card.active {
-  border-color: var(--ts-gold); background: var(--ts-gold-soft);
-  box-shadow: 0 0 0 1px rgba(200,169,110,0.15);
-}
-.ts-bank-logo {
-  width: 40px; height: 40px; border-radius: 8px; display: flex;
-  align-items: center; justify-content: center; font-size: 16px; font-weight: 800;
-  color: #fff; flex-shrink: 0; letter-spacing: -0.5px;
-}
-.ts-bank-info { flex: 1; min-width: 0; }
-.ts-bank-name { font-size: 13px; font-weight: 600; color: var(--ts-text); }
-.ts-bank-subtitle { font-size: 10px; color: var(--ts-text-muted); margin-top: 1px; }
-.ts-bank-rate { font-size: 10px; color: var(--ts-text-secondary); margin-top: 3px; }
-.ts-bank-monthly { text-align: right; flex-shrink: 0; }
-.ts-bank-monthly-value { font-size: 16px; font-weight: 700; color: var(--ts-gold); }
-.ts-bank-monthly-unit { font-size: 10px; color: var(--ts-text-muted); }
-.ts-bank-badge {
-  position: absolute; top: -8px; right: 12px; padding: 2px 8px;
-  background: var(--ts-gold); color: var(--ts-bg); font-size: 9px;
-  font-weight: 700; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em;
-}
+/* Bank cards CSS removed — no partner branding */
 .ts-divider { height: 1px; background: var(--ts-border); }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 .ts-fade-in { animation: fadeUp 0.35s ease-out; }
@@ -1026,8 +999,8 @@ const state = {
   warranty: 'none',
   delivery: 'recolha',
   loanTerm: 72,
-  selectedBank: 'cetelem',
   entryPercent: 20,
+  entryManual: 0, // manual entry amount (0 = use percentage)
   isv: null,
   co2Source: null,
 };
@@ -1059,12 +1032,11 @@ function trackEvent(eventType, extra = {}) {
 
 const WARRANTY_COST = { none: 0, '12': 500, '24': 900 };
 const DELIVERY_COST = { recolha: 0, domicilio: 250, express: 650 };
-const FINANCING_BANKS = [
-  { id: 'cetelem', name: 'Cetelem', subtitle: 'BNP Paribas', tan: 0.049, taeg: 0.059, color: '#00A651' },
-  { id: 'cofidis', name: 'Cofidis', subtitle: 'Grupo Cofidis', tan: 0.059, taeg: 0.069, color: '#E4002B' },
-  { id: 'novobanco', name: 'Novo Banco', subtitle: 'Crédito Auto', tan: 0.065, taeg: 0.075, color: '#00B2A9' },
-];
-const FINANCING_RATE = 0.059; // default fallback
+// Realistic PT auto credit rates (Q1-Q2 2026, Banco de Portugal data)
+// TAN: 7.5% average market rate for used vehicles with reservation of property
+// TAEG: ~9.5% (includes fees, mandatory insurance, documentation)
+const DEFAULT_TAN = 0.075;
+const DEFAULT_TAEG = 0.095;
 
 // EU VAT rates by country code
 const VAT_RATES = {
@@ -1266,6 +1238,37 @@ function openFinancingModal() {
   renderFinancingModal();
 }
 
+function startEntryEdit(total) {
+  var display = $('fin-entry-display');
+  var editor = $('fin-entry-editor');
+  var input = $('fin-entry-input');
+  if (!display || !editor || !input) return;
+  display.style.display = 'none';
+  editor.style.display = 'block';
+  var currentEntry = state.entryManual > 0 ? state.entryManual : Math.round(total * (state.entryPercent / 100));
+  input.value = currentEntry;
+  input.focus();
+  input.select();
+}
+
+function applyEntryEdit(total) {
+  var input = $('fin-entry-input');
+  if (!input) return;
+  var val = parseInt(input.value.replace(/[^\d]/g, ''), 10);
+  if (isNaN(val) || val < 0) val = 0;
+  var maxEntry = Math.round(total * 0.9); // max 90%
+  if (val > maxEntry) val = maxEntry;
+  state.entryManual = val;
+  renderFinancingModal();
+}
+
+function cancelEntryEdit() {
+  var display = $('fin-entry-display');
+  var editor = $('fin-entry-editor');
+  if (display) display.style.display = '';
+  if (editor) editor.style.display = 'none';
+}
+
 function closeFinancingModal() {
   var modal = $('financing-modal');
   if (modal) { modal.style.display = 'none'; }
@@ -1302,18 +1305,21 @@ function renderFinancingModal() {
     : price + isv.isvFinal + importCost + warrantyCost + deliveryCost - referralDiscount;
   const finalTotal = grandTotal - ivaRecovery;
 
-  const entryAmount = Math.round(finalTotal * (state.entryPercent / 100));
-  const financedAmount = finalTotal - entryAmount;
+  // Entry amount: use manual value if set, otherwise percentage
+  const entryAmount = state.entryManual > 0 ? state.entryManual : Math.round(finalTotal * (state.entryPercent / 100));
+  const entryPct = Math.round((entryAmount / finalTotal) * 100);
+  const financedAmount = Math.max(0, finalTotal - entryAmount);
 
-  const bankCards = FINANCING_BANKS.map(bank => {
-    const mr = bank.taeg / 12;
-    const monthly = financedAmount > 0 && state.loanTerm > 0
-      ? Math.round(financedAmount * mr / (1 - Math.pow(1 + mr, -state.loanTerm)))
-      : 0;
-    return { ...bank, monthly };
-  });
-  const cheapest = bankCards.reduce((a, b) => a.monthly < b.monthly ? a : b);
-  const sliderPct = ((state.entryPercent - 10) / 40) * 100;
+  // Monthly payment using TAN (correct: TAN for installment calc, TAEG for comparison)
+  const monthlyRate = DEFAULT_TAN / 12;
+  const monthly = financedAmount > 0 && state.loanTerm > 0
+    ? Math.round(financedAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -state.loanTerm)))
+    : 0;
+  const totalWithInterest = monthly * state.loanTerm + entryAmount;
+  const totalInterest = totalWithInterest - finalTotal;
+
+  const sliderPct = state.entryManual > 0 ? (entryPct / 50) * 100 : ((state.entryPercent - 10) / 40) * 100;
+  const isEditing = document.getElementById('fin-entry-input') && document.getElementById('fin-entry-input') === document.activeElement;
 
   $('financing-modal-content').innerHTML = `
     <!-- Vehicle summary -->
@@ -1328,14 +1334,26 @@ function renderFinancingModal() {
       </div>
     </div>
 
-    <!-- Slider Entrada -->
+    <!-- Entrada — clickable value -->
     <div class="ts-slider-container" style="margin-bottom:16px">
       <div class="ts-slider-header">
         <span class="ts-slider-label">Entrada</span>
-        <span class="ts-slider-value">${fmtPrice(entryAmount)} <span>(${state.entryPercent}%)</span></span>
+        <span id="fin-entry-display" class="ts-slider-value" style="cursor:pointer" onclick="startEntryEdit(${finalTotal})" title="Clique para editar o valor">
+          ${fmtPrice(entryAmount)} <span>(${entryPct}%)</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#71717A" stroke-width="2" style="margin-left:4px;vertical-align:middle"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+        </span>
+        <div id="fin-entry-editor" style="display:none">
+          <div style="display:flex;align-items:center;gap:6px">
+            <input id="fin-entry-input" type="text" inputmode="numeric" style="width:100px;background:#18181B;border:1px solid var(--ts-gold);border-radius:6px;padding:4px 8px;color:var(--ts-gold);font-size:14px;font-weight:700;text-align:right;outline:none"
+              onkeydown="if(event.key==='Enter')applyEntryEdit(${finalTotal}); if(event.key==='Escape')cancelEntryEdit();">
+            <span style="font-size:11px;color:#71717A">€</span>
+            <button onclick="applyEntryEdit(${finalTotal})" style="background:var(--ts-gold);color:#09090B;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer">OK</button>
+            <button onclick="cancelEntryEdit()" style="background:transparent;color:#71717A;border:1px solid #27272A;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">✕</button>
+          </div>
+        </div>
       </div>
-      <input type="range" class="ts-range" min="10" max="50" step="5" value="${state.entryPercent}"
-        oninput="state.entryPercent=Number(this.value);renderFinancingModal()"
+      <input type="range" class="ts-range" min="10" max="50" step="5" value="${state.entryManual > 0 ? Math.min(50, Math.max(10, entryPct)) : state.entryPercent}"
+        oninput="state.entryManual=0;state.entryPercent=Number(this.value);renderFinancingModal()"
         style="background:linear-gradient(to right, var(--ts-gold) ${sliderPct}%, var(--ts-border) ${sliderPct}%)">
     </div>
 
@@ -1347,37 +1365,43 @@ function renderFinancingModal() {
       </div>
     </div>
 
-    <!-- Bank Cards -->
-    <div style="margin-bottom:16px">
-      <div class="ts-slider-label" style="margin-bottom:8px">Parceiros Financeiros</div>
-      <div class="ts-banks">
-        ${bankCards.map(b => `
-          <div class="ts-bank-card ${b.id===state.selectedBank?'active':''}" onclick="state.selectedBank='${b.id}';renderFinancingModal()">
-            ${b.id===cheapest.id ? '<div class="ts-bank-badge">Melhor oferta</div>' : ''}
-            <div class="ts-bank-logo" style="background:${b.color}">${b.name.substring(0,2).toUpperCase()}</div>
-            <div class="ts-bank-info">
-              <div class="ts-bank-name">${b.name}</div>
-              <div class="ts-bank-subtitle">${b.subtitle}</div>
-              <div class="ts-bank-rate">TAN ${(b.tan*100).toFixed(1)}% · TAEG ${(b.taeg*100).toFixed(1)}%</div>
-            </div>
-            <div class="ts-bank-monthly">
-              <div class="ts-bank-monthly-value">${fmtPrice(b.monthly)}</div>
-              <div class="ts-bank-monthly-unit">/ mês</div>
-            </div>
-          </div>`).join('')}
+    <!-- Resultado da Simulação -->
+    <div style="background:#111113;border:1px solid #27272A;border-radius:10px;padding:16px;margin-bottom:16px">
+      <div style="display:flex;justify-content:center;align-items:baseline;gap:6px;margin-bottom:16px">
+        <span style="font-size:28px;font-weight:700;color:var(--ts-gold)">${fmtPrice(monthly)}</span>
+        <span style="font-size:13px;color:#71717A">/ mês</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:#09090B;border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:#71717A;text-transform:uppercase;letter-spacing:0.05em">Montante Financiado</div>
+          <div style="font-size:14px;font-weight:600;color:#E4E4E7;margin-top:2px">${fmtPrice(financedAmount)}</div>
+        </div>
+        <div style="background:#09090B;border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:#71717A;text-transform:uppercase;letter-spacing:0.05em">Entrada</div>
+          <div style="font-size:14px;font-weight:600;color:#E4E4E7;margin-top:2px">${fmtPrice(entryAmount)} (${entryPct}%)</div>
+        </div>
+        <div style="background:#09090B;border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:#71717A;text-transform:uppercase;letter-spacing:0.05em">TAN</div>
+          <div style="font-size:14px;font-weight:600;color:#E4E4E7;margin-top:2px">${(DEFAULT_TAN*100).toFixed(1)}% <span style="font-size:10px;color:#71717A">fixa</span></div>
+        </div>
+        <div style="background:#09090B;border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:#71717A;text-transform:uppercase;letter-spacing:0.05em">TAEG</div>
+          <div style="font-size:14px;font-weight:600;color:#E4E4E7;margin-top:2px">${(DEFAULT_TAEG*100).toFixed(1)}% <span style="font-size:10px;color:#71717A">indicativa</span></div>
+        </div>
       </div>
     </div>
 
-    <!-- Total Financiado -->
-    <div style="background:linear-gradient(135deg,rgba(212,175,55,0.15),rgba(212,175,55,0.05));border:1px solid rgba(212,175,55,0.3);border-radius:10px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
+    <!-- Total com Juros -->
+    <div style="background:linear-gradient(135deg,rgba(212,175,55,0.15),rgba(212,175,55,0.05));border:1px solid rgba(212,175,55,0.3);border-radius:10px;padding:14px 20px;display:flex;justify-content:space-between;align-items:center">
       <div>
-        <div style="font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#A1A1AA">Total Financiado · ${state.loanTerm} meses</div>
-        <div style="font-size:10px;color:#71717A;margin-top:2px">Entrada: ${fmtPrice(entryAmount)} + ${state.loanTerm}x mensalidades</div>
+        <div style="font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#A1A1AA">Custo Total do Crédito</div>
+        <div style="font-size:10px;color:#71717A;margin-top:2px">${fmtPrice(entryAmount)} entrada + ${state.loanTerm}× ${fmtPrice(monthly)}</div>
+        <div style="font-size:10px;color:#71717A;margin-top:1px">Juros totais: ${fmtPrice(totalInterest)}</div>
       </div>
-      <div style="font-size:22px;font-weight:700;color:#D4AF37">${fmtPrice(finalTotal)}</div>
+      <div style="font-size:22px;font-weight:700;color:#D4AF37">${fmtPrice(totalWithInterest)}</div>
     </div>
 
-    <p style="text-align:center;font-size:10px;color:#71717A;margin-top:12px;line-height:1.4">Valores indicativos sujeitos a aprovação bancária. TAEG e condições podem variar.</p>
+    <p style="text-align:center;font-size:10px;color:#71717A;margin-top:12px;line-height:1.4">Simulação indicativa · TAN ${(DEFAULT_TAN*100).toFixed(1)}% · TAEG ${(DEFAULT_TAEG*100).toFixed(1)}% · Valores sujeitos a aprovação bancária</p>
   `;
 }
 
@@ -2047,8 +2071,8 @@ function handleReset() {
   state.warranty = 'none';
   state.delivery = 'recolha';
   state.loanTerm = 72;
-  state.selectedBank = 'cetelem';
   state.entryPercent = 20;
+  state.entryManual = 0;
   state.isv = null;
   state.co2Source = null;
 
@@ -2639,19 +2663,18 @@ function generatePDF() {
     doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(30, 30, 30);
     doc.text('Financiamento', mx, y);
     y += 6;
-    const entryAmount = Math.round(finalTotal * (state.entryPercent / 100));
-    const financedAmount = finalTotal - entryAmount;
-    const selBank = FINANCING_BANKS.find(b => b.id === state.selectedBank) || FINANCING_BANKS[0];
-    const monthlyRate = selBank.taeg / 12;
-    const monthly = financedAmount > 0 && state.loanTerm > 0
-      ? Math.round(financedAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -state.loanTerm)))
+    const pdfEntryAmount = state.entryManual > 0 ? state.entryManual : Math.round(finalTotal * (state.entryPercent / 100));
+    const pdfFinancedAmount = Math.max(0, finalTotal - pdfEntryAmount);
+    const pdfMonthlyRate = DEFAULT_TAN / 12;
+    const pdfMonthly = pdfFinancedAmount > 0 && state.loanTerm > 0
+      ? Math.round(pdfFinancedAmount * pdfMonthlyRate / (1 - Math.pow(1 + pdfMonthlyRate, -state.loanTerm)))
       : 0;
     doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(60, 60, 65);
-    doc.text('Parceiro: ' + selBank.name + ' (' + selBank.subtitle + ')', mx, y); y += 5;
-    doc.text('Entrada (' + state.entryPercent + '%): ' + fmtPrice(entryAmount), mx, y); y += 5;
+    doc.text('Entrada: ' + fmtPrice(pdfEntryAmount) + ' (' + Math.round((pdfEntryAmount/finalTotal)*100) + '%)', mx, y); y += 5;
+    doc.text('Montante financiado: ' + fmtPrice(pdfFinancedAmount), mx, y); y += 5;
     doc.text('Prazo: ' + state.loanTerm + ' meses', mx, y); y += 5;
-    doc.text('Prestação mensal: ' + fmtPrice(monthly) + '/mês', mx, y); y += 5;
-    doc.text('TAN ' + (selBank.tan*100).toFixed(1) + '% · TAEG ' + (selBank.taeg*100).toFixed(1) + '%', mx, y); y += 8;
+    doc.text('Prestação mensal: ' + fmtPrice(pdfMonthly) + '/mês', mx, y); y += 5;
+    doc.text('TAN ' + (DEFAULT_TAN*100).toFixed(1) + '% fixa · TAEG ' + (DEFAULT_TAEG*100).toFixed(1) + '% indicativa', mx, y); y += 8;
   }
 
   // ─── Footer ───
