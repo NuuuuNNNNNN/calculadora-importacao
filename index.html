@@ -1153,7 +1153,7 @@ async function submitLead(e) {
 
 
     <!-- RESERVATION - PRÉ-RESERVA 250€ -->
-    <div id="reserve-section" class="ts-reserve-section">
+    <div id="reserve-section" class="ts-reserve-section" style="display:none">
       <div class="ts-reserve-badge">⚡ Reserva Prioritária</div>
       <h3>Reservar Este Veículo — 250 €</h3>
       <p>Garanta esta viatura com uma pré-reserva de 250€. A nossa equipa inicia o processo de imediato e o valor é deduzido ao custo final do serviço.</p>
@@ -2059,6 +2059,7 @@ function showImportedView() {
   hide('initial-view');
   hide('skeleton-view');
   show('imported-view');
+  $('reserve-section').style.display = 'block';
 
   const data = state.scrapedData;
 
@@ -2157,6 +2158,7 @@ function handleReset() {
   state.co2Source = null;
 
   hide('imported-view');
+  $('reserve-section').style.display = 'none';
   hide('skeleton-view');
   show('initial-view');
   $('url-input').value = '';
