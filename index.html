@@ -274,7 +274,286 @@ body::-webkit-scrollbar {
 
 /* SVG icons inline */
 .icon { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
+
+/* === PHASE 2 === */
+.ts-savings-input { width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--ts-border);background:var(--ts-surface-alt);color:var(--ts-text);font-size:13px;font-family:Inter,sans-serif;outline:none;transition:border-color 0.2s;box-sizing:border-box; }
+.ts-savings-input:focus { border-color:var(--ts-accent); }
+.ts-savings-input::placeholder { color:var(--ts-text-muted); }
+.ts-savings-result { display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(76,175,80,0.08);border-radius:8px;border:1px solid rgba(76,175,80,0.2); }
+.ts-savings-amount { font-size:16px;font-weight:700;color:var(--ts-green); }
+.ts-savings-pct { font-size:11px;color:var(--ts-green);opacity:0.8; }
+.ts-lead-form { display:flex;flex-direction:column;gap:8px; }
+.ts-lead-input { width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--ts-border);background:var(--ts-surface-alt);color:var(--ts-text);font-size:12px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box; }
+.ts-lead-input:focus { border-color:var(--ts-accent); }
+.ts-lead-input::placeholder { color:var(--ts-text-muted); }
+.ts-lead-success { padding:12px;background:rgba(76,175,80,0.08);border-radius:8px;text-align:center;color:var(--ts-green);font-size:12px; }
+.ts-btn-secondary { display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;background:var(--ts-surface-alt);color:var(--ts-text);border:1px solid var(--ts-border);cursor:pointer;transition:all 0.2s;text-decoration:none;font-family:Inter,sans-serif; }
+.ts-btn-secondary:hover { background:var(--ts-surface-hover);border-color:var(--ts-accent); }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
+
+// ═══════════════════════════════════════
+// PHASE 2: Savings Comparison
+// ═══════════════════════════════════════
+function updateSavings() {
+  const input = $('pt-price-input');
+  const result = $('savings-result');
+  if (!input || !result) return;
+  const ptPrice = parseInt(input.value.replace(/[^\d]/g, ''));
+  if (!ptPrice || ptPrice <= 0) { result.style.display = 'none'; return; }
+  const totalEl = document.querySelector('.ts-total-value');
+  if (!totalEl) return;
+  const ourTotal = parseInt(totalEl.textContent.replace(/[^\d]/g, ''));
+  if (!ourTotal) return;
+  const savings = ptPrice - ourTotal;
+  const pct = Math.round((savings / ptPrice) * 100);
+  if (savings > 0) {
+    result.style.display = 'block';
+    result.innerHTML = `<div class="ts-savings-result"><div><div class="ts-savings-amount">Poupa ${fmtPrice(savings)}</div><div class="ts-savings-pct">-${pct}% vs preço em Portugal</div></div></div>`;
+  } else if (savings < -500) {
+    result.style.display = 'block';
+    result.innerHTML = `<div style="padding:8px 12px;background:rgba(244,67,54,0.08);border-radius:8px;border:1px solid rgba(244,67,54,0.15)"><span style="font-size:11px;color:#ef5350">Importação mais cara (${fmtPrice(Math.abs(savings))} de diferença)</span></div>`;
+  } else {
+    result.style.display = 'block';
+    result.innerHTML = `<div style="padding:8px 12px;background:rgba(255,193,7,0.08);border-radius:8px;border:1px solid rgba(255,193,7,0.15)"><span style="font-size:11px;color:#ffc107">Preço semelhante ao de Portugal</span></div>`;
+  }
+}
+
+// ═══════════════════════════════════════
+// PHASE 2: PDF Export
+// ═══════════════════════════════════════
+function generatePDF() {
+  if (!window.jspdf) { alert('A carregar biblioteca PDF. Tente novamente.'); return; }
+  if (!state.isv) { alert('Faça primeiro uma simulação.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pw = 210, mx = 20;
+  const gold = [200, 170, 110], darkBg = [9, 9, 11], white = [255, 255, 255];
+  const gray = [140, 140, 150], green = [76, 175, 80];
+
+  // ─── Header ───
+  doc.setFillColor(...darkBg);
+  doc.rect(0, 0, pw, 36, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.setTextColor(...gold);
+  doc.text('THE SELECTION', mx, 17);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...gray);
+  doc.text('Simulador de Importação de Veículos', mx, 26);
+  doc.setFontSize(8);
+  doc.text(new Date().toLocaleDateString('pt-PT'), pw - mx, 26, { align: 'right' });
+  doc.setDrawColor(...gold);
+  doc.setLineWidth(0.5);
+  doc.line(mx, 33, pw - mx, 33);
+
+  let y = 46;
+
+  // ─── Vehicle Title ───
+  const title = state.scrapedData?.title || 'Veículo';
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.setTextColor(30, 30, 30);
+  doc.text(title, mx, y);
+  y += 6;
+  if (state.sourceUrl) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(100, 100, 200);
+    doc.textWithLink(state.sourceUrl.substring(0, 90), mx, y, { url: state.sourceUrl });
+    y += 8;
+  } else { y += 4; }
+
+  // ─── Specs Grid ───
+  doc.setFillColor(245, 245, 248);
+  doc.roundedRect(mx, y, pw - 2*mx, 28, 2, 2, 'F');
+  const fuelLabels = { gasolina:'Gasolina', gasoleo:'Gasóleo', hibrido:'Híbrido', hibrido_plugin:'Híbrido Plug-In', eletrico:'Eléctrico', gpl:'GPL' };
+  const specs = [];
+  specs.push(['Combustível', fuelLabels[state.fuelType] || state.fuelType]);
+  if (state.fuelType !== 'eletrico') specs.push(['Cilindrada', state.displacement + ' ccm']);
+  specs.push(['CO₂', state.fuelType === 'eletrico' ? '0 g/km' : state.co2 + ' g/km']);
+  if (state.scrapedData?.power) specs.push(['Potência', state.scrapedData.power + ' cv']);
+  if (state.scrapedData?.gearbox) {
+    const gb = state.scrapedData.gearbox;
+    specs.push(['Caixa', /auto|dsg|dkt|tiptronic|s.tronic|pdk/i.test(gb) ? 'Automática' : /manual|schalt/i.test(gb) ? 'Manual' : gb]);
+  }
+  if (state.registrationYear) specs.push(['Registo', (state.registrationMonth ? state.registrationMonth+'/' : '') + state.registrationYear]);
+  if (state.scrapedData?.mileage) specs.push(['Quilómetros', new Intl.NumberFormat('pt-PT').format(state.scrapedData.mileage) + ' km']);
+  const cn = COUNTRY_NAMES[state.sellerCountry];
+  if (cn) specs.push(['País', cn]);
+  specs.push(['IVA (MwSt.)', state.vatDeductible ? 'Dedutível' : 'Não dedutível']);
+
+  doc.setFontSize(7.5);
+  const colW = (pw - 2*mx - 16) / 3;
+  specs.forEach((s, i) => {
+    const cx = mx + 6 + (i % 3) * colW;
+    const cy = y + 6 + Math.floor(i / 3) * 10;
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(120, 120, 130); doc.text(s[0], cx, cy);
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(40, 40, 40); doc.text(s[1], cx, cy + 4);
+  });
+  y += 34;
+
+  // ─── Price Breakdown ───
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(30, 30, 30);
+  doc.text('Custos de Importação', mx, y);
+  y += 2;
+  doc.setDrawColor(220, 220, 225); doc.setLineWidth(0.3); doc.line(mx, y, pw - mx, y);
+  y += 7;
+
+  const isv = state.isv;
+  const price = Number(state.purchasePrice) || 0;
+  const importCost = calculateImportCost(price);
+  const warrantyCost = WARRANTY_COST[state.warranty];
+  const deliveryCost = DELIVERY_COST[state.delivery];
+  const isEmpresa = state.buyerType === 'empresa';
+  const country = state.sellerCountry || 'DE';
+  const foreignVatRate = VAT_RATES[country] || 0.19;
+  const countryName = COUNTRY_NAMES[country] || country;
+  const vatPct = Math.round(foreignVatRate * 100);
+
+  const rows = [];
+  let vehicleNetPrice = price, ptVatOnVehicle = 0, ivaRecovery = 0;
+  if (isEmpresa && state.vatDeductible) {
+    vehicleNetPrice = Math.round(price / (1 + foreignVatRate));
+    const foreignVatAmount = price - vehicleNetPrice;
+    ptVatOnVehicle = Math.round(vehicleNetPrice * PT_VAT);
+    rows.push(['Preço Anunciado', fmtPrice(price), false]);
+    rows.push(['Dedução IVA ' + countryName + ' (' + vatPct + '%)', '-' + fmtPrice(foreignVatAmount), true]);
+    rows.push(['Valor Líquido Viatura', fmtPrice(vehicleNetPrice), false]);
+    rows.push(['IVA Portugal (23%)', fmtPrice(ptVatOnVehicle), false]);
+  } else {
+    rows.push(['Valor da Viatura', fmtPrice(price), false]);
+  }
+  rows.push(['ISV', isv.isvFinal === 0 && state.fuelType === 'eletrico' ? 'Isento' : fmtPrice(isv.isvFinal), state.fuelType === 'eletrico']);
+  rows.push(['Serviço The Selection', fmtPrice(importCost), false]);
+  if (warrantyCost > 0) rows.push(['Garantia ' + state.warranty + ' Meses', fmtPrice(warrantyCost), false]);
+  const dlbl = { recolha:'Entrega no Showroom', domicilio:'Entrega ao Domicílio', express:'Entrega Express' };
+  rows.push([dlbl[state.delivery] || 'Entrega', state.delivery === 'recolha' ? 'Incluído' : fmtPrice(deliveryCost), state.delivery === 'recolha']);
+  if (isEmpresa && state.vatDeductible) {
+    const sVat = Math.round((importCost + warrantyCost + deliveryCost) * PT_VAT / (1 + PT_VAT));
+    ivaRecovery = ptVatOnVehicle + sVat;
+  } else if (isEmpresa) {
+    ivaRecovery = Math.round((importCost + warrantyCost + deliveryCost) * PT_VAT / (1 + PT_VAT));
+  }
+  if (ivaRecovery > 0) rows.push(['IVA Dedutível (Empresa)', '-' + fmtPrice(ivaRecovery), true]);
+
+  doc.setFontSize(10);
+  rows.forEach(r => {
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(r[2] ? 76 : 60, r[2] ? 175 : 60, r[2] ? 80 : 65);
+    doc.text(r[0], mx, y);
+    doc.setFont('helvetica', 'bold');
+    doc.text(r[1], pw - mx, y, { align: 'right' });
+    y += 7;
+  });
+
+  // ─── Total Box ───
+  y += 3;
+  let grandTotal;
+  if (isEmpresa && state.vatDeductible) {
+    grandTotal = vehicleNetPrice + ptVatOnVehicle + isv.isvFinal + importCost + warrantyCost + deliveryCost;
+  } else {
+    grandTotal = price + isv.isvFinal + importCost + warrantyCost + deliveryCost;
+  }
+  const finalTotal = grandTotal - ivaRecovery;
+
+  doc.setFillColor(...darkBg);
+  doc.roundedRect(mx, y, pw - 2*mx, 16, 2, 2, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...white);
+  doc.text('PREÇO CHAVE NA MÃO', mx + 8, y + 10);
+  doc.setFontSize(14); doc.setTextColor(...gold);
+  doc.text(fmtPrice(finalTotal), pw - mx - 8, y + 11, { align: 'right' });
+  y += 24;
+
+  // ─── Savings (if entered) ───
+  const ptInput = $('pt-price-input');
+  if (ptInput && ptInput.value) {
+    const ptP = parseInt(ptInput.value.replace(/[^\d]/g, ''));
+    if (ptP > 0) {
+      const sv = ptP - finalTotal;
+      if (sv > 0) {
+        doc.setFillColor(235, 248, 235);
+        doc.roundedRect(mx, y, pw - 2*mx, 12, 2, 2, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...green);
+        doc.text('POUPANÇA VS PORTUGAL: ' + fmtPrice(sv) + ' (-' + Math.round(sv/ptP*100) + '%)', pw/2, y + 8, { align: 'center' });
+        y += 18;
+      }
+    }
+  }
+
+  // ─── Financing (if selected) ───
+  if (state.paymentMethod === 'financiamento') {
+    y += 2;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(30, 30, 30);
+    doc.text('Financiamento', mx, y);
+    y += 6;
+    const entryAmount = Math.round(finalTotal * (state.entryPercent / 100));
+    const financedAmount = finalTotal - entryAmount;
+    const monthlyRate = FINANCING_RATE / 12;
+    const monthly = financedAmount > 0 && state.loanTerm > 0
+      ? Math.round(financedAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -state.loanTerm)))
+      : 0;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(60, 60, 65);
+    doc.text('Entrada (' + state.entryPercent + '%): ' + fmtPrice(entryAmount), mx, y); y += 5;
+    doc.text('Prazo: ' + state.loanTerm + ' meses', mx, y); y += 5;
+    doc.text('Prestação mensal: ' + fmtPrice(monthly) + '/mês', mx, y); y += 5;
+    doc.text('TAEG indicativa: ' + (FINANCING_RATE*100).toFixed(1) + '%', mx, y); y += 8;
+  }
+
+  // ─── Footer ───
+  const fy = 270;
+  doc.setDrawColor(220, 220, 225); doc.setLineWidth(0.3); doc.line(mx, fy, pw - mx, fy);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...gray);
+  doc.text('The Selection · theselection.pt · +351 935 711 561 · WhatsApp', mx, fy + 5);
+  doc.text('Simulação indicativa · Tabelas ISV 2026 · Valores sujeitos a confirmação · TAEG indicativa', mx, fy + 9);
+  doc.text('Este documento não constitui proposta vinculativa. Consulte a nossa equipa para valores finais.', mx, fy + 13);
+
+  // Save
+  const safeName = title.replace(/[^a-zA-Z0-9\u00C0-\u017F ]/g, '').replace(/\s+/g, '-').substring(0, 40);
+  doc.save('Simulacao-' + safeName + '.pdf');
+}
+
+// ═══════════════════════════════════════
+// PHASE 2: Lead Capture
+// ═══════════════════════════════════════
+async function submitLead(e) {
+  e.preventDefault();
+  const name = $('lead-name').value;
+  const email = $('lead-email').value;
+  const phone = $('lead-phone').value;
+  if (!email && !phone) { alert('Por favor preencha email ou telefone'); return; }
+
+  const btn = e.target.querySelector('button[type="submit"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'A enviar...'; }
+
+  const leadData = {
+    name, email, phone,
+    vehicle: state.scrapedData?.title || '',
+    price: state.purchasePrice || '',
+    url: state.sourceUrl || '',
+    timestamp: new Date().toISOString()
+  };
+
+  try {
+    const res = await fetch('/api/lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(leadData)
+    });
+    if (res.ok) {
+      $('lead-form').innerHTML = '<div class="ts-lead-success">✓ Obrigado ' + name + '! A nossa equipa entrará em contacto em breve.</div>';
+    } else { throw new Error('fail'); }
+  } catch (err) {
+    // Fallback: mailto
+    const subj = encodeURIComponent('Pedido de Contacto - ' + (state.scrapedData?.title || 'Simulação'));
+    const body = encodeURIComponent('Nome: ' + name + '\n' + (email ? 'Email: ' + email + '\n' : '') + (phone ? 'Tel: ' + phone + '\n' : '') + (state.scrapedData?.title ? 'Veículo: ' + state.scrapedData.title + '\n' : '') + (state.sourceUrl ? 'Link: ' + state.sourceUrl + '\n' : ''));
+    window.location.href = 'mailto:info@theselection.pt?subject=' + subj + '&body=' + body;
+    $('lead-form').innerHTML = '<div class="ts-lead-success">✓ A abrir o seu email com os dados da simulação.</div>';
+  }
+}
+
+</script>
 </head>
 <body>
 <div class="ts-container" id="app">
@@ -489,6 +768,19 @@ body::-webkit-scrollbar {
       <div id="isv-detail-content" class="ts-fade-in hidden" style="margin-top:14px;display:flex;flex-direction:column;gap:4px"></div>
     </div>
 
+
+    <!-- SAVINGS COMPARISON -->
+    <div id="savings-section" class="ts-card hidden" style="padding:12px 16px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ts-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span style="font-size:12px;font-weight:600;color:var(--ts-text)">Comparar com preço em Portugal</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" id="pt-price-input" class="ts-savings-input" placeholder="Preço em Portugal (ex: StandVirtual)" oninput="updateSavings()" />
+      </div>
+      <div id="savings-result" style="display:none;margin-top:8px"></div>
+    </div>
+
     <!-- Disclaimer -->
     <p class="ts-disclaimer">Simulação indicativa · Tabelas ISV 2026 · Valores sujeitos a confirmação · TAEG indicativa</p>
 
@@ -498,10 +790,34 @@ body::-webkit-scrollbar {
         <h3>Quer garantir o melhor negócio para si?</h3>
         <p>Disponibilizamos uma avaliação gratuita da sua simulação e esclarecemos qualquer dúvida para que avance com total confiança.</p>
       </div>
-      <a id="cta-whatsapp" href="#" onclick="openWhatsApp()" target="_blank" rel="noopener noreferrer" class="ts-btn ts-btn-outline" style="min-width:180px;padding:10px 16px;font-size:12px;text-decoration:none;cursor:pointer">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-        Falar via WhatsApp
-      </a>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a id="cta-whatsapp" href="#" onclick="openWhatsApp()" target="_blank" rel="noopener noreferrer" class="ts-btn ts-btn-outline" style="flex:1;min-width:150px;padding:10px 16px;font-size:12px;text-decoration:none;cursor:pointer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          Falar via WhatsApp
+        </a>
+        <button onclick="generatePDF()" class="ts-btn-secondary" style="flex:1;min-width:150px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Exportar PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- LEAD CAPTURE -->
+    <div id="lead-section" class="ts-card hidden" style="padding:12px 16px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ts-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <span style="font-size:12px;font-weight:600;color:var(--ts-text)">Quero ser contactado</span>
+      </div>
+      <form id="lead-form" class="ts-lead-form" onsubmit="submitLead(event)">
+        <input type="text" id="lead-name" class="ts-lead-input" placeholder="Nome" required />
+        <div style="display:flex;gap:8px">
+          <input type="email" id="lead-email" class="ts-lead-input" placeholder="Email" />
+          <input type="tel" id="lead-phone" class="ts-lead-input" placeholder="Telefone" />
+        </div>
+        <button type="submit" class="ts-btn ts-btn-outline" style="width:100%;padding:10px;font-size:12px;cursor:pointer">
+          Enviar pedido de contacto
+        </button>
+      </form>
     </div>
   </div>
 </div>
@@ -890,6 +1206,11 @@ function renderSimulation() {
   show('sim-results');
   hide('sim-waiting');
 
+  // Phase 2 sections
+  show('savings-section');
+  show('lead-section');
+  updateSavings();
+
   // ISV detail
   renderISVDetail(isv);
 }
@@ -1244,6 +1565,8 @@ function showImportedView() {
 function handleReset() {
   state.imported = false;
   state.sourceUrl = '';
+  hide('savings-section');
+  hide('lead-section');
   state.scrapedData = null;
   state.fuelType = 'gasolina';
   state.emissionStandard = 'WLTP';
@@ -1345,6 +1668,269 @@ function openWhatsApp() {
   
   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
 }
+
+
+// ═══════════════════════════════════════
+// PHASE 2: Savings Comparison
+// ═══════════════════════════════════════
+function updateSavings() {
+  const input = $('pt-price-input');
+  const result = $('savings-result');
+  if (!input || !result) return;
+  const ptPrice = parseInt(input.value.replace(/[^\d]/g, ''));
+  if (!ptPrice || ptPrice <= 0) { result.style.display = 'none'; return; }
+  const totalEl = document.querySelector('.ts-total-value');
+  if (!totalEl) return;
+  const ourTotal = parseInt(totalEl.textContent.replace(/[^\d]/g, ''));
+  if (!ourTotal) return;
+  const savings = ptPrice - ourTotal;
+  const pct = Math.round((savings / ptPrice) * 100);
+  if (savings > 0) {
+    result.style.display = 'block';
+    result.innerHTML = `<div class="ts-savings-result"><div><div class="ts-savings-amount">Poupa ${fmtPrice(savings)}</div><div class="ts-savings-pct">-${pct}% vs preço em Portugal</div></div></div>`;
+  } else if (savings < -500) {
+    result.style.display = 'block';
+    result.innerHTML = `<div style="padding:8px 12px;background:rgba(244,67,54,0.08);border-radius:8px;border:1px solid rgba(244,67,54,0.15)"><span style="font-size:11px;color:#ef5350">Importação mais cara (${fmtPrice(Math.abs(savings))} de diferença)</span></div>`;
+  } else {
+    result.style.display = 'block';
+    result.innerHTML = `<div style="padding:8px 12px;background:rgba(255,193,7,0.08);border-radius:8px;border:1px solid rgba(255,193,7,0.15)"><span style="font-size:11px;color:#ffc107">Preço semelhante ao de Portugal</span></div>`;
+  }
+}
+
+// ═══════════════════════════════════════
+// PHASE 2: PDF Export
+// ═══════════════════════════════════════
+function generatePDF() {
+  if (!window.jspdf) { alert('A carregar biblioteca PDF. Tente novamente.'); return; }
+  if (!state.isv) { alert('Faça primeiro uma simulação.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pw = 210, mx = 20;
+  const gold = [200, 170, 110], darkBg = [9, 9, 11], white = [255, 255, 255];
+  const gray = [140, 140, 150], green = [76, 175, 80];
+
+  // ─── Header ───
+  doc.setFillColor(...darkBg);
+  doc.rect(0, 0, pw, 36, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.setTextColor(...gold);
+  doc.text('THE SELECTION', mx, 17);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...gray);
+  doc.text('Simulador de Importação de Veículos', mx, 26);
+  doc.setFontSize(8);
+  doc.text(new Date().toLocaleDateString('pt-PT'), pw - mx, 26, { align: 'right' });
+  doc.setDrawColor(...gold);
+  doc.setLineWidth(0.5);
+  doc.line(mx, 33, pw - mx, 33);
+
+  let y = 46;
+
+  // ─── Vehicle Title ───
+  const title = state.scrapedData?.title || 'Veículo';
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.setTextColor(30, 30, 30);
+  doc.text(title, mx, y);
+  y += 6;
+  if (state.sourceUrl) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(100, 100, 200);
+    doc.textWithLink(state.sourceUrl.substring(0, 90), mx, y, { url: state.sourceUrl });
+    y += 8;
+  } else { y += 4; }
+
+  // ─── Specs Grid ───
+  doc.setFillColor(245, 245, 248);
+  doc.roundedRect(mx, y, pw - 2*mx, 28, 2, 2, 'F');
+  const fuelLabels = { gasolina:'Gasolina', gasoleo:'Gasóleo', hibrido:'Híbrido', hibrido_plugin:'Híbrido Plug-In', eletrico:'Eléctrico', gpl:'GPL' };
+  const specs = [];
+  specs.push(['Combustível', fuelLabels[state.fuelType] || state.fuelType]);
+  if (state.fuelType !== 'eletrico') specs.push(['Cilindrada', state.displacement + ' ccm']);
+  specs.push(['CO₂', state.fuelType === 'eletrico' ? '0 g/km' : state.co2 + ' g/km']);
+  if (state.scrapedData?.power) specs.push(['Potência', state.scrapedData.power + ' cv']);
+  if (state.scrapedData?.gearbox) {
+    const gb = state.scrapedData.gearbox;
+    specs.push(['Caixa', /auto|dsg|dkt|tiptronic|s.tronic|pdk/i.test(gb) ? 'Automática' : /manual|schalt/i.test(gb) ? 'Manual' : gb]);
+  }
+  if (state.registrationYear) specs.push(['Registo', (state.registrationMonth ? state.registrationMonth+'/' : '') + state.registrationYear]);
+  if (state.scrapedData?.mileage) specs.push(['Quilómetros', new Intl.NumberFormat('pt-PT').format(state.scrapedData.mileage) + ' km']);
+  const cn = COUNTRY_NAMES[state.sellerCountry];
+  if (cn) specs.push(['País', cn]);
+  specs.push(['IVA (MwSt.)', state.vatDeductible ? 'Dedutível' : 'Não dedutível']);
+
+  doc.setFontSize(7.5);
+  const colW = (pw - 2*mx - 16) / 3;
+  specs.forEach((s, i) => {
+    const cx = mx + 6 + (i % 3) * colW;
+    const cy = y + 6 + Math.floor(i / 3) * 10;
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(120, 120, 130); doc.text(s[0], cx, cy);
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(40, 40, 40); doc.text(s[1], cx, cy + 4);
+  });
+  y += 34;
+
+  // ─── Price Breakdown ───
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(30, 30, 30);
+  doc.text('Custos de Importação', mx, y);
+  y += 2;
+  doc.setDrawColor(220, 220, 225); doc.setLineWidth(0.3); doc.line(mx, y, pw - mx, y);
+  y += 7;
+
+  const isv = state.isv;
+  const price = Number(state.purchasePrice) || 0;
+  const importCost = calculateImportCost(price);
+  const warrantyCost = WARRANTY_COST[state.warranty];
+  const deliveryCost = DELIVERY_COST[state.delivery];
+  const isEmpresa = state.buyerType === 'empresa';
+  const country = state.sellerCountry || 'DE';
+  const foreignVatRate = VAT_RATES[country] || 0.19;
+  const countryName = COUNTRY_NAMES[country] || country;
+  const vatPct = Math.round(foreignVatRate * 100);
+
+  const rows = [];
+  let vehicleNetPrice = price, ptVatOnVehicle = 0, ivaRecovery = 0;
+  if (isEmpresa && state.vatDeductible) {
+    vehicleNetPrice = Math.round(price / (1 + foreignVatRate));
+    const foreignVatAmount = price - vehicleNetPrice;
+    ptVatOnVehicle = Math.round(vehicleNetPrice * PT_VAT);
+    rows.push(['Preço Anunciado', fmtPrice(price), false]);
+    rows.push(['Dedução IVA ' + countryName + ' (' + vatPct + '%)', '-' + fmtPrice(foreignVatAmount), true]);
+    rows.push(['Valor Líquido Viatura', fmtPrice(vehicleNetPrice), false]);
+    rows.push(['IVA Portugal (23%)', fmtPrice(ptVatOnVehicle), false]);
+  } else {
+    rows.push(['Valor da Viatura', fmtPrice(price), false]);
+  }
+  rows.push(['ISV', isv.isvFinal === 0 && state.fuelType === 'eletrico' ? 'Isento' : fmtPrice(isv.isvFinal), state.fuelType === 'eletrico']);
+  rows.push(['Serviço The Selection', fmtPrice(importCost), false]);
+  if (warrantyCost > 0) rows.push(['Garantia ' + state.warranty + ' Meses', fmtPrice(warrantyCost), false]);
+  const dlbl = { recolha:'Entrega no Showroom', domicilio:'Entrega ao Domicílio', express:'Entrega Express' };
+  rows.push([dlbl[state.delivery] || 'Entrega', state.delivery === 'recolha' ? 'Incluído' : fmtPrice(deliveryCost), state.delivery === 'recolha']);
+  if (isEmpresa && state.vatDeductible) {
+    const sVat = Math.round((importCost + warrantyCost + deliveryCost) * PT_VAT / (1 + PT_VAT));
+    ivaRecovery = ptVatOnVehicle + sVat;
+  } else if (isEmpresa) {
+    ivaRecovery = Math.round((importCost + warrantyCost + deliveryCost) * PT_VAT / (1 + PT_VAT));
+  }
+  if (ivaRecovery > 0) rows.push(['IVA Dedutível (Empresa)', '-' + fmtPrice(ivaRecovery), true]);
+
+  doc.setFontSize(10);
+  rows.forEach(r => {
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(r[2] ? 76 : 60, r[2] ? 175 : 60, r[2] ? 80 : 65);
+    doc.text(r[0], mx, y);
+    doc.setFont('helvetica', 'bold');
+    doc.text(r[1], pw - mx, y, { align: 'right' });
+    y += 7;
+  });
+
+  // ─── Total Box ───
+  y += 3;
+  let grandTotal;
+  if (isEmpresa && state.vatDeductible) {
+    grandTotal = vehicleNetPrice + ptVatOnVehicle + isv.isvFinal + importCost + warrantyCost + deliveryCost;
+  } else {
+    grandTotal = price + isv.isvFinal + importCost + warrantyCost + deliveryCost;
+  }
+  const finalTotal = grandTotal - ivaRecovery;
+
+  doc.setFillColor(...darkBg);
+  doc.roundedRect(mx, y, pw - 2*mx, 16, 2, 2, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...white);
+  doc.text('PREÇO CHAVE NA MÃO', mx + 8, y + 10);
+  doc.setFontSize(14); doc.setTextColor(...gold);
+  doc.text(fmtPrice(finalTotal), pw - mx - 8, y + 11, { align: 'right' });
+  y += 24;
+
+  // ─── Savings (if entered) ───
+  const ptInput = $('pt-price-input');
+  if (ptInput && ptInput.value) {
+    const ptP = parseInt(ptInput.value.replace(/[^\d]/g, ''));
+    if (ptP > 0) {
+      const sv = ptP - finalTotal;
+      if (sv > 0) {
+        doc.setFillColor(235, 248, 235);
+        doc.roundedRect(mx, y, pw - 2*mx, 12, 2, 2, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...green);
+        doc.text('POUPANÇA VS PORTUGAL: ' + fmtPrice(sv) + ' (-' + Math.round(sv/ptP*100) + '%)', pw/2, y + 8, { align: 'center' });
+        y += 18;
+      }
+    }
+  }
+
+  // ─── Financing (if selected) ───
+  if (state.paymentMethod === 'financiamento') {
+    y += 2;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(30, 30, 30);
+    doc.text('Financiamento', mx, y);
+    y += 6;
+    const entryAmount = Math.round(finalTotal * (state.entryPercent / 100));
+    const financedAmount = finalTotal - entryAmount;
+    const monthlyRate = FINANCING_RATE / 12;
+    const monthly = financedAmount > 0 && state.loanTerm > 0
+      ? Math.round(financedAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -state.loanTerm)))
+      : 0;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(60, 60, 65);
+    doc.text('Entrada (' + state.entryPercent + '%): ' + fmtPrice(entryAmount), mx, y); y += 5;
+    doc.text('Prazo: ' + state.loanTerm + ' meses', mx, y); y += 5;
+    doc.text('Prestação mensal: ' + fmtPrice(monthly) + '/mês', mx, y); y += 5;
+    doc.text('TAEG indicativa: ' + (FINANCING_RATE*100).toFixed(1) + '%', mx, y); y += 8;
+  }
+
+  // ─── Footer ───
+  const fy = 270;
+  doc.setDrawColor(220, 220, 225); doc.setLineWidth(0.3); doc.line(mx, fy, pw - mx, fy);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...gray);
+  doc.text('The Selection · theselection.pt · +351 935 711 561 · WhatsApp', mx, fy + 5);
+  doc.text('Simulação indicativa · Tabelas ISV 2026 · Valores sujeitos a confirmação · TAEG indicativa', mx, fy + 9);
+  doc.text('Este documento não constitui proposta vinculativa. Consulte a nossa equipa para valores finais.', mx, fy + 13);
+
+  // Save
+  const safeName = title.replace(/[^a-zA-Z0-9\u00C0-\u017F ]/g, '').replace(/\s+/g, '-').substring(0, 40);
+  doc.save('Simulacao-' + safeName + '.pdf');
+}
+
+// ═══════════════════════════════════════
+// PHASE 2: Lead Capture
+// ═══════════════════════════════════════
+async function submitLead(e) {
+  e.preventDefault();
+  const name = $('lead-name').value;
+  const email = $('lead-email').value;
+  const phone = $('lead-phone').value;
+  if (!email && !phone) { alert('Por favor preencha email ou telefone'); return; }
+
+  const btn = e.target.querySelector('button[type="submit"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'A enviar...'; }
+
+  const leadData = {
+    name, email, phone,
+    vehicle: state.scrapedData?.title || '',
+    price: state.purchasePrice || '',
+    url: state.sourceUrl || '',
+    timestamp: new Date().toISOString()
+  };
+
+  try {
+    const res = await fetch('/api/lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(leadData)
+    });
+    if (res.ok) {
+      $('lead-form').innerHTML = '<div class="ts-lead-success">✓ Obrigado ' + name + '! A nossa equipa entrará em contacto em breve.</div>';
+    } else { throw new Error('fail'); }
+  } catch (err) {
+    // Fallback: mailto
+    const subj = encodeURIComponent('Pedido de Contacto - ' + (state.scrapedData?.title || 'Simulação'));
+    const body = encodeURIComponent('Nome: ' + name + '\n' + (email ? 'Email: ' + email + '\n' : '') + (phone ? 'Tel: ' + phone + '\n' : '') + (state.scrapedData?.title ? 'Veículo: ' + state.scrapedData.title + '\n' : '') + (state.sourceUrl ? 'Link: ' + state.sourceUrl + '\n' : ''));
+    window.location.href = 'mailto:info@theselection.pt?subject=' + subj + '&body=' + body;
+    $('lead-form').innerHTML = '<div class="ts-lead-success">✓ A abrir o seu email com os dados da simulação.</div>';
+  }
+}
+
 </script>
 </body>
 </html>
