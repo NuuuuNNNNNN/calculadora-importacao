@@ -745,7 +745,7 @@ async function submitLeadFromReserve() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
             A Pronto
           </button>
-          <button type="button" id="btn-financiamento" onclick="setPaymentMethod('financiamento')">
+          <button type="button" id="btn-financiamento" onclick="openFinancingModal()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
             Financiamento
           </button>
@@ -1253,9 +1253,132 @@ function setBuyerType(type) {
 
 function setPaymentMethod(method) {
   state.paymentMethod = method;
-  $('btn-pronto').className = method === 'pronto' ? 'active' : '';
-  $('btn-financiamento').className = method === 'financiamento' ? 'active' : '';
+  $('btn-pronto').className = 'active';
+  $('btn-financiamento').className = '';
   if (state.isv) renderSimulation();
+}
+
+function openFinancingModal() {
+  if (!state.isv) return;
+  state.paymentMethod = 'financiamento';
+  var modal = $('financing-modal');
+  if (modal) { modal.style.display = 'flex'; }
+  renderFinancingModal();
+}
+
+function closeFinancingModal() {
+  var modal = $('financing-modal');
+  if (modal) { modal.style.display = 'none'; }
+  state.paymentMethod = 'pronto';
+}
+
+function renderFinancingModal() {
+  const isv = state.isv;
+  if (!isv) return;
+  const price = Number(state.purchasePrice) || 0;
+  const importCost = calculateImportCost(price);
+  const warrantyCost = WARRANTY_COST[state.warranty];
+  const deliveryCost = DELIVERY_COST[state.delivery];
+  const isEmpresa = state.buyerType === 'empresa';
+  const country = state.sellerCountry || 'DE';
+  const foreignVatRate = VAT_RATES[country] || 0.19;
+
+  let vehicleNetPrice = price;
+  let ptVatOnVehicle = 0;
+  let ivaRecovery = 0;
+
+  if (isEmpresa && state.vatDeductible) {
+    vehicleNetPrice = Math.round(price / (1 + foreignVatRate));
+    ptVatOnVehicle = Math.round(vehicleNetPrice * PT_VAT);
+    const servicesVat = Math.round((importCost + warrantyCost + deliveryCost) * PT_VAT / (1 + PT_VAT));
+    ivaRecovery = ptVatOnVehicle + servicesVat;
+  } else if (isEmpresa) {
+    ivaRecovery = Math.round((importCost + warrantyCost + deliveryCost) * PT_VAT / (1 + PT_VAT));
+  }
+
+  const referralDiscount = state.referralCode ? Math.round(importCost * 0.05) : 0;
+  const grandTotal = isEmpresa && state.vatDeductible
+    ? vehicleNetPrice + ptVatOnVehicle + isv.isvFinal + importCost + warrantyCost + deliveryCost - referralDiscount
+    : price + isv.isvFinal + importCost + warrantyCost + deliveryCost - referralDiscount;
+  const finalTotal = grandTotal - ivaRecovery;
+
+  const entryAmount = Math.round(finalTotal * (state.entryPercent / 100));
+  const financedAmount = finalTotal - entryAmount;
+
+  const bankCards = FINANCING_BANKS.map(bank => {
+    const mr = bank.taeg / 12;
+    const monthly = financedAmount > 0 && state.loanTerm > 0
+      ? Math.round(financedAmount * mr / (1 - Math.pow(1 + mr, -state.loanTerm)))
+      : 0;
+    return { ...bank, monthly };
+  });
+  const cheapest = bankCards.reduce((a, b) => a.monthly < b.monthly ? a : b);
+  const sliderPct = ((state.entryPercent - 10) / 40) * 100;
+
+  $('financing-modal-content').innerHTML = `
+    <!-- Vehicle summary -->
+    <div style="background:#09090B;border:1px solid #27272A;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:12px;color:#A1A1AA">Preço Chave na Mão</div>
+        <div style="font-size:20px;font-weight:700;color:#D4AF37">${fmtPrice(finalTotal)}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:10px;color:#71717A;text-transform:uppercase;letter-spacing:0.05em">${state.buyerType === 'empresa' ? 'Empresa' : 'Particular'}</div>
+        <div style="font-size:12px;color:#A1A1AA">${state.make || ''} ${state.model || ''}</div>
+      </div>
+    </div>
+
+    <!-- Slider Entrada -->
+    <div class="ts-slider-container" style="margin-bottom:16px">
+      <div class="ts-slider-header">
+        <span class="ts-slider-label">Entrada</span>
+        <span class="ts-slider-value">${fmtPrice(entryAmount)} <span>(${state.entryPercent}%)</span></span>
+      </div>
+      <input type="range" class="ts-range" min="10" max="50" step="5" value="${state.entryPercent}"
+        oninput="state.entryPercent=Number(this.value);renderFinancingModal()"
+        style="background:linear-gradient(to right, var(--ts-gold) ${sliderPct}%, var(--ts-border) ${sliderPct}%)">
+    </div>
+
+    <!-- Pills Prazo -->
+    <div style="margin-bottom:16px">
+      <div class="ts-slider-label" style="margin-bottom:8px">Prazo</div>
+      <div class="ts-pills">
+        ${[36,48,60,72,84].map(t => `<button class="ts-pill ${t===state.loanTerm?'active':''}" onclick="state.loanTerm=${t};renderFinancingModal()">${t}<span style="font-size:10px;font-weight:400"> m</span></button>`).join('')}
+      </div>
+    </div>
+
+    <!-- Bank Cards -->
+    <div style="margin-bottom:16px">
+      <div class="ts-slider-label" style="margin-bottom:8px">Parceiros Financeiros</div>
+      <div class="ts-banks">
+        ${bankCards.map(b => `
+          <div class="ts-bank-card ${b.id===state.selectedBank?'active':''}" onclick="state.selectedBank='${b.id}';renderFinancingModal()">
+            ${b.id===cheapest.id ? '<div class="ts-bank-badge">Melhor oferta</div>' : ''}
+            <div class="ts-bank-logo" style="background:${b.color}">${b.name.substring(0,2).toUpperCase()}</div>
+            <div class="ts-bank-info">
+              <div class="ts-bank-name">${b.name}</div>
+              <div class="ts-bank-subtitle">${b.subtitle}</div>
+              <div class="ts-bank-rate">TAN ${(b.tan*100).toFixed(1)}% · TAEG ${(b.taeg*100).toFixed(1)}%</div>
+            </div>
+            <div class="ts-bank-monthly">
+              <div class="ts-bank-monthly-value">${fmtPrice(b.monthly)}</div>
+              <div class="ts-bank-monthly-unit">/ mês</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Total Financiado -->
+    <div style="background:linear-gradient(135deg,rgba(212,175,55,0.15),rgba(212,175,55,0.05));border:1px solid rgba(212,175,55,0.3);border-radius:10px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#A1A1AA">Total Financiado · ${state.loanTerm} meses</div>
+        <div style="font-size:10px;color:#71717A;margin-top:2px">Entrada: ${fmtPrice(entryAmount)} + ${state.loanTerm}x mensalidades</div>
+      </div>
+      <div style="font-size:22px;font-weight:700;color:#D4AF37">${fmtPrice(finalTotal)}</div>
+    </div>
+
+    <p style="text-align:center;font-size:10px;color:#71717A;margin-top:12px;line-height:1.4">Valores indicativos sujeitos a aprovação bancária. TAEG e condições podem variar.</p>
+  `;
 }
 
 function setWarranty(opt) {
@@ -1457,80 +1580,12 @@ function renderSimulation() {
   }
   $('sim-breakdown').innerHTML = html;
 
-  // Total area
-  if (state.paymentMethod === 'pronto') {
-    $('sim-total-area').innerHTML = `
-      <div class="ts-total">
-        <div><div class="ts-total-label">Preço Chave na Mão</div></div>
-        <div class="ts-total-value">${fmtPrice(finalTotal)}</div>
-      </div>`;
-  } else {
-    const entryAmount = Math.round(finalTotal * (state.entryPercent / 100));
-    const financedAmount = finalTotal - entryAmount;
-
-    // Calculate monthly for each bank
-    const bankCards = FINANCING_BANKS.map(bank => {
-      const mr = bank.taeg / 12;
-      const monthly = financedAmount > 0 && state.loanTerm > 0
-        ? Math.round(financedAmount * mr / (1 - Math.pow(1 + mr, -state.loanTerm)))
-        : 0;
-      return { ...bank, monthly };
-    });
-    const cheapest = bankCards.reduce((a, b) => a.monthly < b.monthly ? a : b);
-    const selectedMonthly = bankCards.find(b => b.id === state.selectedBank)?.monthly || cheapest.monthly;
-
-    // Slider progress percentage
-    const sliderPct = ((state.entryPercent - 10) / 40) * 100;
-
-    $('sim-total-area').innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:14px">
-        <!-- Slider Entrada -->
-        <div class="ts-slider-container">
-          <div class="ts-slider-header">
-            <span class="ts-slider-label">Entrada</span>
-            <span class="ts-slider-value">${fmtPrice(entryAmount)} <span>(${state.entryPercent}%)</span></span>
-          </div>
-          <input type="range" class="ts-range" min="10" max="50" step="5" value="${state.entryPercent}"
-            oninput="state.entryPercent=Number(this.value);renderSimulation()"
-            style="background:linear-gradient(to right, var(--ts-gold) ${sliderPct}%, var(--ts-border) ${sliderPct}%)">
-        </div>
-
-        <!-- Pills Prazo -->
-        <div>
-          <div class="ts-slider-label" style="margin-bottom:8px">Prazo</div>
-          <div class="ts-pills">
-            ${[36,48,60,72,84].map(t => `<button class="ts-pill ${t===state.loanTerm?'active':''}" onclick="state.loanTerm=${t};renderSimulation()">${t}<span style="font-size:10px;font-weight:400"> m</span></button>`).join('')}
-          </div>
-        </div>
-
-        <!-- Bank Cards -->
-        <div>
-          <div class="ts-slider-label" style="margin-bottom:8px">Parceiros Financeiros</div>
-          <div class="ts-banks">
-            ${bankCards.map(b => `
-              <div class="ts-bank-card ${b.id===state.selectedBank?'active':''}" onclick="state.selectedBank='${b.id}';renderSimulation()">
-                ${b.id===cheapest.id ? '<div class="ts-bank-badge">Melhor oferta</div>' : ''}
-                <div class="ts-bank-logo" style="background:${b.color}">${b.name.substring(0,2).toUpperCase()}</div>
-                <div class="ts-bank-info">
-                  <div class="ts-bank-name">${b.name}</div>
-                  <div class="ts-bank-subtitle">${b.subtitle}</div>
-                  <div class="ts-bank-rate">TAN ${(b.tan*100).toFixed(1)}% \u00b7 TAEG ${(b.taeg*100).toFixed(1)}%</div>
-                </div>
-                <div class="ts-bank-monthly">
-                  <div class="ts-bank-monthly-value">${fmtPrice(b.monthly)}</div>
-                  <div class="ts-bank-monthly-unit">/ m\u00eas</div>
-                </div>
-              </div>`).join('')}
-          </div>
-        </div>
-
-        <!-- Total -->
-        <div class="ts-total" style="padding:14px 20px">
-          <div class="ts-total-label" style="font-size:12px">Total Financiado \u00b7 ${state.loanTerm} meses</div>
-          <div class="ts-total-value" style="font-size:18px">${fmtPrice(finalTotal)}</div>
-        </div>
-      </div>`;
-  }
+  // Total area — always shows A Pronto
+  $('sim-total-area').innerHTML = `
+    <div class="ts-total">
+      <div><div class="ts-total-label">Preço Chave na Mão</div></div>
+      <div class="ts-total-value">${fmtPrice(finalTotal)}</div>
+    </div>`;
 
   show('sim-results');
   hide('sim-waiting');
@@ -2054,7 +2109,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Keyboard: Escape closes modal
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeImageModal();
+    if (e.key === 'Escape') { closeImageModal(); closeFinancingModal(); }
   });
 
   // Always check for referral banner FIRST (before any rendering)
@@ -2692,6 +2747,21 @@ function generatePDF() {
 
 </script>
 <!-- PARTNER REGISTRATION MODAL -->
+<!-- ═══ Financing Modal ═══ -->
+<div id="financing-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px" onclick="closeFinancingModal()">
+  <div style="background:#131316;border:1px solid #27272A;border-radius:16px;padding:28px;max-width:520px;width:100%;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.5)" onclick="event.stopPropagation()">
+    <button onclick="closeFinancingModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:#A1A1AA;font-size:20px;cursor:pointer;padding:4px">✕</button>
+    <div style="margin-bottom:20px">
+      <h3 style="color:#FAFAFA;font-size:18px;font-weight:600;margin:0 0 4px;display:flex;align-items:center;gap:8px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+        Simulação de Financiamento
+      </h3>
+      <p style="color:#A1A1AA;font-size:12px;margin:0">Explore as condições de financiamento para este veículo</p>
+    </div>
+    <div id="financing-modal-content"></div>
+  </div>
+</div>
+
 <div id="partner-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px">
   <div style="background:#131316;border:1px solid #27272A;border-radius:16px;padding:28px;max-width:420px;width:100%;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
     <button onclick="closePartnerModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:#A1A1AA;font-size:20px;cursor:pointer;padding:4px">✕</button>
