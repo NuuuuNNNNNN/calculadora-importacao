@@ -1,175 +1,173 @@
 const { neon } = require('@neondatabase/serverless');
 
-// Initialize DB connection
-function getSQL() {
-  return neon(process.env.POSTGRES_URL);
-}
-
-// Auto-create tables on first call
-async function ensureTables(sql) {
-  await sql`
-    CREATE TABLE IF NOT EXISTS referral_events (
-      id SERIAL PRIMARY KEY,
-      event_type VARCHAR(20) NOT NULL,
-      referral_code VARCHAR(10),
-      vehicle_url TEXT,
-      vehicle_make VARCHAR(100),
-      vehicle_model VARCHAR(100),
-      vehicle_year INT,
-      vehicle_price DECIMAL(12,2),
-      lead_name VARCHAR(200),
-      lead_email VARCHAR(200),
-      lead_phone VARCHAR(50),
-      source_page VARCHAR(50),
-      user_agent TEXT,
-      created_at TIMESTAMP DEFAULT NOW()
-    )
-  `;
-  await sql`CREATE INDEX IF NOT EXISTS idx_ref_code ON referral_events(referral_code)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_ref_type ON referral_events(event_type)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_ref_date ON referral_events(created_at)`;
+async function initDb(sql) {
+  await sql`CREATE TABLE IF NOT EXISTS referral_events (
+    id SERIAL PRIMARY KEY,
+    event_type VARCHAR(50) NOT NULL,
+    referral_code VARCHAR(20),
+    vehicle_url TEXT,
+    vehicle_title TEXT,
+    vehicle_price NUMERIC,
+    source_page VARCHAR(50),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
+  await sql`CREATE TABLE IF NOT EXISTS referral_leads (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255),
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    referral_code VARCHAR(20),
+    vehicle_url TEXT,
+    vehicle_title TEXT,
+    vehicle_price NUMERIC,
+    import_cost NUMERIC DEFAULT 0,
+    cashback_amount NUMERIC DEFAULT 0,
+    conversion_status VARCHAR(30) DEFAULT 'lead',
+    notes TEXT DEFAULT '',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
+  try { await sql`ALTER TABLE referral_leads ADD COLUMN IF NOT EXISTS import_cost NUMERIC DEFAULT 0`; } catch(e) {}
+  try { await sql`ALTER TABLE referral_leads ADD COLUMN IF NOT EXISTS cashback_amount NUMERIC DEFAULT 0`; } catch(e) {}
+  try { await sql`ALTER TABLE referral_leads ADD COLUMN IF NOT EXISTS conversion_status VARCHAR(30) DEFAULT 'lead'`; } catch(e) {}
+  try { await sql`ALTER TABLE referral_leads ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT ''`; } catch(e) {}
+  try { await sql`ALTER TABLE referral_leads ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`; } catch(e) {}
 }
 
 module.exports = async (req, res) => {
-  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const sql = getSQL();
+  const sql = neon(process.env.POSTGRES_URL);
+  await initDb(sql);
 
-  try {
-    await ensureTables(sql);
-
-    // POST = register event
-    if (req.method === 'POST') {
-      const {
-        event_type, referral_code, vehicle_url,
-        vehicle_make, vehicle_model, vehicle_year, vehicle_price,
-        lead_name, lead_email, lead_phone, source_page
-      } = req.body || {};
-
-      if (!event_type) {
-        return res.status(400).json({ error: 'event_type required' });
-      }
-
-      const ua = req.headers['user-agent'] || '';
-
-      await sql`
-        INSERT INTO referral_events 
-          (event_type, referral_code, vehicle_url, vehicle_make, vehicle_model, 
-           vehicle_year, vehicle_price, lead_name, lead_email, lead_phone, 
-           source_page, user_agent)
-        VALUES 
-          (${event_type}, ${referral_code || null}, ${vehicle_url || null}, 
-           ${vehicle_make || null}, ${vehicle_model || null},
-           ${vehicle_year || null}, ${vehicle_price || null},
-           ${lead_name || null}, ${lead_email || null}, ${lead_phone || null},
-           ${source_page || null}, ${ua})
-      `;
-
-      return res.status(200).json({ success: true });
+  // ─── POST: Track event or submit lead ───
+  if (req.method === 'POST') {
+    const b = req.body || {};
+    if (b.action === 'lead') {
+      const ic = Number(b.import_cost) || 0;
+      const cb = ic ? Math.round(ic * 0.05) : 0;
+      await sql`INSERT INTO referral_leads (name, email, phone, referral_code, vehicle_url, vehicle_title, vehicle_price, import_cost, cashback_amount)
+        VALUES (${b.name||''}, ${b.email||''}, ${b.phone||''}, ${b.referral_code||null}, ${b.vehicle_url||''}, ${b.vehicle_title||''}, ${Number(b.vehicle_price)||0}, ${ic}, ${cb})`;
+      return res.json({ ok: true, cashback: cb });
     }
-
-    // GET = stats (protected with simple key)
-    if (req.method === 'GET') {
-      const key = req.query.key;
-      if (key !== process.env.ADMIN_KEY && key !== 'thesv2024admin') {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
-
-      const period = req.query.period || '30d';
-      let interval = '30 days';
-      if (period === '7d') interval = '7 days';
-      if (period === '90d') interval = '90 days';
-      if (period === 'all') interval = '10 years';
-
-      // Overview stats
-      const overview = await sql`
-        SELECT 
-          COUNT(*) FILTER (WHERE event_type = 'share') as total_shares,
-          COUNT(*) FILTER (WHERE event_type = 'view') as total_views,
-          COUNT(*) FILTER (WHERE event_type = 'referral_view') as referral_views,
-          COUNT(*) FILTER (WHERE event_type = 'lead') as total_leads,
-          COUNT(*) FILTER (WHERE event_type = 'lead' AND referral_code IS NOT NULL) as referral_leads,
-          COUNT(DISTINCT referral_code) FILTER (WHERE referral_code IS NOT NULL) as unique_referrers
-        FROM referral_events
-        WHERE created_at >= NOW() - ${interval}::interval
-      `;
-
-      // Top referrers
-      const topReferrers = await sql`
-        SELECT 
-          referral_code,
-          COUNT(*) FILTER (WHERE event_type = 'referral_view') as views,
-          COUNT(*) FILTER (WHERE event_type = 'lead') as leads,
-          MIN(created_at) as first_activity,
-          MAX(created_at) as last_activity
-        FROM referral_events
-        WHERE referral_code IS NOT NULL
-          AND created_at >= NOW() - ${interval}::interval
-        GROUP BY referral_code
-        ORDER BY leads DESC, views DESC
-        LIMIT 20
-      `;
-
-      // Top vehicles shared
-      const topVehicles = await sql`
-        SELECT 
-          vehicle_make, vehicle_model, vehicle_year, vehicle_price,
-          COUNT(*) FILTER (WHERE event_type = 'share') as shares,
-          COUNT(*) FILTER (WHERE event_type = 'referral_view') as views,
-          COUNT(*) FILTER (WHERE event_type = 'lead') as leads
-        FROM referral_events
-        WHERE vehicle_make IS NOT NULL
-          AND created_at >= NOW() - ${interval}::interval
-        GROUP BY vehicle_make, vehicle_model, vehicle_year, vehicle_price
-        ORDER BY shares DESC
-        LIMIT 20
-      `;
-
-      // Daily activity (last 30 days)
-      const dailyActivity = await sql`
-        SELECT 
-          DATE(created_at) as day,
-          COUNT(*) FILTER (WHERE event_type = 'view') as views,
-          COUNT(*) FILTER (WHERE event_type = 'share') as shares,
-          COUNT(*) FILTER (WHERE event_type = 'referral_view') as referral_views,
-          COUNT(*) FILTER (WHERE event_type = 'lead') as leads
-        FROM referral_events
-        WHERE created_at >= NOW() - ${interval}::interval
-        GROUP BY DATE(created_at)
-        ORDER BY day DESC
-        LIMIT 30
-      `;
-
-      // Recent leads
-      const recentLeads = await sql`
-        SELECT 
-          lead_name, lead_email, lead_phone, referral_code,
-          vehicle_make, vehicle_model, vehicle_year, vehicle_price,
-          created_at
-        FROM referral_events
-        WHERE event_type = 'lead'
-          AND created_at >= NOW() - ${interval}::interval
-        ORDER BY created_at DESC
-        LIMIT 50
-      `;
-
-      return res.status(200).json({
-        period,
-        overview: overview[0],
-        topReferrers,
-        topVehicles,
-        dailyActivity,
-        recentLeads
-      });
-    }
-
-    return res.status(405).json({ error: 'Method not allowed' });
-  } catch (err) {
-    console.error('Referral tracking error:', err);
-    return res.status(500).json({ error: 'Internal error', detail: err.message });
+    await sql`INSERT INTO referral_events (event_type, referral_code, vehicle_url, vehicle_title, vehicle_price, source_page)
+      VALUES (${b.event_type||'view'}, ${b.referral_code||null}, ${b.vehicle_url||''}, ${b.vehicle_title||''}, ${Number(b.vehicle_price)||0}, ${b.source_page||''})`;
+    return res.json({ ok: true });
   }
+
+  // ─── PATCH: Admin update lead status ───
+  if (req.method === 'PATCH') {
+    const key = req.query?.key || req.headers?.authorization?.replace('Bearer ','');
+    if (key !== 'thesv2024admin') return res.status(401).json({ error: 'Unauthorized' });
+    const { lead_id, conversion_status, notes } = req.body || {};
+    if (!lead_id) return res.status(400).json({ error: 'lead_id required' });
+    if (conversion_status) await sql`UPDATE referral_leads SET conversion_status = ${conversion_status}, updated_at = NOW() WHERE id = ${lead_id}`;
+    if (notes !== undefined) await sql`UPDATE referral_leads SET notes = ${notes}, updated_at = NOW() WHERE id = ${lead_id}`;
+    return res.json({ ok: true });
+  }
+
+  // ─── GET ───
+  const { period, code, key } = req.query || {};
+
+  // Client portal - stats for specific referral code
+  if (code) {
+    const shares = await sql`SELECT COUNT(*) as c FROM referral_events WHERE referral_code = ${code} AND event_type = 'share'`;
+    const views = await sql`SELECT COUNT(*) as c FROM referral_events WHERE referral_code = ${code} AND event_type = 'referral_view'`;
+    const leads = await sql`SELECT * FROM referral_leads WHERE referral_code = ${code} ORDER BY created_at DESC`;
+    const totalCB = leads.reduce((s, l) => s + (Number(l.cashback_amount) || 0), 0);
+    const pendingCB = leads.filter(l => l.conversion_status === 'completed').reduce((s, l) => s + (Number(l.cashback_amount) || 0), 0);
+    const paidCB = leads.filter(l => l.conversion_status === 'paid').reduce((s, l) => s + (Number(l.cashback_amount) || 0), 0);
+    const vehicles = await sql`SELECT vehicle_title, vehicle_price, vehicle_url, COUNT(*) as shares, MAX(created_at) as last_shared
+      FROM referral_events WHERE referral_code = ${code} AND event_type = 'share' AND vehicle_title IS NOT NULL AND vehicle_title != ''
+      GROUP BY vehicle_title, vehicle_price, vehicle_url ORDER BY shares DESC LIMIT 20`;
+    return res.json({
+      code,
+      total_shares: Number(shares[0]?.c || 0),
+      total_views: Number(views[0]?.c || 0),
+      total_leads: leads.length,
+      leads_by_status: {
+        lead: leads.filter(l => l.conversion_status === 'lead').length,
+        negotiating: leads.filter(l => l.conversion_status === 'negotiating').length,
+        completed: leads.filter(l => l.conversion_status === 'completed').length,
+        paid: leads.filter(l => l.conversion_status === 'paid').length,
+      },
+      cashback: { potential: totalCB, pending: pendingCB, paid: paidCB },
+      leads: leads.map(l => ({
+        id: l.id, name: l.name, vehicle_title: l.vehicle_title,
+        vehicle_price: Number(l.vehicle_price), import_cost: Number(l.import_cost),
+        cashback_amount: Number(l.cashback_amount), status: l.conversion_status, created_at: l.created_at,
+      })),
+      vehicles,
+    });
+  }
+
+  // Admin dashboard
+  const days = period === '7d' ? 7 : period === '90d' ? 90 : period === 'all' ? 3650 : 30;
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+
+  const evStats = await sql`SELECT event_type, COUNT(*) as c FROM referral_events WHERE created_at >= ${since} GROUP BY event_type`;
+  const evMap = {};
+  evStats.forEach(s => evMap[s.event_type] = Number(s.c));
+
+  const leadsAll = await sql`SELECT * FROM referral_leads WHERE created_at >= ${since} ORDER BY created_at DESC LIMIT 50`;
+  const refLeads = leadsAll.filter(l => l.referral_code);
+  const uniqueRefs = new Set(refLeads.map(l => l.referral_code)).size;
+
+  const topReferrers = await sql`SELECT re.referral_code,
+    COUNT(DISTINCT CASE WHEN re.event_type='referral_view' THEN re.id END) as views,
+    (SELECT COUNT(*) FROM referral_leads rl WHERE rl.referral_code = re.referral_code) as leads,
+    MAX(re.created_at) as last_activity
+    FROM referral_events re WHERE re.referral_code IS NOT NULL AND re.created_at >= ${since}
+    GROUP BY re.referral_code ORDER BY views DESC LIMIT 10`;
+
+  const topVehicles = await sql`SELECT vehicle_title, vehicle_price, COUNT(*) as shares,
+    (SELECT COUNT(*) FROM referral_leads rl WHERE rl.vehicle_title = re.vehicle_title) as leads
+    FROM referral_events re WHERE re.event_type = 'share' AND re.vehicle_title IS NOT NULL AND re.vehicle_title != '' AND re.created_at >= ${since}
+    GROUP BY re.vehicle_title, re.vehicle_price ORDER BY shares DESC LIMIT 10`;
+
+  // Daily activity grouped
+  const dailyRaw = await sql`SELECT DATE(created_at) as day, event_type, COUNT(*) as c
+    FROM referral_events WHERE created_at >= ${since} GROUP BY DATE(created_at), event_type ORDER BY day`;
+  const dailyLeads = await sql`SELECT DATE(created_at) as day, COUNT(*) as c
+    FROM referral_leads WHERE created_at >= ${since} GROUP BY DATE(created_at) ORDER BY day`;
+
+  const dayMap = {};
+  dailyRaw.forEach(r => {
+    if (!dayMap[r.day]) dayMap[r.day] = { day: r.day, views: 0, shares: 0, referral_views: 0, leads: 0 };
+    if (r.event_type === 'view') dayMap[r.day].views = Number(r.c);
+    if (r.event_type === 'share') dayMap[r.day].shares = Number(r.c);
+    if (r.event_type === 'referral_view') dayMap[r.day].referral_views = Number(r.c);
+  });
+  dailyLeads.forEach(r => {
+    if (!dayMap[r.day]) dayMap[r.day] = { day: r.day, views: 0, shares: 0, referral_views: 0, leads: 0 };
+    dayMap[r.day].leads = Number(r.c);
+  });
+  const dailyActivity = Object.values(dayMap).sort((a, b) => a.day > b.day ? 1 : -1);
+
+  return res.json({
+    overview: {
+      total_views: evMap.view || 0,
+      total_shares: evMap.share || 0,
+      referral_views: evMap.referral_view || 0,
+      total_leads: leadsAll.length,
+      referral_leads: refLeads.length,
+      unique_referrers: uniqueRefs,
+    },
+    dailyActivity,
+    topReferrers,
+    topVehicles: topVehicles.map(v => ({
+      vehicle_title: v.vehicle_title, vehicle_price: v.vehicle_price,
+      shares: Number(v.shares), leads: Number(v.leads),
+    })),
+    recentLeads: leadsAll.map(l => ({
+      id: l.id, created_at: l.created_at, lead_name: l.name, lead_email: l.email,
+      lead_phone: l.phone, vehicle_title: l.vehicle_title, vehicle_price: l.vehicle_price,
+      referral_code: l.referral_code, import_cost: Number(l.import_cost) || 0,
+      cashback_amount: Number(l.cashback_amount) || 0,
+      conversion_status: l.conversion_status || 'lead', notes: l.notes || '',
+    })),
+  });
 };

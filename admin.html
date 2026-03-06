@@ -63,6 +63,15 @@
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .tables-grid { grid-template-columns: 1fr; }
   }
+
+.status-select { padding:4px 8px; border-radius:6px; border:1px solid #27272a; background:#131316; color:#fafafa; font-size:11px; font-family:Inter,sans-serif; cursor:pointer; }
+.status-select:focus { border-color:#D4AF37; outline:none; }
+.status-badge { padding:2px 8px; border-radius:12px; font-size:10px; font-weight:600; display:inline-block; }
+.status-lead { background:rgba(74,158,255,0.15); color:#4A9EFF; }
+.status-negotiating { background:rgba(255,152,0,0.15); color:#FF9800; }
+.status-completed { background:rgba(76,175,80,0.15); color:#4CAF50; }
+.status-paid { background:rgba(212,175,55,0.15); color:#D4AF37; }
+.cb-amount { font-weight:600; color:#D4AF37; font-size:12px; }
 </style>
 </head>
 <body>
@@ -295,7 +304,7 @@ function updateVehiclesTable(vehicles) {
   }
   tbody.innerHTML = vehicles.map(v => `
     <tr>
-      <td>${v.vehicle_make || '—'} ${v.vehicle_model || ''} ${v.vehicle_year || ''}</td>
+      <td>${v.vehicle_title || '—'} </td>
       <td>${v.vehicle_price ? Number(v.vehicle_price).toLocaleString('pt-PT') + ' €' : '—'}</td>
       <td>${v.shares}</td>
       <td><strong>${v.leads}</strong></td>
@@ -306,20 +315,45 @@ function updateVehiclesTable(vehicles) {
 function updateLeadsTable(leads) {
   const tbody = document.getElementById('leads-table');
   if (!leads || leads.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="color:#52525b;text-align:center;padding:20px">Sem leads ainda</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="color:#52525b;text-align:center;padding:20px">Sem leads ainda</td></tr>';
     return;
   }
-  tbody.innerHTML = leads.map(l => `
-    <tr>
-      <td style="color:#71717a;white-space:nowrap">${new Date(l.created_at).toLocaleDateString('pt-PT')} ${new Date(l.created_at).toLocaleTimeString('pt-PT', {hour:'2-digit',minute:'2-digit'})}</td>
+  tbody.innerHTML = leads.map(l => {
+    const statusOpts = ['lead','negotiating','completed','paid'];
+    const statusLabels = {lead:'Novo Lead',negotiating:'Em Negociação',completed:'Concluído',paid:'CB Pago'};
+    const statusClasses = {lead:'status-lead',negotiating:'status-negotiating',completed:'status-completed',paid:'status-paid'};
+    const cs = l.conversion_status || 'lead';
+    const selectHtml = statusOpts.map(s => `<option value="${s}" ${s===cs?'selected':''}>${statusLabels[s]}</option>`).join('');
+    return `<tr>
+      <td style="color:#71717a;white-space:nowrap;font-size:11px">${new Date(l.created_at).toLocaleDateString('pt-PT')}<br>${new Date(l.created_at).toLocaleTimeString('pt-PT', {hour:'2-digit',minute:'2-digit'})}</td>
       <td><strong>${l.lead_name || '—'}</strong></td>
-      <td>${l.lead_email || '—'}</td>
-      <td>${l.lead_phone || '—'}</td>
-      <td>${l.vehicle_make || '—'} ${l.vehicle_model || ''}</td>
-      <td>${l.vehicle_price ? Number(l.vehicle_price).toLocaleString('pt-PT') + ' €' : '—'}</td>
+      <td style="font-size:11px">${l.lead_email || '—'}</td>
+      <td style="font-size:11px">${l.lead_phone || '—'}</td>
+      <td style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px">${l.vehicle_title || '—'}</td>
+      <td style="white-space:nowrap">${l.vehicle_price ? Number(l.vehicle_price).toLocaleString('pt-PT') + ' €' : '—'}</td>
       <td>${l.referral_code ? '<span class="badge badge-gold">' + l.referral_code + '</span>' : '<span class="badge badge-blue">Directo</span>'}</td>
-    </tr>
-  `).join('');
+      <td class="cb-amount">${l.cashback_amount ? Number(l.cashback_amount).toLocaleString('pt-PT') + ' €' : '—'}</td>
+      <td><span class="status-badge ${statusClasses[cs]}">${statusLabels[cs]}</span></td>
+      <td><select class="status-select" onchange="updateLeadStatus(${l.id}, this.value)">${selectHtml}</select></td>
+    </tr>`;
+  }).join('');
+}
+
+async function updateLeadStatus(leadId, newStatus) {
+  try {
+    const resp = await fetch('/api/referral-track?key=' + encodeURIComponent(adminKey), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lead_id: leadId, conversion_status: newStatus })
+    });
+    if (resp.ok) {
+      loadData(); // Refresh
+    } else {
+      alert('Erro ao atualizar status');
+    }
+  } catch(e) {
+    alert('Erro de ligação');
+  }
 }
 </script>
 </body>

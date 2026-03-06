@@ -659,7 +659,8 @@ async function submitLead(e) {
     price: state.purchasePrice || '',
     url: state.sourceUrl || '',
     timestamp: new Date().toISOString(),
-    referralCode: state.referralCode || null
+    referralCode: state.referralCode || null,
+      import_cost: calculateImportCost(Number(state.purchasePrice) || 0)
   };
 
   try {
@@ -706,7 +707,7 @@ async function submitLead(e) {
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ts-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
       <div class="ts-ref-text">
         <strong>Simulação partilhada por um amigo!</strong><br>
-        Ao importar através desta referência, ambos beneficiam de <strong>5% de desconto</strong> no serviço de importação The Selection.
+        Importando através desta referência, beneficia de <strong>5% de desconto</strong> no serviço de importação. O seu amigo que partilhou também recebe <strong>5% de cashback</strong>. Ambos ganham!
       </div>
     </div>
     <div style="width:100%;max-width:600px;display:flex;flex-direction:column;gap:14px">
@@ -850,7 +851,7 @@ async function submitLead(e) {
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ts-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
       <div class="ts-ref-text">
         <strong>Simulação partilhada por um amigo!</strong><br>
-        Ao importar através desta referência, ambos beneficiam de <strong>5% de desconto</strong> no serviço de importação The Selection.
+        Importando através desta referência, beneficia de <strong>5% de desconto</strong> no serviço de importação. O seu amigo que partilhou também recebe <strong>5% de cashback</strong>. Ambos ganham!
       </div>
     </div>
 
@@ -1074,7 +1075,7 @@ async function submitLead(e) {
         <div class="ts-share-container">
           <button onclick="toggleShareDropdown()" class="ts-share-btn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            Partilhar
+            Partilhar &amp; Ganhar
           </button>
           <div id="share-dropdown" class="ts-share-dropdown">
             <button class="ts-share-option" onclick="shareViaClipboard()">
@@ -1091,6 +1092,7 @@ async function submitLead(e) {
             </button>
           </div>
           <div id="share-copied" class="ts-share-copied">Link copiado!</div>
+          <a href="/painel" target="_blank" style="display:block;text-align:center;font-size:10px;color:var(--ts-muted);margin-top:6px;text-decoration:none;opacity:0.7;transition:opacity 0.2s" onmouseover="this.style.opacity=1;this.style.color='var(--ts-accent)'" onmouseout="this.style.opacity=0.7;this.style.color='var(--ts-muted)'">📊 Ver o meu painel de referências</a>
         </div>
       </div>
     </div>
@@ -2223,7 +2225,7 @@ function shareViaWhatsApp() {
   const title = state.scrapedData?.title || 'um veículo';
   const totalEl = document.querySelector('.ts-total-value');
   const total = totalEl ? totalEl.textContent : '';
-  const msg = 'Olha esta simulação de importação! ' + title + (total ? ' por ' + total : '') + ' \n\n' + buildShareUrl();
+  const msg = 'Olha esta simulação de importação! Tens 5% de desconto no serviço se usares o meu link! ' + title + (total ? ' por ' + total : '') + ' \n\n' + buildShareUrl();
   window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
   $('share-dropdown').classList.remove('active');
 }
@@ -2235,7 +2237,7 @@ function shareViaEmail() {
   const totalEl = document.querySelector('.ts-total-value');
   const total = totalEl ? totalEl.textContent : '';
   const subj = encodeURIComponent('Simulação THESV - ' + title);
-  const body = encodeURIComponent('Vê esta simulação de importação:\n\n' + title + (total ? '\nPreço estimado: ' + total : '') + '\n\n' + buildShareUrl() + '\n\nSimulação feita em theselection.pt');
+  const body = encodeURIComponent('Vê esta simulação de importação com 5% de desconto no serviço:\n\n' + title + (total ? '\nPreço estimado: ' + total : '') + '\n\n' + buildShareUrl() + '\n\nSimulação feita em theselection.pt');
   window.location.href = 'mailto:?subject=' + subj + '&body=' + body;
   $('share-dropdown').classList.remove('active');
 }

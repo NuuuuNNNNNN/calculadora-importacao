@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Referências — The Selection</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ts-bg: #09090B; --ts-surface: #131316; --ts-surface-alt: #1a1a1f;
+  --ts-border: #27272A; --ts-text: #FAFAFA; --ts-muted: #A1A1AA;
+  --ts-accent: #D4AF37; --ts-accent-dim: rgba(212,175,55,0.15);
+  --ts-green: #4CAF50; --ts-blue: #4A9EFF; --ts-orange: #FF9800; --ts-red: #EF4444;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--ts-bg); color:var(--ts-text); font-family:'Inter',sans-serif; min-height:100vh; }
+.container { max-width:900px; margin:0 auto; padding:24px 20px; }
+
+/* Header */
+.header { text-align:center; padding:32px 0 24px; border-bottom:1px solid var(--ts-border); margin-bottom:24px; }
+.header-logo { font-size:11px; letter-spacing:4px; text-transform:uppercase; color:var(--ts-accent); font-weight:600; margin-bottom:6px; }
+.header-title { font-size:22px; font-weight:600; color:var(--ts-text); margin-bottom:4px; }
+.header-sub { font-size:13px; color:var(--ts-muted); }
+
+/* Login */
+.login-card { max-width:400px; margin:60px auto; background:var(--ts-surface); border:1px solid var(--ts-border); border-radius:16px; padding:32px; text-align:center; }
+.login-card h2 { font-size:18px; font-weight:600; margin-bottom:6px; }
+.login-card p { font-size:13px; color:var(--ts-muted); margin-bottom:20px; line-height:1.5; }
+.login-input { width:100%; padding:12px 16px; background:var(--ts-bg); border:1px solid var(--ts-border); border-radius:10px; color:var(--ts-text); font-size:15px; font-family:'Inter',sans-serif; text-align:center; letter-spacing:2px; font-weight:600; text-transform:uppercase; outline:none; transition:border 0.2s; }
+.login-input:focus { border-color:var(--ts-accent); }
+.login-input::placeholder { color:var(--ts-muted); letter-spacing:0; font-weight:400; text-transform:none; font-size:13px; }
+.login-btn { width:100%; margin-top:14px; padding:12px; background:var(--ts-accent); color:#000; border:none; border-radius:10px; font-size:14px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer; transition:opacity 0.2s; }
+.login-btn:hover { opacity:0.9; }
+.login-btn:disabled { opacity:0.5; cursor:not-allowed; }
+.login-error { color:var(--ts-red); font-size:12px; margin-top:10px; display:none; }
+.login-help { font-size:11px; color:var(--ts-muted); margin-top:16px; line-height:1.5; }
+.login-help a { color:var(--ts-accent); text-decoration:none; }
+
+/* Dashboard */
+.dashboard { display:none; }
+.dash-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+.dash-code { display:flex; align-items:center; gap:8px; }
+.dash-code-label { font-size:12px; color:var(--ts-muted); }
+.dash-code-value { background:var(--ts-accent-dim); color:var(--ts-accent); padding:4px 12px; border-radius:6px; font-size:14px; font-weight:700; letter-spacing:2px; }
+.dash-actions { display:flex; gap:8px; }
+.dash-btn { padding:8px 14px; background:var(--ts-surface); border:1px solid var(--ts-border); border-radius:8px; color:var(--ts-text); font-size:12px; font-family:'Inter',sans-serif; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:6px; }
+.dash-btn:hover { border-color:var(--ts-accent); color:var(--ts-accent); }
+
+/* KPI Cards */
+.kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+.kpi-card { background:var(--ts-surface); border:1px solid var(--ts-border); border-radius:12px; padding:16px; text-align:center; }
+.kpi-icon { font-size:20px; margin-bottom:6px; }
+.kpi-value { font-size:26px; font-weight:700; color:var(--ts-text); margin-bottom:2px; }
+.kpi-label { font-size:11px; color:var(--ts-muted); text-transform:uppercase; letter-spacing:1px; }
+.kpi-card.accent { border-color:rgba(212,175,55,0.3); background:linear-gradient(135deg,rgba(212,175,55,0.08),transparent); }
+.kpi-card.accent .kpi-value { color:var(--ts-accent); }
+
+/* Cashback Section */
+.cashback-section { background:linear-gradient(135deg,rgba(212,175,55,0.08),rgba(212,175,55,0.02)); border:1px solid rgba(212,175,55,0.25); border-radius:14px; padding:20px; margin-bottom:20px; }
+.cashback-title { font-size:14px; font-weight:600; color:var(--ts-accent); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.cashback-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.cashback-item { text-align:center; }
+.cashback-item-value { font-size:22px; font-weight:700; margin-bottom:2px; }
+.cashback-item-label { font-size:11px; color:var(--ts-muted); }
+.cashback-item.potential .cashback-item-value { color:var(--ts-muted); }
+.cashback-item.pending .cashback-item-value { color:var(--ts-orange); }
+.cashback-item.paid .cashback-item-value { color:var(--ts-green); }
+
+/* Funnel */
+.funnel { background:var(--ts-surface); border:1px solid var(--ts-border); border-radius:14px; padding:20px; margin-bottom:20px; }
+.funnel-title { font-size:14px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.funnel-steps { display:flex; align-items:center; gap:0; }
+.funnel-step { flex:1; text-align:center; position:relative; }
+.funnel-step-bar { height:6px; border-radius:3px; margin-bottom:8px; }
+.funnel-step:nth-child(1) .funnel-step-bar { background:var(--ts-blue); }
+.funnel-step:nth-child(2) .funnel-step-bar { background:var(--ts-orange); }
+.funnel-step:nth-child(3) .funnel-step-bar { background:var(--ts-green); }
+.funnel-step:nth-child(4) .funnel-step-bar { background:var(--ts-accent); }
+.funnel-step-value { font-size:20px; font-weight:700; }
+.funnel-step-label { font-size:10px; color:var(--ts-muted); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
+.funnel-arrow { color:var(--ts-muted); font-size:18px; margin:0 -4px; padding-bottom:20px; }
+
+/* Tables */
+.section { background:var(--ts-surface); border:1px solid var(--ts-border); border-radius:14px; padding:20px; margin-bottom:20px; }
+.section-title { font-size:14px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+table { width:100%; border-collapse:collapse; }
+th { text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--ts-muted); padding:8px 10px; border-bottom:1px solid var(--ts-border); font-weight:600; }
+td { padding:10px; font-size:13px; border-bottom:1px solid rgba(39,39,42,0.5); }
+.status-badge { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; display:inline-block; }
+.status-lead { background:rgba(74,158,255,0.15); color:var(--ts-blue); }
+.status-negotiating { background:rgba(255,152,0,0.15); color:var(--ts-orange); }
+.status-completed { background:rgba(76,175,80,0.15); color:var(--ts-green); }
+.status-paid { background:rgba(212,175,55,0.15); color:var(--ts-accent); }
+
+/* Empty state */
+.empty { text-align:center; padding:40px 20px; color:var(--ts-muted); }
+.empty-icon { font-size:40px; margin-bottom:10px; opacity:0.5; }
+.empty-text { font-size:14px; margin-bottom:6px; }
+.empty-sub { font-size:12px; }
+
+/* How it works */
+.how-it-works { background:var(--ts-surface); border:1px solid var(--ts-border); border-radius:14px; padding:20px; margin-bottom:20px; }
+.how-title { font-size:14px; font-weight:600; margin-bottom:14px; }
+.how-steps { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+.how-step { text-align:center; padding:12px 8px; }
+.how-step-num { width:28px; height:28px; background:var(--ts-accent); color:#000; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; margin:0 auto 8px; }
+.how-step-title { font-size:12px; font-weight:600; margin-bottom:4px; }
+.how-step-desc { font-size:11px; color:var(--ts-muted); line-height:1.4; }
+
+/* Loading */
+.loading { text-align:center; padding:40px; color:var(--ts-muted); }
+.spinner { width:24px; height:24px; border:2px solid var(--ts-border); border-top-color:var(--ts-accent); border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 10px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Responsive */
+@media(max-width:700px) {
+  .kpi-grid { grid-template-columns:repeat(2,1fr); }
+  .cashback-grid { grid-template-columns:1fr; gap:8px; }
+  .how-steps { grid-template-columns:repeat(2,1fr); }
+  .funnel-steps { flex-direction:column; gap:8px; }
+  .funnel-arrow { transform:rotate(90deg); padding:0; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo">THE SELECTION</div>
+    <div class="header-title">Painel de Referências</div>
+    <div class="header-sub">Acompanhe as suas partilhas e ganhe cashback</div>
+  </div>
+
+  <!-- Login -->
+  <div id="login-section" class="login-card">
+    <h2>👋 Bem-vindo</h2>
+    <p>Introduza o seu código de referência para ver as suas estatísticas e cashback acumulado.</p>
+    <input type="text" id="code-input" class="login-input" placeholder="O seu código (ex: TS1A2B3C)" maxlength="10" autocomplete="off">
+    <button id="login-btn" class="login-btn" onclick="loadDashboard()">Ver o Meu Painel</button>
+    <div id="login-error" class="login-error">Código não encontrado. Verifique e tente novamente.</div>
+    <div class="login-help">
+      Não tem um código? Faça uma simulação na <a href="/">calculadora de importação</a> e partilhe para gerar o seu código automaticamente.
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="dashboard">
+    <!-- Header -->
+    <div class="dash-header">
+      <div class="dash-code">
+        <span class="dash-code-label">O seu código:</span>
+        <span class="dash-code-value" id="dash-code"></span>
+      </div>
+      <div class="dash-actions">
+        <button class="dash-btn" onclick="copyShareLink()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          Copiar Link de Partilha
+        </button>
+        <button class="dash-btn" onclick="refresh()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Atualizar
+        </button>
+        <button class="dash-btn" onclick="logout()">Sair</button>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="how-it-works">
+      <div class="how-title">💡 Como funciona o programa</div>
+      <div class="how-steps">
+        <div class="how-step">
+          <div class="how-step-num">1</div>
+          <div class="how-step-title">Partilhe</div>
+          <div class="how-step-desc">Envie simulações a amigos com o seu link personalizado</div>
+        </div>
+        <div class="how-step">
+          <div class="how-step-num">2</div>
+          <div class="how-step-title">Amigo Simula</div>
+          <div class="how-step-desc">O seu amigo recebe 5% de desconto no serviço de importação</div>
+        </div>
+        <div class="how-step">
+          <div class="how-step-num">3</div>
+          <div class="how-step-title">Negócio Fecha</div>
+          <div class="how-step-desc">Quando o amigo concretiza a importação</div>
+        </div>
+        <div class="how-step">
+          <div class="how-step-num">4</div>
+          <div class="how-step-title">Cashback 💰</div>
+          <div class="how-step-desc">Recebe 5% do valor do serviço de importação</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-icon">📤</div><div class="kpi-value" id="kpi-shares">0</div><div class="kpi-label">Partilhas</div></div>
+      <div class="kpi-card"><div class="kpi-icon">👀</div><div class="kpi-value" id="kpi-views">0</div><div class="kpi-label">Cliques</div></div>
+      <div class="kpi-card"><div class="kpi-icon">📋</div><div class="kpi-value" id="kpi-leads">0</div><div class="kpi-label">Leads</div></div>
+      <div class="kpi-card accent"><div class="kpi-icon">🏆</div><div class="kpi-value" id="kpi-conversions">0</div><div class="kpi-label">Negócios</div></div>
+    </div>
+
+    <!-- Cashback Section -->
+    <div class="cashback-section">
+      <div class="cashback-title">💰 O Seu Cashback</div>
+      <div class="cashback-grid">
+        <div class="cashback-item potential">
+          <div class="cashback-item-value" id="cb-potential">0 €</div>
+          <div class="cashback-item-label">Potencial (se todos fecharem)</div>
+        </div>
+        <div class="cashback-item pending">
+          <div class="cashback-item-value" id="cb-pending">0 €</div>
+          <div class="cashback-item-label">Pendente de Pagamento</div>
+        </div>
+        <div class="cashback-item paid">
+          <div class="cashback-item-value" id="cb-paid">0 €</div>
+          <div class="cashback-item-label">Já Recebido ✓</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Funnel -->
+    <div class="funnel">
+      <div class="funnel-title">📊 Funil de Conversão</div>
+      <div class="funnel-steps">
+        <div class="funnel-step">
+          <div class="funnel-step-bar" id="bar-leads" style="width:100%"></div>
+          <div class="funnel-step-value" id="f-leads">0</div>
+          <div class="funnel-step-label">Leads</div>
+        </div>
+        <div class="funnel-arrow">→</div>
+        <div class="funnel-step">
+          <div class="funnel-step-bar" id="bar-neg"></div>
+          <div class="funnel-step-value" id="f-neg">0</div>
+          <div class="funnel-step-label">Em Negociação</div>
+        </div>
+        <div class="funnel-arrow">→</div>
+        <div class="funnel-step">
+          <div class="funnel-step-bar" id="bar-done"></div>
+          <div class="funnel-step-value" id="f-done">0</div>
+          <div class="funnel-step-label">Concluídos</div>
+        </div>
+        <div class="funnel-arrow">→</div>
+        <div class="funnel-step">
+          <div class="funnel-step-bar" id="bar-paid"></div>
+          <div class="funnel-step-value" id="f-paid">0</div>
+          <div class="funnel-step-label">Cashback Pago</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leads Table -->
+    <div class="section" id="leads-section">
+      <div class="section-title">📋 Os Seus Leads</div>
+      <div id="leads-table"></div>
+    </div>
+
+    <!-- Shared Vehicles -->
+    <div class="section" id="vehicles-section">
+      <div class="section-title">🚗 Veículos Partilhados</div>
+      <div id="vehicles-table"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api/referral-track';
+let currentCode = '';
+
+function $(id) { return document.getElementById(id); }
+function fmtCurrency(n) { return new Intl.NumberFormat('pt-PT', { minimumFractionDigits:0, maximumFractionDigits:0 }).format(n) + ' €'; }
+function fmtDate(d) { return new Date(d).toLocaleDateString('pt-PT', { day:'2-digit', month:'short', year:'numeric' }); }
+
+// Check URL for code
+const urlCode = new URLSearchParams(window.location.search).get('code');
+if (urlCode) {
+  $('code-input').value = urlCode;
+  setTimeout(() => loadDashboard(), 300);
+}
+
+// Check localStorage
+const savedCode = localStorage.getItem('ts_referral_code');
+if (savedCode && !urlCode) {
+  $('code-input').value = savedCode;
+}
+
+$('code-input').addEventListener('keyup', e => { if (e.key === 'Enter') loadDashboard(); });
+
+async function loadDashboard() {
+  const code = $('code-input').value.trim().toUpperCase();
+  if (!code || code.length < 4) {
+    $('login-error').style.display = 'block';
+    $('login-error').textContent = 'Introduza um código válido.';
+    return;
+  }
+
+  $('login-btn').disabled = true;
+  $('login-btn').textContent = 'A carregar...';
+  $('login-error').style.display = 'none';
+
+  try {
+    const res = await fetch(API + '?code=' + encodeURIComponent(code));
+    const data = await res.json();
+
+    // Even if no data, show dashboard (it's a valid code)
+    currentCode = code;
+    localStorage.setItem('ts_panel_code', code);
+
+    // Update URL without reload
+    history.replaceState(null, '', '/painel?code=' + code);
+
+    // Show dashboard
+    $('login-section').style.display = 'none';
+    $('dashboard').style.display = 'block';
+    $('dash-code').textContent = code;
+
+    // KPIs
+    $('kpi-shares').textContent = data.total_shares || 0;
+    $('kpi-views').textContent = data.total_views || 0;
+    $('kpi-leads').textContent = data.total_leads || 0;
+    const completedDeals = (data.leads_by_status?.completed || 0) + (data.leads_by_status?.paid || 0);
+    $('kpi-conversions').textContent = completedDeals;
+
+    // Cashback
+    $('cb-potential').textContent = fmtCurrency(data.cashback?.potential || 0);
+    $('cb-pending').textContent = fmtCurrency(data.cashback?.pending || 0);
+    $('cb-paid').textContent = fmtCurrency(data.cashback?.paid || 0);
+
+    // Funnel
+    const ls = data.leads_by_status || {};
+    $('f-leads').textContent = ls.lead || 0;
+    $('f-neg').textContent = ls.negotiating || 0;
+    $('f-done').textContent = ls.completed || 0;
+    $('f-paid').textContent = ls.paid || 0;
+
+    // Leads table
+    if (data.leads && data.leads.length > 0) {
+      let html = '<table><thead><tr><th>Data</th><th>Veículo</th><th>Valor Importação</th><th>Seu Cashback</th><th>Estado</th></tr></thead><tbody>';
+      data.leads.forEach(l => {
+        const statusMap = { lead:'Novo Lead', negotiating:'Em Negociação', completed:'Concluído', paid:'Cashback Pago' };
+        const statusClass = 'status-' + (l.status || 'lead');
+        html += `<tr>
+          <td>${fmtDate(l.created_at)}</td>
+          <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.vehicle_title || '-'}</td>
+          <td>${l.import_cost ? fmtCurrency(l.import_cost) : '-'}</td>
+          <td style="font-weight:600;color:var(--ts-accent)">${l.cashback_amount ? fmtCurrency(l.cashback_amount) : '-'}</td>
+          <td><span class="status-badge ${statusClass}">${statusMap[l.status] || l.status}</span></td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      $('leads-table').innerHTML = html;
+    } else {
+      $('leads-table').innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Ainda sem leads</div><div class="empty-sub">Partilhe simulações com amigos para gerar leads e ganhar cashback!</div></div>';
+    }
+
+    // Vehicles table
+    if (data.vehicles && data.vehicles.length > 0) {
+      let html = '<table><thead><tr><th>Veículo</th><th>Preço</th><th>Partilhas</th></tr></thead><tbody>';
+      data.vehicles.forEach(v => {
+        html += `<tr>
+          <td>${v.vehicle_title || '-'}</td>
+          <td>${v.vehicle_price ? fmtCurrency(Number(v.vehicle_price)) : '-'}</td>
+          <td style="font-weight:600">${v.shares}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      $('vehicles-table').innerHTML = html;
+    } else {
+      $('vehicles-table').innerHTML = '<div class="empty"><div class="empty-icon">🚗</div><div class="empty-text">Ainda sem veículos partilhados</div><div class="empty-sub">Faça uma simulação e partilhe!</div></div>';
+    }
+
+  } catch(e) {
+    $('login-error').textContent = 'Erro de ligação. Tente novamente.';
+    $('login-error').style.display = 'block';
+  }
+  $('login-btn').disabled = false;
+  $('login-btn').textContent = 'Ver o Meu Painel';
+}
+
+function refresh() { loadDashboard(); }
+
+function logout() {
+  currentCode = '';
+  localStorage.removeItem('ts_panel_code');
+  $('dashboard').style.display = 'none';
+  $('login-section').style.display = 'block';
+  $('code-input').value = '';
+  history.replaceState(null, '', '/painel');
+}
+
+function copyShareLink() {
+  const url = window.location.origin + '/?ref=' + currentCode;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = event.target.closest('.dash-btn');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ Link copiado!';
+    btn.style.borderColor = 'var(--ts-green)';
+    btn.style.color = 'var(--ts-green)';
+    setTimeout(() => { btn.innerHTML = orig; btn.style.borderColor = ''; btn.style.color = ''; }, 2000);
+  });
+}
+
+// Auto-login if code saved
+const panelCode = localStorage.getItem('ts_panel_code');
+if (panelCode && !urlCode) {
+  $('code-input').value = panelCode;
+  loadDashboard();
+}
+</script>
+</body>
+</html>
