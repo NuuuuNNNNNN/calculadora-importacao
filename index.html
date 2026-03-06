@@ -2213,11 +2213,12 @@ function checkReferral() {
     const input = $('url-input');
     if (input) {
       input.value = vehicleUrl;
-      // Auto-trigger analysis after short delay
+      // Enable button and auto-trigger analysis
+      const btn = $('btn-analyze');
+      if (btn) btn.disabled = false;
       setTimeout(function() {
-        const btn = document.querySelector('[onclick*="analyzeVehicle"]');
         if (btn) btn.click();
-      }, 500);
+      }, 800);
     }
   }
 }
