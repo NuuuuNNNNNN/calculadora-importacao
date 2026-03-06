@@ -1,11 +1,7 @@
 export default async (req, res) => {
   try {
-    console.log('[DEBUG] req.body type:', typeof req.body);
-    console.log('[DEBUG] req.body:', JSON.stringify(req.body).substring(0, 100));
-    console.log('[DEBUG] process.env.SCRAPINGBEE_API_KEY exists:', !!process.env.SCRAPINGBEE_API_KEY);
-    console.log('[DEBUG] API key first 20 chars:', process.env.SCRAPINGBEE_API_KEY?.substring(0, 20));
-    
-    const { url } = req.body || {};
+    // Support both POST body and GET query params
+    const { url } = req.body || req.query || {};
     
     console.log('[DEBUG] Extracted URL:', url);
     
