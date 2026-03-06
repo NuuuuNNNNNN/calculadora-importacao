@@ -1,7 +1,20 @@
 {
   "version": 2,
-  "routes": [
-    { "src": "/admin", "dest": "/admin.html" },
-    { "src": "/api/(.*)", "dest": "/api/$1" }
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/api/scrape-vehicle", "destination": "/api/scrape-vehicle" },
+    { "source": "/api/market-price", "destination": "/api/market-price" },
+    { "source": "/api/lead", "destination": "/api/lead" },
+    { "source": "/api/referral-track", "destination": "/api/referral-track" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+      ]
+    }
   ]
 }
