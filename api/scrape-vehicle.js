@@ -1,50 +1,54 @@
-import { neon } from '@neondatabase/serverless';
-
 // ═══════════════════════════════════════
-// Cache: 6h TTL in Neon Postgres
+// Cache: 6h TTL in Neon Postgres (lazy loaded)
 // ═══════════════════════════════════════
-async function initCacheTable(sql) {
+let _sql = null;
+async function getSQL() {
+  if (_sql) return _sql;
+  if (!process.env.POSTGRES_URL) return null;
   try {
-    await sql`CREATE TABLE IF NOT EXISTS vehicle_cache (
+    const mod = await import('@neondatabase/serverless');
+    _sql = mod.neon(process.env.POSTGRES_URL);
+    // Ensure table exists (one-time)
+    await _sql`CREATE TABLE IF NOT EXISTS vehicle_cache (
       url TEXT PRIMARY KEY,
       data JSONB NOT NULL,
       scraped_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`;
+    return _sql;
   } catch (e) {
-    console.log('[CACHE] Table init note:', e.message);
+    console.log('[CACHE] Init error:', e.message);
+    return null;
   }
 }
 
-async function getCachedVehicle(sql, url) {
+async function getCached(url) {
   try {
+    const sql = await getSQL();
+    if (!sql) return null;
     const rows = await sql`
-      SELECT data, scraped_at FROM vehicle_cache 
-      WHERE url = ${url} 
-        AND scraped_at > NOW() - INTERVAL '6 hours'
+      SELECT data FROM vehicle_cache 
+      WHERE url = ${url} AND scraped_at > NOW() - INTERVAL '6 hours'
     `;
     if (rows.length > 0) {
-      console.log('[CACHE] HIT for', url, '- scraped at', rows[0].scraped_at);
+      console.log('[CACHE] HIT');
       return rows[0].data;
     }
-    console.log('[CACHE] MISS for', url);
-    return null;
-  } catch (e) {
-    console.log('[CACHE] Read error:', e.message);
-    return null;
-  }
+    console.log('[CACHE] MISS');
+  } catch (e) { console.log('[CACHE] Read err:', e.message); }
+  return null;
 }
 
-async function cacheVehicle(sql, url, data) {
+async function setCache(url, data) {
   try {
+    const sql = await getSQL();
+    if (!sql) return;
     await sql`
       INSERT INTO vehicle_cache (url, data, scraped_at)
       VALUES (${url}, ${JSON.stringify(data)}, NOW())
       ON CONFLICT (url) DO UPDATE SET data = ${JSON.stringify(data)}, scraped_at = NOW()
     `;
-    console.log('[CACHE] STORED for', url);
-  } catch (e) {
-    console.log('[CACHE] Write error:', e.message);
-  }
+    console.log('[CACHE] STORED');
+  } catch (e) { console.log('[CACHE] Write err:', e.message); }
 }
 
 // ═══════════════════════════════════════
@@ -63,17 +67,10 @@ export default async (req, res) => {
     console.log('[API] Scraping:', url);
 
     // ── Check cache first ──
-    let sql = null;
-    if (process.env.POSTGRES_URL) {
-      sql = neon(process.env.POSTGRES_URL);
-      await initCacheTable(sql);
-      
-      const cached = await getCachedVehicle(sql, url);
-      if (cached) {
-        cached._cached = true;
-        cached._cacheAge = 'within 6h';
-        return res.status(200).json(cached);
-      }
+    const cached = await getCached(url);
+    if (cached) {
+      cached._cached = true;
+      return res.status(200).json(cached);
     }
 
     // ── ScrapingBee with retry ──
@@ -176,9 +173,9 @@ export default async (req, res) => {
     
     console.log('[API] Parsed data:', vehicleData);
 
-    // ── Save to cache ──
-    if (sql && vehicleData.title) {
-      await cacheVehicle(sql, url, vehicleData);
+    // ── Save to cache (non-blocking) ──
+    if (vehicleData.title) {
+      setCache(url, vehicleData).catch(() => {});
     }
 
     res.status(200).json(vehicleData);
