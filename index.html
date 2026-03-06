@@ -4,6 +4,33 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Simulador de Importação — The Selection</title>
+
+<!-- SEO -->
+<meta name="description" content="Simule o custo total de importar o seu veículo da Europa para Portugal. Cálculo ISV 2026 oficial, comparação com mercado nacional e simulação de financiamento. The Selection — Importação de Excelência.">
+<meta name="keywords" content="importação automóvel, ISV 2026, calculadora importação, importar carro Alemanha, The Selection, mobile.de Portugal">
+<meta name="author" content="The Selection Imports">
+<link rel="canonical" href="https://calculadora-importacao-gamma.vercel.app/">
+
+<!-- Open Graph (Facebook, WhatsApp, LinkedIn) -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://calculadora-importacao-gamma.vercel.app/">
+<meta property="og:title" content="Simulador de Importação — The Selection">
+<meta property="og:description" content="Saiba o preço final do seu veículo importado da Europa para Portugal. Cálculo ISV 2026, comparação com mercado nacional e financiamento.">
+<meta property="og:image" content="https://calculadora-importacao-gamma.vercel.app/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Simulador de Importação de Veículos — The Selection">
+<meta property="og:locale" content="pt_PT">
+<meta property="og:site_name" content="The Selection Imports">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Simulador de Importação — The Selection">
+<meta name="twitter:description" content="Saiba o preço final do seu veículo importado da Europa para Portugal. ISV 2026, mercado nacional e financiamento.">
+<meta name="twitter:image" content="https://calculadora-importacao-gamma.vercel.app/og-image.jpg">
+
+<!-- Favicon -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -437,7 +464,7 @@ input[type="range"].ts-range::-moz-range-thumb {
 .ts-share-copied.show { opacity: 1; }
 .ts-ref-code { display: inline-block; background: var(--ts-surface-alt); border: 1px solid var(--ts-border); border-radius: 6px; padding: 2px 8px; font-family: monospace; font-size: 11px; color: var(--ts-accent); letter-spacing: 1px; }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- jsPDF loaded on demand to improve page speed -->
 <script>
 
 // ═══════════════════════════════════════
@@ -2490,8 +2517,17 @@ function openWhatsApp() {
 // ═══════════════════════════════════════
 // PHASE 2: PDF Export
 // ═══════════════════════════════════════
+function loadJsPDF() {
+  return new Promise(function(resolve, reject) {
+    if (window.jspdf) return resolve();
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload = resolve;
+    s.onerror = function() { reject(new Error('Falha ao carregar PDF')); };
+    document.head.appendChild(s);
+  });
+}
 function generatePDF() {
-  if (!window.jspdf) { alert('A carregar biblioteca PDF. Tente novamente.'); return; }
   if (!state.isv) { alert('Faça primeiro uma simulação.'); return; }
   // Validate contact fields
   const rName = $('reserve-name')?.value?.trim();
@@ -2499,6 +2535,8 @@ function generatePDF() {
   const rPhone = $('reserve-phone')?.value?.trim();
   if (!rName || !rEmail || !rPhone) { showFieldsWarning(); return; }
   clearFieldsWarning();
+  // Lazy load jsPDF
+  loadJsPDF().then(function() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF('p', 'mm', 'a4');
   const pw = 210, mx = 20;
@@ -2688,6 +2726,7 @@ function generatePDF() {
   // Save
   const safeName = title.replace(/[^a-zA-Z0-9\u00C0-\u017F ]/g, '').replace(/\s+/g, '-').substring(0, 40);
   doc.save('Simulacao-' + safeName + '.pdf');
+  }).catch(function(e) { alert('Erro ao gerar PDF: ' + e.message); });
 }
 
     // ---- MARKET PRICE AUTO-FETCH ----
