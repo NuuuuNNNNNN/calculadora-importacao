@@ -274,14 +274,30 @@ function parseVehicleData(html, url) {
       console.log('[API] Electric vehicle detected - setting displacement=0, co2=0');
     }
 
-    // Power: look for kW value
-    const powerMatch = html.match(/"tag":"power"[^}]*"value":"([\d]+)\s*kW/);
-    if (powerMatch) {
-      data.power = parseInt(powerMatch[1]);
+    // Power: extract PS/cv value (not kW)
+    // mobile.de shows "350 kW (476 PS)" - we want the PS value
+    // Method 1: Extract PS from JSON tag
+    const powerPsMatch = html.match(/"tag":"power"[^}]*"value":"[\d]+\s*kW\s*\(([\d]+)\s*PS\)/);
+    if (powerPsMatch) {
+      data.power = parseInt(powerPsMatch[1]);
+    }
+    // Method 2: Extract PS from general pattern "XXX kW (YYY PS)"
+    if (!data.power) {
+      const psBracketMatch = html.match(/([\d]+)\s*kW\s*\(([\d]+)\s*(?:PS|hp|CV|cv)\)/);
+      if (psBracketMatch) {
+        data.power = parseInt(psBracketMatch[2]); // Get the PS number, not kW
+      }
+    }
+    // Method 3: If only kW found, convert to cv (1 kW = 1.35962 cv)
+    if (!data.power) {
+      const kwOnlyMatch = html.match(/"tag":"power"[^}]*"value":"([\d]+)\s*kW/);
+      if (kwOnlyMatch) {
+        data.power = Math.round(parseInt(kwOnlyMatch[1]) * 1.36);
+      }
     }
     if (!data.power) {
-      const powerMatch2 = html.match(/([\d]+)\s*kW\s*\([^)]+\)/);
-      if (powerMatch2) data.power = parseInt(powerMatch2[1]);
+      const kwMatch2 = html.match(/([\d]+)\s*kW/);
+      if (kwMatch2) data.power = Math.round(parseInt(kwMatch2[1]) * 1.36);
     }
 
     // Displacement (Hubraum/cubic capacity)
