@@ -1448,9 +1448,7 @@ function renderSimulation() {
     ? '<span class="ts-result-value" style="color:var(--ts-green)">Incluído</span>'
     : `<span class="ts-result-value">${fmtPrice(deliveryCost)}</span>`;
   html += `<div class="ts-result-row"><div><span class="ts-result-label">Entrega</span><div class="ts-result-sublabel">${deliveryLabel}</div></div>${deliveryValue}</div>`;
-  if (isEmpresa && ivaRecovery > 0) {
-    html += `<div class="ts-result-row"><span class="ts-result-label" style="color:var(--ts-green)">IVA Dedutível (Empresa)</span><span class="ts-result-value" style="color:var(--ts-green)">-${fmtPrice(ivaRecovery)}</span></div>`;
-  }
+  // IVA recovery still deducted from total, just not shown as separate line (redundant with Empresa toggle)
   $('sim-breakdown').innerHTML = html;
 
   // Total area
