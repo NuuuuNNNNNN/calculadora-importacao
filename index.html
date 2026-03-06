@@ -270,6 +270,29 @@ body::-webkit-scrollbar {
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .ts-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--ts-gold-dim); border-top-color: var(--ts-gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
 .ts-spinner-sm { width: 12px; height: 12px; border-width: 1.5px; }
+
+/* Gallery */
+.ts-gallery-nav { position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;transition:all 0.2s;backdrop-filter:blur(4px); }
+.ts-gallery-nav:hover { background:rgba(0,0,0,0.8);border-color:var(--ts-gold); }
+.ts-gallery-nav.prev { left:8px; }
+.ts-gallery-nav.next { right:8px; }
+.ts-gallery-counter { position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.6);color:#fff;font-size:10px;padding:3px 8px;border-radius:10px;z-index:10;font-family:Inter,sans-serif;backdrop-filter:blur(4px); }
+.ts-thumbstrip { display:flex;gap:4px;padding:6px 0;overflow-x:auto;scrollbar-width:none; }
+.ts-thumbstrip::-webkit-scrollbar { display:none; }
+.ts-thumb { width:52px;height:36px;border-radius:4px;object-fit:cover;cursor:pointer;border:2px solid transparent;opacity:0.5;transition:all 0.2s;flex-shrink:0; }
+.ts-thumb:hover { opacity:0.8; }
+.ts-thumb.active { border-color:var(--ts-gold);opacity:1; }
+/* Gallery Modal */
+.ts-gallery-modal-nav { position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);color:#fff;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10001;transition:all 0.2s;backdrop-filter:blur(4px); }
+.ts-gallery-modal-nav:hover { background:rgba(0,0,0,0.8);border-color:var(--ts-gold); }
+.ts-gallery-modal-nav.prev { left:16px; }
+.ts-gallery-modal-nav.next { right:16px; }
+.ts-gallery-modal-counter { position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);color:#fff;font-size:12px;padding:4px 12px;border-radius:12px;z-index:10001;font-family:Inter,sans-serif;backdrop-filter:blur(4px); }
+.ts-gallery-modal-thumbs { position:absolute;bottom:48px;left:50%;transform:translateX(-50%);display:flex;gap:4px;max-width:80vw;overflow-x:auto;scrollbar-width:none;z-index:10001;padding:4px; }
+.ts-gallery-modal-thumbs::-webkit-scrollbar { display:none; }
+.ts-gallery-modal-thumb { width:56px;height:40px;border-radius:4px;object-fit:cover;cursor:pointer;border:2px solid transparent;opacity:0.4;transition:all 0.2s;flex-shrink:0; }
+.ts-gallery-modal-thumb:hover { opacity:0.7; }
+.ts-gallery-modal-thumb.active { border-color:var(--ts-gold);opacity:1; }
 .hidden { display: none !important; }
 
 /* SVG icons inline */
@@ -746,8 +769,11 @@ async function submitLead(e) {
 
     <!-- MAIN CARD: Image + Simulation -->
     <div class="ts-main-card">
-      <div class="ts-main-card-image" id="hero-image-container">
+      <div class="ts-main-card-image" id="hero-image-container" style="position:relative">
         <img id="hero-image" src="" alt="Veículo" style="cursor:pointer" onclick="openImageModal()">
+        <button type="button" id="gallery-prev" class="ts-gallery-nav prev hidden" onclick="event.stopPropagation();galleryNav(-1)">‹</button>
+        <button type="button" id="gallery-next" class="ts-gallery-nav next hidden" onclick="event.stopPropagation();galleryNav(1)">›</button>
+        <div id="gallery-counter" class="ts-gallery-counter hidden">1 / 1</div>
         <div id="hero-placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:linear-gradient(135deg,rgba(200,169,110,0.06) 0%,rgba(9,9,11,0.95) 50%,rgba(200,169,110,0.04) 100%)" class="hidden">
           <div style="display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0.5">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--ts-gold)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0"/><path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0"/><path d="M5 17h-2v-6l2-5h9l4 5h1a2 2 0 0 1 2 2v4h-2m-4 0h-6m-6-6h15m-6 0v-5"/></svg>
@@ -756,6 +782,7 @@ async function submitLead(e) {
           <span style="font-size:11px;color:var(--ts-text-muted)">Imagem não disponível</span>
         </div>
       </div>
+      <div id="gallery-thumbstrip" class="ts-thumbstrip hidden"></div>
 
       <!-- RIGHT: Simulation Panel -->
       <div class="ts-main-card-sim">
@@ -969,12 +996,16 @@ async function submitLead(e) {
   </div>
 </div>
 
-<!-- IMAGE MODAL -->
+<!-- IMAGE GALLERY MODAL -->
 <div id="image-modal" class="ts-image-modal-overlay hidden" onclick="closeImageModal()">
-  <div class="ts-image-modal-content" onclick="event.stopPropagation()">
+  <div class="ts-image-modal-content" onclick="event.stopPropagation()" style="max-width:90vw;max-height:85vh">
     <button type="button" class="ts-image-modal-close" onclick="closeImageModal()" aria-label="Fechar">✕</button>
     <img id="modal-image" src="" alt="Veículo" class="ts-image-modal-img">
   </div>
+  <button type="button" id="modal-prev" class="ts-gallery-modal-nav prev hidden" onclick="event.stopPropagation();galleryNav(-1)">‹</button>
+  <button type="button" id="modal-next" class="ts-gallery-modal-nav next hidden" onclick="event.stopPropagation();galleryNav(1)">›</button>
+  <div id="modal-counter" class="ts-gallery-modal-counter hidden">1 / 1</div>
+  <div id="modal-thumbstrip" class="ts-gallery-modal-thumbs hidden"></div>
 </div>
 
 <script>
@@ -1229,12 +1260,110 @@ function toggleISVDetail() {
   }
 }
 
+// ═══════════════════════════════════════
+// IMAGE GALLERY
+// ═══════════════════════════════════════
+const gallery = { images: [], index: 0, modalOpen: false };
+
+function initGallery(images) {
+  gallery.images = images || [];
+  gallery.index = 0;
+  if (gallery.images.length > 1) {
+    // Show navigation on hero
+    show('gallery-prev'); show('gallery-next'); show('gallery-counter');
+    // Build thumbnail strip
+    const strip = $('gallery-thumbstrip');
+    strip.innerHTML = gallery.images.map((img, i) =>
+      '<img class="ts-thumb' + (i === 0 ? ' active' : '') + '" src="' + img.thumb + '" onclick="galleryGoTo(' + i + ')" alt="Foto ' + (i+1) + '">'
+    ).join('');
+    show('gallery-thumbstrip');
+    updateGalleryCounter();
+  } else {
+    hide('gallery-prev'); hide('gallery-next'); hide('gallery-counter'); hide('gallery-thumbstrip');
+  }
+}
+
+function galleryNav(dir) {
+  if (gallery.images.length <= 1) return;
+  gallery.index = (gallery.index + dir + gallery.images.length) % gallery.images.length;
+  updateGalleryImage();
+}
+
+function galleryGoTo(idx) {
+  gallery.index = idx;
+  updateGalleryImage();
+}
+
+function updateGalleryImage() {
+  const img = gallery.images[gallery.index];
+  if (!img) return;
+  // Update hero
+  $('hero-image').src = img.medium;
+  // Update modal if open
+  if (gallery.modalOpen) {
+    $('modal-image').src = img.full;
+  }
+  updateGalleryCounter();
+  updateGalleryThumbs();
+}
+
+function updateGalleryCounter() {
+  const text = (gallery.index + 1) + ' / ' + gallery.images.length;
+  const heroCounter = $('gallery-counter');
+  const modalCounter = $('modal-counter');
+  if (heroCounter) heroCounter.textContent = text;
+  if (modalCounter) modalCounter.textContent = text;
+}
+
+function updateGalleryThumbs() {
+  // Hero thumbs
+  const heroThumbs = document.querySelectorAll('#gallery-thumbstrip .ts-thumb');
+  heroThumbs.forEach((t, i) => t.className = 'ts-thumb' + (i === gallery.index ? ' active' : ''));
+  // Scroll active into view
+  const activeHero = document.querySelector('#gallery-thumbstrip .ts-thumb.active');
+  if (activeHero) activeHero.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  // Modal thumbs
+  const modalThumbs = document.querySelectorAll('#modal-thumbstrip .ts-gallery-modal-thumb');
+  modalThumbs.forEach((t, i) => t.className = 'ts-gallery-modal-thumb' + (i === gallery.index ? ' active' : ''));
+  const activeModal = document.querySelector('#modal-thumbstrip .ts-gallery-modal-thumb.active');
+  if (activeModal) activeModal.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}
+
 function openImageModal() {
   if (!state.scrapedData || !state.scrapedData.imageUrl) return;
-  $('modal-image').src = state.scrapedData.imageUrl;
+  gallery.modalOpen = true;
+  if (gallery.images.length > 0) {
+    $('modal-image').src = gallery.images[gallery.index].full;
+    if (gallery.images.length > 1) {
+      show('modal-prev'); show('modal-next'); show('modal-counter');
+      // Build modal thumbnails
+      const strip = $('modal-thumbstrip');
+      strip.innerHTML = gallery.images.map((img, i) =>
+        '<img class="ts-gallery-modal-thumb' + (i === gallery.index ? ' active' : '') + '" src="' + img.thumb + '" onclick="event.stopPropagation();galleryGoTo(' + i + ')" alt="Foto ' + (i+1) + '">'
+      ).join('');
+      show('modal-thumbstrip');
+      updateGalleryCounter();
+    }
+  } else {
+    $('modal-image').src = state.scrapedData.imageUrl;
+  }
   show('image-modal');
+  document.body.style.overflow = 'hidden';
 }
-function closeImageModal() { hide('image-modal'); }
+
+function closeImageModal() {
+  hide('image-modal');
+  gallery.modalOpen = false;
+  document.body.style.overflow = '';
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', function(e) {
+  if (gallery.images.length <= 1) return;
+  if (e.key === 'ArrowLeft') { galleryNav(-1); e.preventDefault(); }
+  if (e.key === 'ArrowRight') { galleryNav(1); e.preventDefault(); }
+  if (e.key === 'Escape' && gallery.modalOpen) { closeImageModal(); e.preventDefault(); }
+});
 
 // ═══════════════════════════════════════
 // RENDER SIMULATION PANEL
@@ -1558,6 +1687,7 @@ async function handleImportUrl() {
     // Frontend expects: imageUrl, registrationYear, fuelType (Portuguese), displacement, etc.
     
     // Map image field
+    if (data.galleryImages) { data.galleryImages = data.galleryImages; }
     if (data.image && !data.imageUrl) {
       data.imageUrl = data.image.replace(/\\u002F/g, '/').replace(/\\u([0-9a-fA-F]{4})/g, (m, g) => String.fromCharCode(parseInt(g, 16)));
     }
@@ -1697,6 +1827,17 @@ function showImportedView() {
       this.style.display = 'none';
       show('hero-placeholder');
     };
+    // Initialize gallery if multiple images available
+    if (data.galleryImages && data.galleryImages.length > 1) {
+      // Decode gallery URLs
+      data.galleryImages = data.galleryImages.map(img => ({
+        thumb: (img.thumb || '').replace(/\\u002F/g, '/'),
+        medium: (img.medium || '').replace(/\\u002F/g, '/'),
+        full: (img.full || '').replace(/\\u002F/g, '/')
+      }));
+      initGallery(data.galleryImages);
+      $('hero-image').src = data.galleryImages[0].medium;
+    }
   } else {
     $('hero-image').style.display = 'none';
     show('hero-placeholder');
@@ -1822,7 +1963,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // TEST MODE: ?test=true loads mock data
   if (new URLSearchParams(window.location.search).get('test')) {
-    state.scrapedData={title:'Porsche Panamera 4 E-Hybrid',imageUrl:'https://img.classistatic.de/api/v1/mo-prod/images/fc/fc3b6b47-1cf4-4a8c-a94e-a2d78e26e3d6?rule=mo-1600.jpg',mileage:159000,registrationYear:2020,registrationMonth:9,displacement:3996,power:500,fuelType:'hibrido_plugin',co2:83,price:73680,gearbox:'Automatik',sellerCountry:'DE',vatDeductible:true};
+    state.scrapedData={title:'Porsche Panamera 4 E-Hybrid',imageUrl:'https://img.classistatic.de/api/v1/mo-prod/images/fc/fc3b6b47-1cf4-4a8c-a94e-a2d78e26e3d6?rule=mo-1600.jpg',galleryImages:[{thumb:'https://img.classistatic.de/api/v1/mo-prod/images/fc/fc3b6b47-1cf4-4a8c-a94e-a2d78e26e3d6?rule=mo-80w',medium:'https://img.classistatic.de/api/v1/mo-prod/images/fc/fc3b6b47-1cf4-4a8c-a94e-a2d78e26e3d6?rule=mo-1024',full:'https://img.classistatic.de/api/v1/mo-prod/images/fc/fc3b6b47-1cf4-4a8c-a94e-a2d78e26e3d6?rule=mo-1600'},{thumb:'https://img.classistatic.de/api/v1/mo-prod/images/3d/3d9ad13e-b34b-4a3b-964d-c1d6f1e7644f?rule=mo-80w',medium:'https://img.classistatic.de/api/v1/mo-prod/images/3d/3d9ad13e-b34b-4a3b-964d-c1d6f1e7644f?rule=mo-1024',full:'https://img.classistatic.de/api/v1/mo-prod/images/3d/3d9ad13e-b34b-4a3b-964d-c1d6f1e7644f?rule=mo-1600'},{thumb:'https://img.classistatic.de/api/v1/mo-prod/images/99/9980c7f4-e030-4436-95ce-6047fe968523?rule=mo-80w',medium:'https://img.classistatic.de/api/v1/mo-prod/images/99/9980c7f4-e030-4436-95ce-6047fe968523?rule=mo-1024',full:'https://img.classistatic.de/api/v1/mo-prod/images/99/9980c7f4-e030-4436-95ce-6047fe968523?rule=mo-1600'}],mileage:159000,registrationYear:2020,registrationMonth:9,displacement:3996,power:500,fuelType:'hibrido_plugin',co2:83,price:73680,gearbox:'Automatik',sellerCountry:'DE',vatDeductible:true};
     state.sourceUrl='https://suchen.mobile.de/fahrzeug/details.html?id=395857670';
     state.imported=true;state.fuelType='hibrido';state.displacement='3996';state.co2='83';
     state.purchasePrice='73680';state.vehicleAge='5.5';state.emissionStandard='WLTP';

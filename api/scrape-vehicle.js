@@ -145,6 +145,7 @@ function parseVehicleData(html, url) {
     displacement: null,
     co2: null,
     image: null,
+    galleryImages: [],
     sellerCountry: null,
     vatDeductible: null
   };
@@ -410,6 +411,27 @@ function parseVehicleData(html, url) {
     const imageMatch = html.match(/"ogImage":\s*{\s*"src":\s*"([^"]+)"/);
     if (imageMatch) {
       data.image = imageMatch[1];
+    }
+
+    // Gallery: Extract all thumbnail IDs (mo-80w) from gallery strip - they all load eagerly
+    const galleryIds = [];
+    const seenIds = new Set();
+    const thumbRegex = /https:\/\/img\.classistatic\.de\/api\/v1\/mo-prod\/images\/([a-f0-9]{2}\/[a-f0-9-]+)\?rule=mo-80w/g;
+    let thumbMatch;
+    while ((thumbMatch = thumbRegex.exec(html)) !== null) {
+      const imgId = thumbMatch[1];
+      if (!seenIds.has(imgId)) {
+        seenIds.add(imgId);
+        galleryIds.push(imgId);
+      }
+    }
+    if (galleryIds.length > 0) {
+      data.galleryImages = galleryIds.map(id => ({
+        thumb: `https://img.classistatic.de/api/v1/mo-prod/images/${id}?rule=mo-80w`,
+        medium: `https://img.classistatic.de/api/v1/mo-prod/images/${id}?rule=mo-1024`,
+        full: `https://img.classistatic.de/api/v1/mo-prod/images/${id}?rule=mo-1600`
+      }));
+      console.log(`[API] Gallery: ${data.galleryImages.length} images extracted`);
     }
 
   } catch (parseError) {
