@@ -2329,8 +2329,12 @@ async function startReservation() {
         source_page: state.referralCode ? 'referral' : 'direct'
       });
       
-      // Redirect to Stripe Checkout
-      window.location.href = data.url;
+      // Redirect to Stripe Checkout (use top-level window for iframe compatibility)
+      if (window.top !== window.self) {
+        window.top.location.href = data.url;
+      } else {
+        window.location.href = data.url;
+      }
     } else {
       throw new Error(data.error || 'Erro ao criar sessão de pagamento');
     }
@@ -2825,6 +2829,6 @@ async function submitLead(e) {
     }
 
 </script>
-<div style="text-align:center;padding:8px;opacity:0.3;font-size:10px;color:#666">v2.4</div>
+<div style="text-align:center;padding:8px;opacity:0.3;font-size:10px;color:#666">v2.5</div>
 </body>
 </html>
