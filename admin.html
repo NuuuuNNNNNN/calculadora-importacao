@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THESV - Referral Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #09090B; color: #e4e4e7; font-family: 'Inter', -apple-system, sans-serif; min-height: 100vh; }
+  
+  .header { background: linear-gradient(135deg, #18181b 0%, #09090B 100%); border-bottom: 1px solid #27272a; padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 20px; font-weight: 700; color: #C9A84C; }
+  .header .subtitle { color: #71717a; font-size: 13px; margin-top: 2px; }
+  
+  .login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-box { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 40px; width: 380px; text-align: center; }
+  .login-box h2 { color: #C9A84C; margin-bottom: 8px; }
+  .login-box p { color: #71717a; font-size: 13px; margin-bottom: 24px; }
+  .login-box input { width: 100%; padding: 12px 16px; background: #09090B; border: 1px solid #27272a; border-radius: 8px; color: #e4e4e7; font-size: 14px; margin-bottom: 16px; outline: none; }
+  .login-box input:focus { border-color: #C9A84C; }
+  .login-box button { width: 100%; padding: 12px; background: #C9A84C; color: #09090B; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
+  .login-box button:hover { background: #b8943f; }
+  
+  .dashboard { display: none; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  
+  .period-pills { display: flex; gap: 8px; margin-bottom: 24px; }
+  .period-pill { padding: 8px 16px; background: #18181b; border: 1px solid #27272a; border-radius: 20px; color: #a1a1aa; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+  .period-pill.active { background: #C9A84C; color: #09090B; border-color: #C9A84C; font-weight: 600; }
+  
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 20px; }
+  .stat-card .label { color: #71717a; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .stat-card .value { font-size: 32px; font-weight: 700; color: #e4e4e7; }
+  .stat-card .value.gold { color: #C9A84C; }
+  .stat-card .sub { color: #52525b; font-size: 12px; margin-top: 4px; }
+  
+  .chart-section { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+  .chart-section h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #C9A84C; }
+  .chart-container { height: 250px; }
+  
+  .tables-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .table-section { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 24px; overflow: hidden; }
+  .table-section h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #C9A84C; }
+  .table-section.full { grid-column: 1 / -1; }
+  
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 10px 12px; border-bottom: 1px solid #27272a; color: #71717a; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 10px 12px; border-bottom: 1px solid #27272a22; font-size: 13px; }
+  tr:hover td { background: #27272a22; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .badge-gold { background: #C9A84C22; color: #C9A84C; }
+  .badge-green { background: #22c55e22; color: #22c55e; }
+  .badge-blue { background: #3b82f622; color: #3b82f6; }
+  
+  .loading { text-align: center; padding: 60px; color: #71717a; }
+  .loading .spinner { width: 32px; height: 32px; border: 3px solid #27272a; border-top-color: #C9A84C; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-msg { color: #ef4444; text-align: center; padding: 20px; }
+  
+  @media (max-width: 768px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .tables-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-box">
+      <h2>🔒 Dashboard Admin</h2>
+      <p>The Selection — Referral Tracking</p>
+      <input type="password" id="admin-key" placeholder="Chave de acesso" onkeydown="if(event.key==='Enter')doLogin()">
+      <button onclick="doLogin()">Entrar</button>
+      <div id="login-error" class="error-msg" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="dashboard">
+    <div class="header">
+      <div>
+        <h1>📊 Referral Dashboard</h1>
+        <div class="subtitle">The Selection — Programa de Referência</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span id="last-update" style="color:#71717a;font-size:12px"></span>
+        <button onclick="loadData()" style="padding:8px 16px;background:#27272a;border:1px solid #3f3f46;border-radius:8px;color:#e4e4e7;cursor:pointer;font-size:13px">↻ Atualizar</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <!-- Period Pills -->
+      <div class="period-pills">
+        <div class="period-pill" data-period="7d" onclick="changePeriod('7d')">7 dias</div>
+        <div class="period-pill active" data-period="30d" onclick="changePeriod('30d')">30 dias</div>
+        <div class="period-pill" data-period="90d" onclick="changePeriod('90d')">90 dias</div>
+        <div class="period-pill" data-period="all" onclick="changePeriod('all')">Tudo</div>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="label">Simulações</div>
+          <div class="value" id="stat-views">—</div>
+          <div class="sub">Total de visualizações</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Partilhas</div>
+          <div class="value gold" id="stat-shares">—</div>
+          <div class="sub">Links gerados</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Visitas via Referência</div>
+          <div class="value" id="stat-ref-views">—</div>
+          <div class="sub" id="stat-conversion">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Leads</div>
+          <div class="value gold" id="stat-leads">—</div>
+          <div class="sub" id="stat-ref-leads">—</div>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div class="chart-section">
+        <h3>📈 Actividade Diária</h3>
+        <div class="chart-container">
+          <canvas id="activity-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Tables -->
+      <div class="tables-grid">
+        <div class="table-section">
+          <h3>🏆 Top Referrers</h3>
+          <table>
+            <thead><tr><th>Código</th><th>Views</th><th>Leads</th><th>Última Act.</th></tr></thead>
+            <tbody id="referrers-table"></tbody>
+          </table>
+        </div>
+        <div class="table-section">
+          <h3>🚗 Veículos Mais Partilhados</h3>
+          <table>
+            <thead><tr><th>Veículo</th><th>Preço</th><th>Partilhas</th><th>Leads</th></tr></thead>
+            <tbody id="vehicles-table"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Recent Leads -->
+      <div class="table-section full" style="margin-bottom:24px">
+        <h3>📋 Leads Recentes</h3>
+        <table>
+          <thead><tr><th>Data</th><th>Nome</th><th>Email</th><th>Telefone</th><th>Veículo</th><th>Preço</th><th>Referência</th></tr></thead>
+          <tbody id="leads-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<script>
+let adminKey = '';
+let currentPeriod = '30d';
+let activityChart = null;
+
+function doLogin() {
+  adminKey = document.getElementById('admin-key').value;
+  if (!adminKey) return;
+  document.getElementById('login-error').style.display = 'none';
+  loadData().then(ok => {
+    if (ok) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      localStorage.setItem('thesv_admin_key', adminKey);
+    }
+  });
+}
+
+// Auto-login from saved key
+const savedKey = localStorage.getItem('thesv_admin_key');
+if (savedKey) {
+  adminKey = savedKey;
+  loadData().then(ok => {
+    if (ok) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+    }
+  });
+}
+
+function changePeriod(p) {
+  currentPeriod = p;
+  document.querySelectorAll('.period-pill').forEach(el => {
+    el.classList.toggle('active', el.dataset.period === p);
+  });
+  loadData();
+}
+
+async function loadData() {
+  try {
+    const resp = await fetch(`/api/referral-track?key=${encodeURIComponent(adminKey)}&period=${currentPeriod}`);
+    if (resp.status === 401) {
+      document.getElementById('login-error').textContent = 'Chave inválida';
+      document.getElementById('login-error').style.display = 'block';
+      localStorage.removeItem('thesv_admin_key');
+      return false;
+    }
+    const data = await resp.json();
+    
+    // Update stats
+    const o = data.overview;
+    document.getElementById('stat-views').textContent = Number(o.total_views || 0).toLocaleString('pt-PT');
+    document.getElementById('stat-shares').textContent = Number(o.total_shares || 0).toLocaleString('pt-PT');
+    document.getElementById('stat-ref-views').textContent = Number(o.referral_views || 0).toLocaleString('pt-PT');
+    document.getElementById('stat-leads').textContent = Number(o.total_leads || 0).toLocaleString('pt-PT');
+    
+    const convRate = o.referral_views > 0 ? ((o.referral_leads / o.referral_views) * 100).toFixed(1) : '0';
+    document.getElementById('stat-conversion').textContent = `Taxa conversão: ${convRate}%`;
+    document.getElementById('stat-ref-leads').textContent = `${o.referral_leads || 0} via referência (${o.unique_referrers || 0} códigos)`;
+    
+    // Update chart
+    updateChart(data.dailyActivity);
+    
+    // Update tables
+    updateReferrersTable(data.topReferrers);
+    updateVehiclesTable(data.topVehicles);
+    updateLeadsTable(data.recentLeads);
+    
+    document.getElementById('last-update').textContent = 'Atualizado: ' + new Date().toLocaleTimeString('pt-PT');
+    return true;
+  } catch (err) {
+    console.error(err);
+    document.getElementById('login-error').textContent = 'Erro de ligação';
+    document.getElementById('login-error').style.display = 'block';
+    return false;
+  }
+}
+
+function updateChart(dailyData) {
+  const days = (dailyData || []).reverse();
+  const labels = days.map(d => {
+    const date = new Date(d.day);
+    return date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
+  });
+  
+  const config = {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Simulações', data: days.map(d => Number(d.views)), borderColor: '#3b82f6', backgroundColor: '#3b82f622', tension: 0.3, fill: true },
+        { label: 'Partilhas', data: days.map(d => Number(d.shares)), borderColor: '#C9A84C', backgroundColor: '#C9A84C22', tension: 0.3, fill: true },
+        { label: 'Ref. Views', data: days.map(d => Number(d.referral_views)), borderColor: '#a855f7', backgroundColor: '#a855f722', tension: 0.3, fill: true },
+        { label: 'Leads', data: days.map(d => Number(d.leads)), borderColor: '#22c55e', backgroundColor: '#22c55e22', tension: 0.3, fill: true }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#a1a1aa', font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: '#52525b', font: { size: 10 } }, grid: { color: '#27272a' } },
+        y: { ticks: { color: '#52525b', font: { size: 10 } }, grid: { color: '#27272a' }, beginAtZero: true }
+      }
+    }
+  };
+  
+  if (activityChart) activityChart.destroy();
+  activityChart = new Chart(document.getElementById('activity-chart'), config);
+}
+
+function updateReferrersTable(referrers) {
+  const tbody = document.getElementById('referrers-table');
+  if (!referrers || referrers.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="color:#52525b;text-align:center;padding:20px">Sem dados ainda</td></tr>';
+    return;
+  }
+  tbody.innerHTML = referrers.map(r => `
+    <tr>
+      <td><span class="badge badge-gold">${r.referral_code}</span></td>
+      <td>${r.views}</td>
+      <td><strong>${r.leads}</strong></td>
+      <td style="color:#71717a">${new Date(r.last_activity).toLocaleDateString('pt-PT')}</td>
+    </tr>
+  `).join('');
+}
+
+function updateVehiclesTable(vehicles) {
+  const tbody = document.getElementById('vehicles-table');
+  if (!vehicles || vehicles.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="color:#52525b;text-align:center;padding:20px">Sem dados ainda</td></tr>';
+    return;
+  }
+  tbody.innerHTML = vehicles.map(v => `
+    <tr>
+      <td>${v.vehicle_make || '—'} ${v.vehicle_model || ''} ${v.vehicle_year || ''}</td>
+      <td>${v.vehicle_price ? Number(v.vehicle_price).toLocaleString('pt-PT') + ' €' : '—'}</td>
+      <td>${v.shares}</td>
+      <td><strong>${v.leads}</strong></td>
+    </tr>
+  `).join('');
+}
+
+function updateLeadsTable(leads) {
+  const tbody = document.getElementById('leads-table');
+  if (!leads || leads.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="color:#52525b;text-align:center;padding:20px">Sem leads ainda</td></tr>';
+    return;
+  }
+  tbody.innerHTML = leads.map(l => `
+    <tr>
+      <td style="color:#71717a;white-space:nowrap">${new Date(l.created_at).toLocaleDateString('pt-PT')} ${new Date(l.created_at).toLocaleTimeString('pt-PT', {hour:'2-digit',minute:'2-digit'})}</td>
+      <td><strong>${l.lead_name || '—'}</strong></td>
+      <td>${l.lead_email || '—'}</td>
+      <td>${l.lead_phone || '—'}</td>
+      <td>${l.vehicle_make || '—'} ${l.vehicle_model || ''}</td>
+      <td>${l.vehicle_price ? Number(l.vehicle_price).toLocaleString('pt-PT') + ' €' : '—'}</td>
+      <td>${l.referral_code ? '<span class="badge badge-gold">' + l.referral_code + '</span>' : '<span class="badge badge-blue">Directo</span>'}</td>
+    </tr>
+  `).join('');
+}
+</script>
+</body>
+</html>

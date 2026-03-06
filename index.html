@@ -661,6 +661,10 @@ async function submitLead(e) {
   };
 
   try {
+    trackEvent('lead', {
+      lead_name: name, lead_email: email, lead_phone: phone,
+      source_page: state.referralCode ? 'referral' : 'direct'
+    });
     const res = await fetch('/api/lead', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1146,6 +1150,28 @@ const state = {
   isv: null,
   co2Source: null,
 };
+
+
+// ═══════════════════════════════════════
+// TRACKING: Referral analytics
+// ═══════════════════════════════════════
+function trackEvent(eventType, extra = {}) {
+  const payload = {
+    event_type: eventType,
+    referral_code: state.referralCode || null,
+    vehicle_url: state.sourceUrl || null,
+    vehicle_make: state.scrapedData?.make || null,
+    vehicle_model: state.scrapedData?.model || null,
+    vehicle_year: state.scrapedData?.year || null,
+    vehicle_price: state.purchasePrice || null,
+    ...extra
+  };
+  fetch('/api/referral-track', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).catch(() => {}); // silent fail
+}
 
 const WARRANTY_COST = { none: 0, '12': 500, '24': 900 };
 const DELIVERY_COST = { recolha: 0, domicilio: 250, express: 650 };
@@ -1942,6 +1968,8 @@ function updateSkeletonStatus(text) {
 }
 
 function showImportedView() {
+  // Track simulation view
+  trackEvent(state.referralCode ? 'referral_view' : 'view');
   hide('initial-view');
   hide('skeleton-view');
   show('imported-view');
@@ -2160,6 +2188,7 @@ function closeShareDropdown(e) {
 
 // Copy link to clipboard
 function shareViaClipboard() {
+  trackEvent('share', { source_page: 'clipboard' });
   const url = buildShareUrl();
   navigator.clipboard.writeText(url).then(function() {
     const el = $('share-copied');
@@ -2182,6 +2211,7 @@ function shareViaClipboard() {
 
 // Share via WhatsApp
 function shareViaWhatsApp() {
+  trackEvent('share', { source_page: 'whatsapp' });
   const title = state.scrapedData?.title || 'um veículo';
   const totalEl = document.querySelector('.ts-total-value');
   const total = totalEl ? totalEl.textContent : '';
@@ -2192,6 +2222,7 @@ function shareViaWhatsApp() {
 
 // Share via Email
 function shareViaEmail() {
+  trackEvent('share', { source_page: 'email' });
   const title = state.scrapedData?.title || 'Simulação de importação';
   const totalEl = document.querySelector('.ts-total-value');
   const total = totalEl ? totalEl.textContent : '';
