@@ -91,22 +91,23 @@ body::-webkit-scrollbar {
   text-overflow: ellipsis; white-space: nowrap; max-width: 600px; text-decoration: none;
 }
 .ts-main-card {
-  background: var(--ts-surface); border: 1px solid var(--ts-border);
-  border-radius: var(--ts-radius); overflow: hidden;
-  display: grid; grid-template-columns: 1fr 1fr;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
 }
 .ts-main-card-image {
   position: relative; overflow: hidden; background: var(--ts-card-bg);
-  height: 300px; align-self: center; border-radius: var(--ts-radius);
+  height: 340px; border-radius: var(--ts-radius);
+  border: 1px solid var(--ts-border);
 }
 .ts-main-card-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ts-main-card-sim {
-  padding: 14px 18px; display: flex; flex-direction: column; gap: 0;
-  align-self: center; min-height: 440px;
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 0;
+  background: var(--ts-surface); border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius); height: 340px; overflow: hidden;
 }
 @media (max-width: 900px) {
   .ts-main-card { grid-template-columns: 1fr; }
   .ts-main-card-image { min-height: 220px; max-height: 280px; }
+  .ts-main-card-sim { height: auto; min-height: 300px; }
 }
 .ts-toggle {
   display: inline-flex; border: 1px solid var(--ts-border);
@@ -125,7 +126,7 @@ body::-webkit-scrollbar {
   overflow: hidden; background: var(--ts-card-bg);
 }
 .ts-tabs button {
-  padding: 8px 12px; font-size: 12px; font-weight: 500; cursor: pointer;
+  padding: 6px 10px; font-size: 11px; font-weight: 500; cursor: pointer;
   background: transparent; border: none; color: var(--ts-text-muted);
   display: flex; align-items: center; justify-content: center; gap: 8;
   transition: all 0.2s; font-family: inherit;
@@ -135,23 +136,26 @@ body::-webkit-scrollbar {
   border-bottom: 2px solid var(--ts-gold);
 }
 .ts-tabs button:not(.active):hover { color: var(--ts-text-secondary); }
+#sim-breakdown {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px;
+}
 .ts-result-row {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 5px 0; border-bottom: 1px solid var(--ts-border-subtle);
+  padding: 4px 0; border-bottom: 1px solid var(--ts-border-subtle);
 }
 .ts-result-row:last-child { border-bottom: none; }
-.ts-result-label { font-size: 12px; color: var(--ts-text-secondary); }
-.ts-result-sublabel { font-size: 11px; color: var(--ts-text-muted); margin-top: 2px; }
-.ts-result-value { font-size: 12px; font-weight: 600; color: var(--ts-text); text-align: right; }
+.ts-result-label { font-size: 11px; color: var(--ts-text-secondary); }
+.ts-result-sublabel { font-size: 10px; color: var(--ts-text-muted); margin-top: 1px; }
+.ts-result-value { font-size: 11px; font-weight: 600; color: var(--ts-text); text-align: right; white-space: nowrap; }
 .ts-total {
   background: linear-gradient(135deg, rgba(200,169,110,0.08) 0%, rgba(200,169,110,0.04) 100%);
   border: 1px solid rgba(200,169,110,0.35);
-  border-radius: 8px; padding: 8px 14px;
+  border-radius: 8px; padding: 6px 12px;
   display: flex; justify-content: space-between; align-items: center;
   box-shadow: 0 2px 12px rgba(200,169,110,0.08);
 }
-.ts-total-label { font-size: 12px; font-weight: 500; color: var(--ts-gold); }
-.ts-total-value { font-size: 18px; font-weight: 700; color: var(--ts-gold); letter-spacing: -0.02em; }
+.ts-total-label { font-size: 11px; font-weight: 500; color: var(--ts-gold); }
+.ts-total-value { font-size: 16px; font-weight: 700; color: var(--ts-gold); letter-spacing: -0.02em; }
 .ts-spec-grid {
   display: grid; grid-template-columns: repeat(4, 1fr);
   gap: 1px; background: var(--ts-border); border-radius: var(--ts-radius); overflow: hidden;
@@ -748,7 +752,7 @@ async function submitLeadFromReserve() {
         </div>
 
         <!-- Simulation content (shown after calculation) -->
-        <div id="sim-results" class="hidden" style="flex:1;display:flex;flex-direction:column;justify-content:space-between">
+        <div id="sim-results" class="hidden" style="flex:1;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden">
           <div id="sim-breakdown"></div>
           <div style="margin-top:4px" id="sim-total-area"></div>
         </div>
