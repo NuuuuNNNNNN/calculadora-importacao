@@ -936,7 +936,9 @@ function renderSpecs(data) {
       : String(data.registrationYear);
     html += `<div class="ts-spec-cell"><div class="ts-spec-label">Data 1º Registo</div><div class="ts-spec-value">${regDate}</div></div>`;
   }
-  if (data.displacement) {
+  if (data.fuelType === 'eletrico') {
+    html += `<div class="ts-spec-cell"><div class="ts-spec-label">Cilindrada</div><div class="ts-spec-value" style="color:#22c55e">N/A (Eléctrico)</div></div>`;
+  } else if (data.displacement) {
     html += `<div class="ts-spec-cell"><div class="ts-spec-label">Cilindrada</div><div class="ts-spec-value">${Number(data.displacement).toLocaleString('pt-PT')} ccm</div></div>`;
   }
   if (data.power) {
