@@ -135,6 +135,7 @@ body::-webkit-scrollbar {
   .ts-main-card { grid-template-columns: 1fr; }
   .ts-main-card-image { min-height: 220px; max-height: 280px; }
   .ts-main-card-sim { height: auto; min-height: 300px; }
+  .ts-trust-grid { grid-template-columns: 1fr !important; }
 }
 .ts-toggle {
   display: inline-flex; border: 1px solid var(--ts-border);
@@ -545,10 +546,9 @@ async function submitLeadFromReserve() {
       <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:32px">
         <img src="/logo-thesv.png" alt="The Selection" style="height:32px;opacity:0.75">
       </div>
-      <h1 class="ts-heading" style="font-size:36px;margin-bottom:16px">Descubra o preço final do veículo que quer importar</h1>
+      <h1 class="ts-heading" style="font-size:36px;margin-bottom:16px">Saiba o custo real de importar o seu próximo carro para Portugal</h1>
       <p style="font-size:15px;color:var(--ts-text-secondary);line-height:1.7;max-width:520px;margin:0 auto">
-        Com o nosso Simulador, pode saber de imediato o valor chave na mão do veículo
-        que encontrou no <strong style="color:var(--ts-text)">Mobile.de</strong> ou <strong style="color:var(--ts-text)">AutoScout24</strong>.
+        Cole o link do anúncio do <strong style="color:var(--ts-text)">Mobile.de</strong> ou <strong style="color:var(--ts-text)">AutoScout24</strong> e obtenha uma estimativa imediata do valor em Portugal, incluindo impostos e os principais custos de importação.
       </p>
     </div>
         <!-- REFERRAL BANNER (INITIAL) -->
@@ -563,14 +563,15 @@ async function submitLeadFromReserve() {
       <div style="display:flex;gap:10px">
         <div style="position:relative;flex:1">
           <svg style="position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--ts-text-muted)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-          <input type="url" id="url-input" class="ts-input" style="padding-left:44px" placeholder="Cole o link do anúncio aqui..." autocomplete="off">
+          <input type="url" id="url-input" class="ts-input" style="padding-left:44px" placeholder="Cole aqui o link do anúncio do Mobile.de ou AutoScout24" autocomplete="off">
         </div>
         <button type="button" id="btn-analyze" class="ts-btn ts-btn-gold" style="min-width:160px" disabled>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-          Analisar
+          Analisar anúncio
         </button>
       </div>
-      <p class="ts-sources">AUTOSCOUT24  ·  MOBILE.DE</p>
+      <p class="ts-sources" style="font-size:12px;text-transform:none;letter-spacing:0.02em">Compatível com anúncios do Mobile.de e AutoScout24</p>
+      <p style="font-size:12px;color:#71717A;font-family:Inter,sans-serif;margin-top:4px">Estimativa rápida para ajudar a decidir antes de avançar com a importação.</p>
     </div>
     <div id="scrape-error" class="ts-card-alt ts-fade-in hidden" style="padding:14px 20px;display:flex;align-items:center;gap:12px;border-color:rgba(251,191,36,0.2);max-width:600px;width:100%">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ts-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
@@ -1991,7 +1992,7 @@ function showScrapeError(msg) {
 function resetAnalyzeBtn() {
   const btn = $('btn-analyze');
   btn.disabled = !$('url-input').value.trim();
-  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg> Analisar';
+  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg> Analisar anúncio';
 }
 
 
@@ -2864,6 +2865,64 @@ function generatePDF() {
     </div>
   </div>
 </div>
+
+<!-- TRUST SECTION -->
+<section style="max-width:960px;margin:0 auto;padding:64px 24px 48px">
+  <h2 style="font-family:Inter,sans-serif;font-size:24px;font-weight:600;color:var(--ts-text);text-align:center;margin-bottom:40px">Importar um carro começa por perceber o custo real</h2>
+  <div class="ts-trust-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+    <div style="text-align:center;padding:24px">
+      <div style="width:48px;height:48px;border-radius:12px;background:rgba(200,169,110,0.08);display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ts-gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <h3 style="font-family:Inter,sans-serif;font-size:15px;font-weight:600;color:var(--ts-text);margin-bottom:8px">Estimativa imediata</h3>
+      <p style="font-family:Inter,sans-serif;font-size:13px;color:#71717A;line-height:1.6;margin:0">Veja rapidamente quanto poderá custar trazer o veículo para Portugal.</p>
+    </div>
+    <div style="text-align:center;padding:24px">
+      <div style="width:48px;height:48px;border-radius:12px;background:rgba(200,169,110,0.08);display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ts-gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      </div>
+      <h3 style="font-family:Inter,sans-serif;font-size:15px;font-weight:600;color:var(--ts-text);margin-bottom:8px">Mais clareza na decisão</h3>
+      <p style="font-family:Inter,sans-serif;font-size:13px;color:#71717A;line-height:1.6;margin:0">Perceba se a oportunidade compensa antes de avançar para a compra.</p>
+    </div>
+    <div style="text-align:center;padding:24px">
+      <div style="width:48px;height:48px;border-radius:12px;background:rgba(200,169,110,0.08);display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ts-gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <h3 style="font-family:Inter,sans-serif;font-size:15px;font-weight:600;color:var(--ts-text);margin-bottom:8px">Base para avançar com segurança</h3>
+      <p style="font-family:Inter,sans-serif;font-size:13px;color:#71717A;line-height:1.6;margin:0">Use a simulação como referência para tomar uma decisão informada.</p>
+    </div>
+  </div>
+</section>
+
+<!-- EXPLANATORY SECTION -->
+<section style="max-width:640px;margin:0 auto;padding:48px 24px;text-align:center">
+  <h2 style="font-family:Inter,sans-serif;font-size:22px;font-weight:600;color:var(--ts-text);margin-bottom:20px">Uma forma simples de avaliar oportunidades no estrangeiro</h2>
+  <p style="font-family:Inter,sans-serif;font-size:14px;color:#A1A1AA;line-height:1.8;margin:0">Encontrar um carro interessante no estrangeiro é fácil.<br>Perceber quanto ele custará realmente em Portugal já é outra história.</p>
+  <p style="font-family:Inter,sans-serif;font-size:14px;color:#A1A1AA;line-height:1.8;margin-top:16px">Com o simulador da The Selection, pode obter rapidamente uma estimativa do custo total de importação, incluindo impostos e despesas principais, ajudando-o a perceber se a oportunidade faz sentido.</p>
+</section>
+
+<!-- SERVICE SECTION -->
+<section style="max-width:640px;margin:0 auto;padding:48px 24px;text-align:center;border-top:1px solid rgba(200,169,110,0.08)">
+  <h2 style="font-family:Inter,sans-serif;font-size:22px;font-weight:600;color:var(--ts-text);margin-bottom:20px">Se quiser, tratamos do processo completo</h2>
+  <p style="font-family:Inter,sans-serif;font-size:14px;color:#A1A1AA;line-height:1.8;margin:0">Se o veículo que encontrou fizer sentido, a The Selection pode acompanhar todo o processo de importação.</p>
+  <p style="font-family:Inter,sans-serif;font-size:14px;color:#A1A1AA;line-height:1.8;margin-top:16px">Desde a análise do veículo e negociação com o vendedor até ao transporte, legalização e entrega em Portugal.</p>
+  <p style="font-family:Inter,sans-serif;font-size:14px;color:#A1A1AA;line-height:1.8;margin-top:16px">O objetivo é tornar a importação mais simples, transparente e segura.</p>
+  <a href="https://wa.me/351936983876?text=Ol%C3%A1%2C%20gostava%20de%20saber%20mais%20sobre%20o%20vosso%20servi%C3%A7o%20de%20importa%C3%A7%C3%A3o." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;margin-top:28px;padding:12px 28px;background:rgba(200,169,110,0.1);border:1px solid rgba(200,169,110,0.2);border-radius:10px;color:var(--ts-gold);font-size:14px;font-weight:500;text-decoration:none;font-family:Inter,sans-serif;transition:all 0.2s" onmouseover="this.style.background='rgba(200,169,110,0.18)'" onmouseout="this.style.background='rgba(200,169,110,0.1)'">
+    <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.553 4.12 1.52 5.855L.058 23.708l5.998-1.425A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.82c-1.935 0-3.73-.527-5.285-1.442l-.38-.224-3.558.846.893-3.458-.25-.396A9.778 9.778 0 012.18 12c0-5.422 4.398-9.82 9.82-9.82 5.422 0 9.82 4.398 9.82 9.82 0 5.422-4.398 9.82-9.82 9.82z"/></svg>
+    Pedir ajuda com a importação
+  </a>
+</section>
+
+<!-- FINAL CONFIDENCE SECTION -->
+<section style="max-width:640px;margin:0 auto;padding:48px 24px;text-align:center;border-top:1px solid rgba(200,169,110,0.08)">
+  <h2 style="font-family:Inter,sans-serif;font-size:22px;font-weight:600;color:var(--ts-text);margin-bottom:20px">Importar com mais clareza e menos surpresas</h2>
+  <p style="font-family:Inter,sans-serif;font-size:14px;color:#A1A1AA;line-height:1.8;margin:0">O simulador foi criado para ajudar quem está a procurar carro no estrangeiro a perceber rapidamente o impacto dos impostos e custos de importação em Portugal.</p>
+  <p style="font-family:Inter,sans-serif;font-size:14px;color:#A1A1AA;line-height:1.8;margin-top:16px">Assim pode tomar decisões com mais informação e evitar surpresas no processo.</p>
+  <a href="https://wa.me/351936983876?text=Ol%C3%A1%2C%20gostava%20de%20saber%20mais%20sobre%20importa%C3%A7%C3%A3o." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;margin-top:28px;padding:12px 28px;background:var(--ts-gold);border:none;border-radius:10px;color:#09090B;font-size:14px;font-weight:600;text-decoration:none;font-family:Inter,sans-serif;transition:all 0.2s" onmouseover="this.style.background='#D4B97E'" onmouseout="this.style.background='#C8A96E'">
+    <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.553 4.12 1.52 5.855L.058 23.708l5.998-1.425A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.82c-1.935 0-3.73-.527-5.285-1.442l-.38-.224-3.558.846.893-3.458-.25-.396A9.778 9.778 0 012.18 12c0-5.422 4.398-9.82 9.82-9.82 5.422 0 9.82 4.398 9.82 9.82 0 5.422-4.398 9.82-9.82 9.82z"/></svg>
+    Falar connosco no WhatsApp
+  </a>
+</section>
 
 <!-- FOOTER -->
 <footer style="margin-top:48px;border-top:1px solid rgba(200,169,110,0.08);padding:24px 24px 16px">
