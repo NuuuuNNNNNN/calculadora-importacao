@@ -451,7 +451,7 @@ input[type="range"].ts-range::-moz-range-thumb {
 .ts-share-container { position: relative; flex: 1; min-width: 150px; }
 .ts-share-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 16px; font-size: 12px; cursor: pointer; background: transparent; border: 1px solid var(--ts-border); color: var(--ts-text); border-radius: 8px; font-family: Inter,sans-serif; font-weight: 500; transition: all 0.2s; }
 .ts-share-btn:hover { border-color: var(--ts-accent); color: var(--ts-accent); }
-.ts-share-dropdown { position: absolute; bottom: calc(100% + 6px); left: 0; right: 0; background: var(--ts-surface); border: 1px solid var(--ts-border); border-radius: 10px; padding: 6px; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.4); display: none; }
+.ts-share-dropdown { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--ts-surface); border: 1px solid var(--ts-border); border-radius: 10px; padding: 6px; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.4); display: none; }
 .ts-share-dropdown.active { display: block; }
 .ts-share-option { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; color: var(--ts-text); transition: background 0.15s; border: none; background: none; width: 100%; font-family: Inter,sans-serif; }
 .ts-share-option:hover { background: var(--ts-surface-alt); }
@@ -1064,7 +1064,7 @@ async function submitLead(e) {
 
     <!-- MARKET COMPARISON -->
     <!-- MARKET + SHARE — Two Column -->
-    <div id="savings-section" class="ts-card hidden" style="padding:0;overflow:hidden">
+    <div id="savings-section" class="ts-card hidden" style="padding:0;overflow:visible">
       <div style="display:grid;grid-template-columns:1fr 1fr;min-height:80px">
         <!-- LEFT: Market Comparison -->
         <div style="padding:14px 16px;border-right:1px solid var(--ts-border)">
