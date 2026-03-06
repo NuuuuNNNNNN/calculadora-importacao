@@ -2137,6 +2137,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.key === 'Escape') closeImageModal();
   });
 
+  // Always check for referral banner FIRST (before any rendering)
+  var refParam = new URLSearchParams(window.location.search).get('ref');
+  if (refParam) {
+    state.referralCode = refParam;
+    var rb1 = $('referral-banner'); if (rb1) rb1.classList.remove('hidden');
+    var rb2 = $('referral-banner-initial'); if (rb2) rb2.classList.remove('hidden');
+  }
+
   // TEST MODE: ?test=true loads mock data
   if (new URLSearchParams(window.location.search).get('test')) {
     state.scrapedData={title:'Porsche Panamera 4 E-Hybrid',imageUrl:'https://img.classistatic.de/api/v1/mo-prod/images/fc/fc3b6b47-1cf4-4a8c-a94e-a2d78e26e3d6?rule=mo-1600.jpg',galleryImages:[{thumb:'https://img.classistatic.de/api/v1/mo-prod/images/fc/fc3b6b47-1cf4-4a8c-a94e-a2d78e26e3d6?rule=mo-80w',medium:'https://img.classistatic.de/api/v1/mo-prod/images/fc/fc3b6b47-1cf4-4a8c-a94e-a2d78e26e3d6?rule=mo-1024',full:'https://img.classistatic.de/api/v1/mo-prod/images/fc/fc3b6b47-1cf4-4a8c-a94e-a2d78e26e3d6?rule=mo-1600'},{thumb:'https://img.classistatic.de/api/v1/mo-prod/images/3d/3d9ad13e-b34b-4a3b-964d-c1d6f1e7644f?rule=mo-80w',medium:'https://img.classistatic.de/api/v1/mo-prod/images/3d/3d9ad13e-b34b-4a3b-964d-c1d6f1e7644f?rule=mo-1024',full:'https://img.classistatic.de/api/v1/mo-prod/images/3d/3d9ad13e-b34b-4a3b-964d-c1d6f1e7644f?rule=mo-1600'},{thumb:'https://img.classistatic.de/api/v1/mo-prod/images/99/9980c7f4-e030-4436-95ce-6047fe968523?rule=mo-80w',medium:'https://img.classistatic.de/api/v1/mo-prod/images/99/9980c7f4-e030-4436-95ce-6047fe968523?rule=mo-1024',full:'https://img.classistatic.de/api/v1/mo-prod/images/99/9980c7f4-e030-4436-95ce-6047fe968523?rule=mo-1600'}],mileage:159000,registrationYear:2020,registrationMonth:9,displacement:3996,power:500,fuelType:'hibrido_plugin',co2:83,price:73680,gearbox:'Automatik',sellerCountry:'DE',vatDeductible:true};
@@ -2147,13 +2155,7 @@ document.addEventListener('DOMContentLoaded', function() {
   } else {
     checkReferral();
   }
-  // Always check for referral banner (even in test mode)
-  var refParam = new URLSearchParams(window.location.search).get('ref');
-  if (refParam) {
-    state.referralCode = refParam;
-    var rb1 = $('referral-banner'); if (rb1) rb1.classList.remove('hidden');
-    var rb2 = $('referral-banner-initial'); if (rb2) rb2.classList.remove('hidden');
-  }
+
 });
 
 
