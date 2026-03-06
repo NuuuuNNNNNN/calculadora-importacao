@@ -802,66 +802,64 @@ async function submitLeadFromReserve() {
       <span style="font-size:11px;color:var(--ts-text-muted)">g/km</span>
     </div>
 
-    <!-- GARANTIA Section -->
-    <div class="ts-section">
-      <div class="ts-section-header">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ts-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
-        Garantia
-        <div class="ts-info-icon" title="Garantia mecânica para proteção do seu investimento">i</div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px">
-      <div class="ts-radio-card selected" onclick="setWarranty('none')" id="warranty-none" style="flex-direction:column;align-items:flex-start;gap:4px">
-        <div style="display:flex;align-items:center;gap:6px"><div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div><div class="ts-radio-title">Sem garantia</div></div>
-      </div>
-      <div class="ts-radio-card" onclick="setWarranty('12')" id="warranty-12" style="flex-direction:column;align-items:flex-start;gap:4px">
-        <div style="display:flex;align-items:center;gap:6px"><div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div><div class="ts-radio-title" style="font-size:11px">The Selection</div></div>
-        <div style="display:flex;justify-content:space-between;width:100%"><div class="ts-radio-desc">12 Meses</div><span class="ts-radio-price">500 €</span></div>
-      </div>
-      <div class="ts-radio-card" onclick="setWarranty('24')" id="warranty-24" style="flex-direction:column;align-items:flex-start;gap:4px">
-        <div style="display:flex;align-items:center;gap:6px"><div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div><div class="ts-radio-title">Premium</div></div>
-        <div style="display:flex;justify-content:space-between;width:100%"><div class="ts-radio-desc">24 Meses</div><span class="ts-radio-price">900 €</span></div>
-      </div>
-      </div>
-    </div>
-
-    <!-- ENTREGA Section -->
-    <div class="ts-section">
-      <div class="ts-section-header">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ts-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>
-        Entrega da Viatura
-        <div class="ts-info-icon" title="Opções de entrega disponíveis">i</div>
-      </div>
-      <div style="background:var(--ts-surface);border:1px solid var(--ts-border);border-radius:var(--ts-radius-sm);overflow:hidden">
-        <div style="padding:6px 12px;border-bottom:1px solid var(--ts-border)">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-            <div style="width:8px;height:8px;border-radius:50%;background:var(--ts-green)"></div>
-            <span style="font-size:13px;font-weight:600">Standard</span>
-            <span style="font-size:11px;color:var(--ts-text-muted)">Em 4-6 semanas (estimativa)</span>
+    <!-- GARANTIA + ENTREGA Side by Side -->
+    <div class="ts-section" style="padding:0">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+        <!-- Garantia -->
+        <div style="padding:16px;border-right:1px solid var(--ts-border)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ts-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
+            <span style="font-size:10px;font-weight:600;letter-spacing:0.1em;color:var(--ts-gold)">GARANTIA</span>
           </div>
-          <div style="display:flex;flex-direction:column;gap:4px;padding-left:8px">
-            <div class="ts-radio-card selected" onclick="setDelivery('recolha')" id="delivery-recolha" style="padding:12px 16px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div class="ts-radio-card selected" onclick="setWarranty('none')" id="warranty-none" style="padding:10px 12px">
               <div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div>
-              <div class="ts-radio-content"><div class="ts-radio-title" style="font-size:12px">Entrega no Showroom</div></div>
-              <span style="font-size:12px;font-weight:600;color:var(--ts-green)">Incluído</span>
+              <div class="ts-radio-title" style="font-size:12px">Sem garantia</div>
             </div>
-            <div class="ts-radio-card" onclick="setDelivery('domicilio')" id="delivery-domicilio" style="padding:12px 16px">
+            <div class="ts-radio-card" onclick="setWarranty('12')" id="warranty-12" style="padding:10px 12px">
               <div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div>
-              <div class="ts-radio-content"><div class="ts-radio-title" style="font-size:12px">Entrega ao Domicílio</div></div>
-              <span class="ts-radio-price" style="font-size:12px">+ 250 €</span>
+              <div style="flex:1;display:flex;justify-content:space-between;align-items:center">
+                <div><div class="ts-radio-title" style="font-size:12px">12 Meses</div><div class="ts-radio-desc" style="font-size:10px">The Selection</div></div>
+                <span class="ts-radio-price" style="font-size:11px">500 €</span>
+              </div>
+            </div>
+            <div class="ts-radio-card" onclick="setWarranty('24')" id="warranty-24" style="padding:10px 12px">
+              <div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div>
+              <div style="flex:1;display:flex;justify-content:space-between;align-items:center">
+                <div><div class="ts-radio-title" style="font-size:12px">24 Meses</div><div class="ts-radio-desc" style="font-size:10px">Premium</div></div>
+                <span class="ts-radio-price" style="font-size:11px">900 €</span>
+              </div>
             </div>
           </div>
         </div>
-        <div style="padding:6px 12px">
-          <div class="ts-radio-card" onclick="setDelivery('express')" id="delivery-express" style="padding:12px 16px">
-            <div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div>
-            <div class="ts-radio-content">
-              <div class="ts-radio-title" style="font-size:12px">
-                Express
-                <span style="margin-left:6px;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;background:var(--ts-warning);color:#0B0B0F;letter-spacing:0.05em">RÁPIDO</span>
+        <!-- Entrega -->
+        <div style="padding:16px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ts-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>
+            <span style="font-size:10px;font-weight:600;letter-spacing:0.1em;color:var(--ts-gold)">ENTREGA</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div class="ts-radio-card selected" onclick="setDelivery('recolha')" id="delivery-recolha" style="padding:10px 12px">
+              <div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div>
+              <div style="flex:1;display:flex;justify-content:space-between;align-items:center">
+                <div class="ts-radio-title" style="font-size:12px">Showroom</div>
+                <span style="font-size:11px;font-weight:600;color:var(--ts-green)">Incluído</span>
               </div>
-              <div class="ts-radio-desc">Em 2 semanas · Entrega ao domicílio incluída</div>
             </div>
-            <span class="ts-radio-price" style="font-size:12px">+ 650 €</span>
+            <div class="ts-radio-card" onclick="setDelivery('domicilio')" id="delivery-domicilio" style="padding:10px 12px">
+              <div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div>
+              <div style="flex:1;display:flex;justify-content:space-between;align-items:center">
+                <div class="ts-radio-title" style="font-size:12px">Domicílio</div>
+                <span class="ts-radio-price" style="font-size:11px">+ 250 €</span>
+              </div>
+            </div>
+            <div class="ts-radio-card" onclick="setDelivery('express')" id="delivery-express" style="padding:10px 12px">
+              <div class="ts-radio-dot"><div class="ts-radio-dot-inner"></div></div>
+              <div style="flex:1;display:flex;justify-content:space-between;align-items:center">
+                <div><div class="ts-radio-title" style="font-size:12px">Express <span style="margin-left:4px;padding:1px 6px;border-radius:3px;font-size:8px;font-weight:700;background:var(--ts-warning);color:#0B0B0F;letter-spacing:0.05em">RÁPIDO</span></div><div class="ts-radio-desc" style="font-size:10px">2 semanas · Domicílio incluído</div></div>
+                <span class="ts-radio-price" style="font-size:11px">+ 650 €</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
