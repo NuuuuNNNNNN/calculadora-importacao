@@ -276,9 +276,6 @@ body::-webkit-scrollbar {
 .icon { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
 
 /* === PHASE 2 === */
-.ts-savings-input { width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--ts-border);background:var(--ts-surface-alt);color:var(--ts-text);font-size:13px;font-family:Inter,sans-serif;outline:none;transition:border-color 0.2s;box-sizing:border-box; }
-.ts-savings-input:focus { border-color:var(--ts-accent); }
-.ts-savings-input::placeholder { color:var(--ts-text-muted); }
 .ts-savings-result { display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(76,175,80,0.08);border-radius:8px;border:1px solid rgba(76,175,80,0.2); }
 .ts-savings-amount { font-size:16px;font-weight:700;color:var(--ts-green); }
 .ts-savings-pct { font-size:11px;color:var(--ts-green);opacity:0.8; }
@@ -348,29 +345,6 @@ body::-webkit-scrollbar {
 // ═══════════════════════════════════════
 // PHASE 2: Savings Comparison
 // ═══════════════════════════════════════
-function updateSavings() {
-  const input = $('pt-price-input');
-  const result = $('savings-result');
-  if (!input || !result) return;
-  const ptPrice = parseInt(input.value.replace(/[^\d]/g, ''));
-  if (!ptPrice || ptPrice <= 0) { result.style.display = 'none'; return; }
-  const totalEl = document.querySelector('.ts-total-value');
-  if (!totalEl) return;
-  const ourTotal = parseInt(totalEl.textContent.replace(/[^\d]/g, ''));
-  if (!ourTotal) return;
-  const savings = ptPrice - ourTotal;
-  const pct = Math.round((savings / ptPrice) * 100);
-  if (savings > 0) {
-    result.style.display = 'block';
-    result.innerHTML = `<div class="ts-savings-result"><div><div class="ts-savings-amount">Poupa ${fmtPrice(savings)}</div><div class="ts-savings-pct">-${pct}% vs preço em Portugal</div></div></div>`;
-  } else if (savings < -500) {
-    result.style.display = 'block';
-    result.innerHTML = `<div style="padding:8px 12px;background:rgba(244,67,54,0.08);border-radius:8px;border:1px solid rgba(244,67,54,0.15)"><span style="font-size:11px;color:#ef5350">Importação mais cara (${fmtPrice(Math.abs(savings))} de diferença)</span></div>`;
-  } else {
-    result.style.display = 'block';
-    result.innerHTML = `<div style="padding:8px 12px;background:rgba(255,193,7,0.08);border-radius:8px;border:1px solid rgba(255,193,7,0.15)"><span style="font-size:11px;color:#ffc107">Preço semelhante ao de Portugal</span></div>`;
-  }
-}
 
 // ═══════════════════════════════════════
 // PHASE 2: PDF Export
@@ -520,9 +494,8 @@ function generatePDF() {
   y += 24;
 
   // ─── Savings (if entered) ───
-  const ptInput = $('pt-price-input');
-  if (ptInput && ptInput.value) {
-    const ptP = parseInt(ptInput.value.replace(/[^\d]/g, ''));
+  if (state.marketPrice) {
+    const ptP = state.marketPrice;
     if (ptP > 0) {
       const sv = ptP - finalTotal;
       if (sv > 0) {
@@ -951,11 +924,6 @@ async function submitLead(e) {
         </div>
         <div id="market-result" style="display:none"></div>
       </div>
-      <!-- Manual override -->
-      <div id="market-manual" style="margin-top:8px">
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="text" id="pt-price-input" class="ts-savings-input" placeholder="Ou insira preço manualmente..." oninput="updateSavings()" style="font-size:11px" />
-        </div>
       </div>
       <div id="savings-result" style="display:none;margin-top:8px"></div>
     </div>
@@ -1385,10 +1353,8 @@ function renderSimulation() {
   show('sim-results');
   hide('sim-waiting');
 
-  // Phase 2 sections
   show('savings-section');
   show('lead-section');
-  updateSavings();
   fetchMarketPrice();
 
   // ISV detail
@@ -1886,29 +1852,6 @@ function openWhatsApp() {
 // ═══════════════════════════════════════
 // PHASE 2: Savings Comparison
 // ═══════════════════════════════════════
-function updateSavings() {
-  const input = $('pt-price-input');
-  const result = $('savings-result');
-  if (!input || !result) return;
-  const ptPrice = parseInt(input.value.replace(/[^\d]/g, ''));
-  if (!ptPrice || ptPrice <= 0) { result.style.display = 'none'; return; }
-  const totalEl = document.querySelector('.ts-total-value');
-  if (!totalEl) return;
-  const ourTotal = parseInt(totalEl.textContent.replace(/[^\d]/g, ''));
-  if (!ourTotal) return;
-  const savings = ptPrice - ourTotal;
-  const pct = Math.round((savings / ptPrice) * 100);
-  if (savings > 0) {
-    result.style.display = 'block';
-    result.innerHTML = `<div class="ts-savings-result"><div><div class="ts-savings-amount">Poupa ${fmtPrice(savings)}</div><div class="ts-savings-pct">-${pct}% vs preço em Portugal</div></div></div>`;
-  } else if (savings < -500) {
-    result.style.display = 'block';
-    result.innerHTML = `<div style="padding:8px 12px;background:rgba(244,67,54,0.08);border-radius:8px;border:1px solid rgba(244,67,54,0.15)"><span style="font-size:11px;color:#ef5350">Importação mais cara (${fmtPrice(Math.abs(savings))} de diferença)</span></div>`;
-  } else {
-    result.style.display = 'block';
-    result.innerHTML = `<div style="padding:8px 12px;background:rgba(255,193,7,0.08);border-radius:8px;border:1px solid rgba(255,193,7,0.15)"><span style="font-size:11px;color:#ffc107">Preço semelhante ao de Portugal</span></div>`;
-  }
-}
 
 // ═══════════════════════════════════════
 // PHASE 2: PDF Export
@@ -2058,9 +2001,8 @@ function generatePDF() {
   y += 24;
 
   // ─── Savings (if entered) ───
-  const ptInput = $('pt-price-input');
-  if (ptInput && ptInput.value) {
-    const ptP = parseInt(ptInput.value.replace(/[^\d]/g, ''));
+  if (state.marketPrice) {
+    const ptP = state.marketPrice;
     if (ptP > 0) {
       const sv = ptP - finalTotal;
       if (sv > 0) {
@@ -2222,11 +2164,6 @@ async function submitLead(e) {
           </div>`;
         resultDiv.style.display = 'block';
         
-        // Pre-fill the manual input with market price
-        const manualInput = document.getElementById('pt-price-input');
-        if (manualInput && !manualInput.value) {
-          manualInput.value = marketMedian.toLocaleString('pt-PT');
-          manualInput.placeholder = 'Preço mediano auto-preenchido';
         }
         
         // Store for PDF
