@@ -550,6 +550,8 @@ function generatePDF() {
   }
   rows.push(['ISV', isv.isvFinal === 0 && state.fuelType === 'eletrico' ? 'Isento' : fmtPrice(isv.isvFinal), state.fuelType === 'eletrico']);
   rows.push(['Serviço The Selection', fmtPrice(importCost), false]);
+  const referralDiscount = state.referralCode ? Math.round(importCost * 0.05) : 0;
+  if (referralDiscount > 0) rows.push(['Desc. Referência (5%)', '-' + fmtPrice(referralDiscount), true]);
   if (warrantyCost > 0) rows.push(['Garantia ' + state.warranty + ' Meses', fmtPrice(warrantyCost), false]);
   const dlbl = { recolha:'Entrega no Showroom', domicilio:'Entrega ao Domicílio', express:'Entrega Express' };
   rows.push([dlbl[state.delivery] || 'Entrega', state.delivery === 'recolha' ? 'Incluído' : fmtPrice(deliveryCost), state.delivery === 'recolha']);
@@ -575,9 +577,9 @@ function generatePDF() {
   y += 3;
   let grandTotal;
   if (isEmpresa && state.vatDeductible) {
-    grandTotal = vehicleNetPrice + ptVatOnVehicle + isv.isvFinal + importCost + warrantyCost + deliveryCost;
+    grandTotal = vehicleNetPrice + ptVatOnVehicle + isv.isvFinal + importCost + warrantyCost + deliveryCost - referralDiscount;
   } else {
-    grandTotal = price + isv.isvFinal + importCost + warrantyCost + deliveryCost;
+    grandTotal = price + isv.isvFinal + importCost + warrantyCost + deliveryCost - referralDiscount;
   }
   const finalTotal = grandTotal - ivaRecovery;
 
@@ -704,7 +706,7 @@ async function submitLead(e) {
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ts-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
       <div class="ts-ref-text">
         <strong>Simulação partilhada por um amigo!</strong><br>
-        Ao importar através desta referência, ambos beneficiam de um <strong>desconto exclusivo</strong> no serviço de importação.
+        Ao importar através desta referência, ambos beneficiam de <strong>5% de desconto</strong> no serviço de importação The Selection.
       </div>
     </div>
     <div style="width:100%;max-width:600px;display:flex;flex-direction:column;gap:14px">
@@ -848,7 +850,7 @@ async function submitLead(e) {
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ts-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
       <div class="ts-ref-text">
         <strong>Simulação partilhada por um amigo!</strong><br>
-        Ao importar através desta referência, ambos beneficiam de um <strong>desconto exclusivo</strong> no serviço de importação.
+        Ao importar através desta referência, ambos beneficiam de <strong>5% de desconto</strong> no serviço de importação The Selection.
       </div>
     </div>
 
@@ -1531,9 +1533,12 @@ function renderSimulation() {
     ivaRecovery = Math.round((importCost + warrantyCost + deliveryCost) * PT_VAT / (1 + PT_VAT));
   }
 
+  // Referral discount: 5% off import cost for both parties
+  const referralDiscount = state.referralCode ? Math.round(importCost * 0.05) : 0;
+
   const grandTotal = isEmpresa && state.vatDeductible
-    ? vehicleNetPrice + ptVatOnVehicle + isv.isvFinal + importCost + warrantyCost + deliveryCost
-    : price + isv.isvFinal + importCost + warrantyCost + deliveryCost;
+    ? vehicleNetPrice + ptVatOnVehicle + isv.isvFinal + importCost + warrantyCost + deliveryCost - referralDiscount
+    : price + isv.isvFinal + importCost + warrantyCost + deliveryCost - referralDiscount;
   const finalTotal = grandTotal - ivaRecovery;
 
   // Breakdown
@@ -1554,6 +1559,9 @@ function renderSimulation() {
     html += `<div class="ts-result-sublabel">Inclui IVA de ${fmtPrice(svcVat)}</div>`;
   }
   html += `</div><span class="ts-result-value">${fmtPrice(importCost)}</span></div>`;
+  if (referralDiscount > 0) {
+    html += `<div class="ts-result-row"><span class="ts-result-label" style="display:flex;align-items:center;gap:4px;color:var(--ts-green)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Desc. Referência (5%)</span><span class="ts-result-value" style="color:var(--ts-green)">-${fmtPrice(referralDiscount)}</span></div>`;
+  }
   if (warrantyCost > 0) {
     html += `<div class="ts-result-row"><div><span class="ts-result-label">Garantia</span><div class="ts-result-sublabel">Garantia ${state.warranty} Meses</div></div><span class="ts-result-value">${fmtPrice(warrantyCost)}</span></div>`;
   }
@@ -2392,6 +2400,8 @@ function generatePDF() {
   }
   rows.push(['ISV', isv.isvFinal === 0 && state.fuelType === 'eletrico' ? 'Isento' : fmtPrice(isv.isvFinal), state.fuelType === 'eletrico']);
   rows.push(['Serviço The Selection', fmtPrice(importCost), false]);
+  const referralDiscount = state.referralCode ? Math.round(importCost * 0.05) : 0;
+  if (referralDiscount > 0) rows.push(['Desc. Referência (5%)', '-' + fmtPrice(referralDiscount), true]);
   if (warrantyCost > 0) rows.push(['Garantia ' + state.warranty + ' Meses', fmtPrice(warrantyCost), false]);
   const dlbl = { recolha:'Entrega no Showroom', domicilio:'Entrega ao Domicílio', express:'Entrega Express' };
   rows.push([dlbl[state.delivery] || 'Entrega', state.delivery === 'recolha' ? 'Incluído' : fmtPrice(deliveryCost), state.delivery === 'recolha']);
@@ -2417,9 +2427,9 @@ function generatePDF() {
   y += 3;
   let grandTotal;
   if (isEmpresa && state.vatDeductible) {
-    grandTotal = vehicleNetPrice + ptVatOnVehicle + isv.isvFinal + importCost + warrantyCost + deliveryCost;
+    grandTotal = vehicleNetPrice + ptVatOnVehicle + isv.isvFinal + importCost + warrantyCost + deliveryCost - referralDiscount;
   } else {
-    grandTotal = price + isv.isvFinal + importCost + warrantyCost + deliveryCost;
+    grandTotal = price + isv.isvFinal + importCost + warrantyCost + deliveryCost - referralDiscount;
   }
   const finalTotal = grandTotal - ivaRecovery;
 
