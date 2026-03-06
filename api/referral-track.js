@@ -209,10 +209,12 @@ module.exports = async (req, res) => {
 
     const viewPrices = await sql`SELECT DISTINCT vehicle_url, vehicle_price
       FROM referral_events WHERE referral_code = ${partnerCode} AND event_type = 'referral_view' AND vehicle_price > 0`;
+    let viewTotalServiceValue = 0;
     let viewPotentialCB = 0;
     viewPrices.forEach(v => {
       const price = Number(v.vehicle_price) || 0;
       const serviceFee = Math.max(1500, Math.min(30000, price * 0.05));
+      viewTotalServiceValue += serviceFee;
       viewPotentialCB += serviceFee * 0.05;
     });
     const totalPotentialCB = Math.max(totalCB, viewPotentialCB);
@@ -236,7 +238,7 @@ module.exports = async (req, res) => {
       cashback: { potential: totalPotentialCB, pending: pendingCB, paid: paidCB },
       potential_business: {
         unique_vehicles: viewPrices.length,
-        total_value: viewPrices.reduce((s, v) => s + (Number(v.vehicle_price) || 0), 0),
+        total_service_value: viewTotalServiceValue,
         estimated_cashback: viewPotentialCB,
       },
       leads: leads.map(l => ({

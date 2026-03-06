@@ -253,7 +253,7 @@ td { padding:10px; font-size:13px; border-bottom:1px solid rgba(39,39,42,0.5); }
         </div>
         <div class="business-item">
           <div class="business-item-value" id="biz-value">0 €</div>
-          <div class="business-item-label">Valor Total em Pipeline</div>
+          <div class="business-item-label">Valor em Serviços</div>
         </div>
         <div class="business-item accent">
           <div class="business-item-value" id="biz-cashback">0 €</div>
@@ -427,7 +427,7 @@ async function loadStats() {
     // Potential Business
     var biz = data.potential_business || {};
     $('biz-vehicles').textContent = biz.unique_vehicles || 0;
-    $('biz-value').textContent = fmtCurrency(biz.total_value || 0);
+    $('biz-value').textContent = fmtCurrency(biz.total_service_value || 0);
     $('biz-cashback').textContent = fmtCurrency(biz.estimated_cashback || 0);
 
     // Cashback
@@ -469,11 +469,11 @@ async function loadStats() {
     });
     var vList = Array.from(allVehicles.values());
     if (vList.length > 0) {
-      var html = '<table><thead><tr><th>Veículo</th><th>Preço</th><th>Partilhas</th><th>Visualizações</th><th>Cashback Potencial</th></tr></thead><tbody>';
+      var html = '<table><thead><tr><th>Veículo</th><th>Valor Serviço</th><th>Partilhas</th><th>Visualizações</th><th>Seu Cashback</th></tr></thead><tbody>';
       vList.forEach(function(v) {
         var fee = Math.max(1500, Math.min(30000, v.price * 0.05));
         var cb = fee * 0.05;
-        html += '<tr><td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (v.title || '-') + '</td><td>' + (v.price ? fmtCurrency(v.price) : '-') + '</td><td style="font-weight:600">' + Math.max(v.shares, v.views) + '</td><td>' + v.views + '</td><td style="font-weight:600;color:var(--ts-accent)">' + (v.price ? fmtCurrency(cb) : '-') + '</td></tr>';
+        html += '<tr><td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (v.title || '-') + '</td><td>' + (v.price ? fmtCurrency(fee) : '-') + '</td><td style="font-weight:600">' + Math.max(v.shares, v.views) + '</td><td>' + v.views + '</td><td style="font-weight:600;color:var(--ts-accent)">' + (v.price ? fmtCurrency(cb) : '-') + '</td></tr>';
       });
       html += '</tbody></table>';
       $('vehicles-table').innerHTML = html;
