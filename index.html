@@ -1063,41 +1063,34 @@ async function submitLead(e) {
 
 
     <!-- MARKET COMPARISON -->
-    <div id="savings-section" class="ts-card hidden" style="padding:12px 16px">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ts-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        <span style="font-size:12px;font-weight:600;color:var(--ts-text)">Comparação com mercado nacional</span>
-      </div>
-      <!-- Auto market price -->
-      <div id="market-auto" style="display:none">
-        <div id="market-loading" style="display:flex;align-items:center;gap:8px;padding:8px 0">
-          <div class="ts-spinner" style="width:14px;height:14px;border:2px solid rgba(255,255,255,0.1);border-top-color:var(--ts-accent);border-radius:50%;animation:spin 1s linear infinite"></div>
-          <span style="font-size:11px;color:var(--ts-muted)">A pesquisar no StandVirtual...</span>
+    <!-- MARKET + SHARE — Two Column -->
+    <div id="savings-section" class="ts-card hidden" style="padding:0;overflow:hidden">
+      <div style="display:grid;grid-template-columns:1fr 1fr;min-height:80px">
+        <!-- LEFT: Market Comparison -->
+        <div style="padding:14px 16px;border-right:1px solid var(--ts-border)">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:8px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ts-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span style="font-size:10px;font-weight:600;color:var(--ts-muted);text-transform:uppercase;letter-spacing:0.5px">Mercado Nacional</span>
+          </div>
+          <div id="market-auto" style="display:none">
+            <div id="market-loading" style="display:flex;align-items:center;gap:6px">
+              <div class="ts-spinner" style="width:12px;height:12px;border:2px solid rgba(255,255,255,0.1);border-top-color:var(--ts-accent);border-radius:50%;animation:spin 1s linear infinite"></div>
+              <span style="font-size:10px;color:var(--ts-muted)">A pesquisar...</span>
+            </div>
+            <div id="market-result" style="display:none"></div>
+          </div>
+          <div id="savings-result" style="display:none"></div>
         </div>
-        <div id="market-result" style="display:none"></div>
-      </div>
-      </div>
-      <div id="savings-result" style="display:none;margin-top:8px"></div>
-    </div>
-
-    <!-- Disclaimer -->
-    <p id="ts-disclaimer" class="ts-disclaimer" style="display:none">Simulação indicativa · Tabelas ISV 2026 · Valores sujeitos a confirmação · TAEG indicativa</p>
-
-    <!-- ACTION BAR — Minimal -->
-    <div id="ts-action-bar" style="display:none;gap:8px;margin-bottom:12px">
-      <a id="cta-whatsapp" href="#" onclick="openWhatsApp()" target="_blank" rel="noopener noreferrer" class="ts-btn ts-btn-outline" style="flex:1;padding:10px 16px;font-size:12px;text-decoration:none;cursor:pointer">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-        WhatsApp
-      </a>
-      <button onclick="generatePDF()" class="ts-btn-secondary" style="flex:1;padding:10px 16px">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-        Exportar PDF
-      </button>
-      <div class="ts-share-container" style="flex:1">
-        <button onclick="handleShareClick()" class="ts-share-btn" id="share-main-btn" style="width:100%;padding:10px 16px">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-          Partilhar &amp; Ganhar
-        </button>
+        <!-- RIGHT: Share & Earn -->
+        <div style="padding:14px 16px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center">
+          <div style="font-size:10px;font-weight:600;color:var(--ts-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Partilhar & Ganhar</div>
+          <div style="font-size:11px;color:var(--ts-text);margin-bottom:4px">Receba <span style="color:var(--ts-accent);font-weight:600">5% de cashback</span></div>
+          <div style="font-size:10px;color:var(--ts-muted);margin-bottom:10px">O seu amigo recebe 5% de desconto</div>
+          <div class="ts-share-container" style="width:100%">
+            <button onclick="handleShareClick()" class="ts-share-btn" id="share-main-btn" style="width:100%;padding:8px 14px;font-size:11px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              Partilhar &amp; Ganhar
+            </button>
         <div id="share-dropdown" class="ts-share-dropdown">
           <div id="share-partner-info" style="padding:6px 10px 8px;border-bottom:1px solid var(--ts-border);margin-bottom:4px;display:none">
             <div style="font-size:10px;color:var(--ts-muted)">O seu código</div>
@@ -1118,7 +1111,24 @@ async function submitLead(e) {
           <a href="/painel" target="_blank" style="display:block;text-align:center;font-size:10px;color:var(--ts-muted);padding:6px 0 2px;text-decoration:none;border-top:1px solid var(--ts-border);margin-top:4px">O meu painel →</a>
         </div>
         <div id="share-copied" class="ts-share-copied">Link copiado!</div>
-      </div>
+          </div><!-- /share-container -->
+        </div><!-- /right column -->
+      </div><!-- /grid -->
+    </div><!-- /savings-section -->
+
+    <!-- Disclaimer -->
+    <p id="ts-disclaimer" class="ts-disclaimer" style="display:none">Simulação indicativa · Tabelas ISV 2026 · Valores sujeitos a confirmação · TAEG indicativa</p>
+
+    <!-- ACTION BAR — WhatsApp + PDF only -->
+    <div id="ts-action-bar" style="display:none;gap:8px;margin-bottom:12px">
+      <a id="cta-whatsapp" href="#" onclick="openWhatsApp()" target="_blank" rel="noopener noreferrer" class="ts-btn ts-btn-outline" style="flex:1;padding:9px 14px;font-size:11px;text-decoration:none;cursor:pointer">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        Falar com Especialista
+      </a>
+      <button onclick="generatePDF()" class="ts-btn-secondary" style="flex:1;padding:9px 14px;font-size:11px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Exportar PDF
+      </button>
     </div>
 
     <!-- RESERVATION — Compact -->
@@ -2840,10 +2850,7 @@ async function submitLead(e) {
         loadingDiv.style.display = 'none';
         
         if (!data.found || !data.median) {
-          resultDiv.innerHTML = `
-            <div style="padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
-              <span style="font-size:11px;color:var(--ts-muted)">Sem resultados no StandVirtual para ${state.make} ${state.model} (${data.yearRange || ''})</span>
-            </div>`;
+          resultDiv.innerHTML = `<span style="font-size:10px;color:var(--ts-muted)">Sem dados para ${state.make} ${state.model}</span>`;
           resultDiv.style.display = 'block';
           return;
         }
@@ -2856,37 +2863,27 @@ async function submitLead(e) {
         const savings = marketMedian - ourTotal;
         const pct = marketMedian > 0 ? Math.round((savings / marketMedian) * 100) : 0;
         
-        let savingsHtml = '';
-        if (savings > 500) {
-          savingsHtml = `
-            <div style="text-align:center;padding:12px;background:rgba(34,197,94,0.08);border-radius:8px;border:1px solid rgba(34,197,94,0.15)">
-              <div style="font-size:20px;font-weight:700;color:#22c55e">Poupa ${savings.toLocaleString('pt-PT')} €</div>
-              <div style="font-size:11px;color:#22c55e;opacity:0.8;margin-top:2px">-${Math.abs(pct)}% vs mercado português</div>
-            </div>`;
+        let savingsColor = '#22c55e';
+        let savingsText = `Poupa ${savings.toLocaleString('pt-PT')} €`;
+        let savingsSub = `-${Math.abs(pct)}% vs Portugal`;
+        if (savings <= 500 && savings >= -500) {
+          savingsColor = 'var(--ts-muted)';
+          savingsText = 'Preço equivalente';
+          savingsSub = 'vs mercado nacional';
         } else if (savings < -500) {
-          savingsHtml = `
-            <div style="text-align:center;padding:12px;background:rgba(239,68,68,0.08);border-radius:8px;border:1px solid rgba(239,68,68,0.15)">
-              <div style="font-size:16px;font-weight:700;color:#ef4444">+${Math.abs(savings).toLocaleString('pt-PT')} € vs Portugal</div>
-              <div style="font-size:11px;color:#ef4444;opacity:0.8;margin-top:2px">Preço semelhante ao mercado nacional</div>
-            </div>`;
-        } else {
-          savingsHtml = `
-            <div style="text-align:center;padding:12px;background:rgba(234,179,8,0.08);border-radius:8px;border:1px solid rgba(234,179,8,0.15)">
-              <div style="font-size:16px;font-weight:700;color:#eab308">Preço equivalente ao mercado nacional</div>
-            </div>`;
+          savingsColor = '#ef4444';
+          savingsText = `+${Math.abs(savings).toLocaleString('pt-PT')} €`;
+          savingsSub = 'acima do mercado';
         }
         
         resultDiv.innerHTML = `
-          <div style="padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-              <span style="font-size:11px;color:var(--ts-muted)">Preço mediano StandVirtual</span>
-              <span style="font-size:14px;font-weight:700;color:var(--ts-text)">${marketMedian.toLocaleString('pt-PT')} €</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-              <span style="font-size:10px;color:var(--ts-muted)">${data.count} anúncio${data.count > 1 ? 's' : ''} · ${state.make} ${state.model} · ${data.yearRange}</span>
-              <a href="${data.searchUrl}" target="_blank" rel="noopener" style="font-size:10px;color:var(--ts-accent);text-decoration:none">Ver no StandVirtual →</a>
-            </div>
-            ${savingsHtml}
+          <div style="margin-bottom:6px">
+            <div style="font-size:18px;font-weight:700;color:${savingsColor};line-height:1.2">${savingsText}</div>
+            <div style="font-size:10px;color:var(--ts-muted);margin-top:2px">${savingsSub}</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:10px;color:var(--ts-muted)">${data.count} anúncios · ${marketMedian.toLocaleString('pt-PT')} € mediana</span>
+            <a href="${data.searchUrl}" target="_blank" rel="noopener" style="font-size:10px;color:var(--ts-accent);text-decoration:none">StandVirtual →</a>
           </div>`;
         resultDiv.style.display = 'block';
         
@@ -2899,10 +2896,7 @@ async function submitLead(e) {
       } catch (err) {
         console.error('Market price fetch error:', err);
         loadingDiv.style.display = 'none';
-        resultDiv.innerHTML = `
-          <div style="padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
-            <span style="font-size:11px;color:var(--ts-muted)">Não foi possível pesquisar preços de mercado</span>
-          </div>`;
+        resultDiv.innerHTML = `<span style="font-size:10px;color:var(--ts-muted)">Indisponível</span>`;
         resultDiv.style.display = 'block';
       }
     }
