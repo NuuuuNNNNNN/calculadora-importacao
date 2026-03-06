@@ -1990,7 +1990,7 @@ async function submitLead(e) {
         
         // Calculate savings
         const isEmpresa = document.getElementById('empresa-toggle')?.classList.contains('active');
-        const totalEl = document.getElementById('total-final');
+        const totalEl = document.querySelector('.ts-total-value');
         const ourTotal = totalEl ? parseInt(totalEl.textContent.replace(/[^\d]/g, '')) : 0;
         const marketMedian = data.median;
         const savings = marketMedian - ourTotal;
