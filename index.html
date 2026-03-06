@@ -2109,6 +2109,13 @@ document.addEventListener('DOMContentLoaded', function() {
   } else {
     checkReferral();
   }
+  // Always check for referral banner (even in test mode)
+  var refParam = new URLSearchParams(window.location.search).get('ref');
+  if (refParam) {
+    state.referralCode = refParam;
+    var rb1 = $('referral-banner'); if (rb1) rb1.classList.remove('hidden');
+    var rb2 = $('referral-banner-initial'); if (rb2) rb2.classList.remove('hidden');
+  }
 });
 
 
