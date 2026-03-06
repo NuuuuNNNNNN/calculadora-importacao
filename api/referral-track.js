@@ -155,8 +155,9 @@ module.exports = async (req, res) => {
     }
 
     // ── EVENT: Track generic event ──
+    const vehicleTitle = b.vehicle_title || [b.vehicle_make, b.vehicle_model, b.vehicle_year].filter(Boolean).join(' ') || '';
     await sql`INSERT INTO referral_events (event_type, referral_code, my_referral_code, vehicle_url, vehicle_title, vehicle_price, source_page)
-      VALUES (${b.event_type||'view'}, ${b.referral_code||null}, ${b.my_referral_code||''}, ${b.vehicle_url||''}, ${b.vehicle_title||''}, ${Number(b.vehicle_price)||0}, ${b.source_page||''})`;
+      VALUES (${b.event_type||'view'}, ${b.referral_code||null}, ${b.my_referral_code||''}, ${b.vehicle_url||''}, ${vehicleTitle}, ${Number(b.vehicle_price)||0}, ${b.source_page||''})`;
     return res.json({ ok: true });
   }
 

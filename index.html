@@ -1244,6 +1244,7 @@ function trackEvent(eventType, extra = {}) {
         my_referral_code: getMyReferralCode(),
         referred_by: localStorage.getItem('ts_referred_by') || null,
     vehicle_url: state.sourceUrl || null,
+    vehicle_title: [state.scrapedData?.make, state.scrapedData?.model, state.scrapedData?.year].filter(Boolean).join(' ') || null,
     vehicle_make: state.scrapedData?.make || null,
     vehicle_model: state.scrapedData?.model || null,
     vehicle_year: state.scrapedData?.year || null,
