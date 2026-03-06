@@ -330,20 +330,42 @@ function parseVehicleData(html, url) {
       if (html.includes('mobile.de')) data.sellerCountry = 'DE';
     }
 
-    // VAT (MwSt.) deductibility detection
-    if (html.includes('MwSt. ausweisbar') || html.includes('mwst_ausweisbar') || html.includes('MwSt ausweisbar') || html.includes('Mehrwertsteuer ausweisbar') || html.match(/MwSt\.?\s*ausw/i) || html.includes('inkl. MwSt')) {
-      data.vatDeductible = true;
-    } else if (html.includes('differenzbesteuert') || html.includes('Differenzbesteuert')) {
-      data.vatDeductible = false; // Margin scheme - no VAT to reclaim
-    } else if (html.match(/"vatType"\s*:\s*"[^"]*regular/i)) {
-      data.vatDeductible = true;
-    } else if (html.match(/"vatType"\s*:\s*"[^"]*margin/i)) {
-      data.vatDeductible = false;
+    // VAT (MwSt.) deductibility detection - MUST use ad-specific data, NOT page filter config
+    // The page contains "Mwst. ausweisbar" in the search filter config which is NOT ad-specific!
+    // Method 1: Check GPT targeting "vat" field (most reliable) - "vat":"1" = deductible, "vat":"0" = not
+    const vatTargetMatch = html.match(/"vat"\s*:\s*"(\d)"/);
+    if (vatTargetMatch) {
+      data.vatDeductible = vatTargetMatch[1] === '1';
     }
-    // Also check for gross/net price indicators
+    // Method 2: Check price structure in ad JSON - if both gross and net exist, VAT is deductible
     if (data.vatDeductible === null) {
-      if (html.includes('Netto') || html.includes('"netAmount"')) {
-        data.vatDeductible = true;
+      const priceMatch = html.match(/"price"\s*:\s*\{[^}]*?"type"\s*:\s*"([^"]+)"/);
+      if (priceMatch) {
+        // FIXED type without net = gross only = no VAT deduction
+        // Check if there's a separate net amount
+        const hasNetPrice = html.match(/"price"\s*:\s*\{[^}]*?"net/);
+        data.vatDeductible = !!hasNetPrice;
+      }
+    }
+    // Method 3: Check ad description for explicit "no tax" language
+    if (data.vatDeductible === null || data.vatDeductible === true) {
+      const descMatch = html.match(/"htmlDescription"\s*:\s*"([^"]{0,5000})"/);
+      if (descMatch) {
+        const desc = descMatch[1].toLowerCase();
+        if (desc.includes('no tax refund') || desc.includes('keine mwst') || desc.includes('no vat') || desc.includes('margin')) {
+          data.vatDeductible = false;
+        }
+      }
+    }
+    // Method 4: Check for differenzbesteuert (margin scheme) in ad-specific context
+    if (data.vatDeductible === null) {
+      // Only check near the ad data, not in filter config
+      const adDataMatch = html.match(/"ad"\s*:\s*\{[\s\S]{0,50000}?"price"/);
+      if (adDataMatch) {
+        const adSection = adDataMatch[0];
+        if (adSection.includes('differenzbesteuert') || adSection.includes('Differenzbesteuert')) {
+          data.vatDeductible = false;
+        }
       }
     }
 
