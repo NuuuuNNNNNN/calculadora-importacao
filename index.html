@@ -1903,8 +1903,26 @@ async function handleImportUrl() {
   hide('initial-view');
   show('skeleton-view');
   updateSkeletonStatus('A extrair dados do anúncio...');
+  
+  // FAILSAFE: Show retry button after 25s, force-recover after 45s
+  var retryBtnTimer = setTimeout(function() {
+    var sk = $('skeleton-status');
+    if (sk && !$('skeleton-view').classList.contains('hidden')) {
+      sk.innerHTML = 'A demorar mais que o esperado... <button onclick="handleSkeletonRetry()" style="margin-left:8px;padding:4px 16px;background:var(--ts-gold,#C5A55A);color:#0B0B0F;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px">↻ Tentar novamente</button>';
+    }
+  }, 25000);
+  var forceRecoverTimer = setTimeout(function() {
+    if (!$('skeleton-view').classList.contains('hidden')) {
+      console.error('[THESV] Force recover: skeleton stuck for 45s');
+      hide('skeleton-view');
+      show('initial-view');
+      showScrapeError('A ligação demorou demasiado. Tente novamente.');
+      resetAnalyzeBtn();
+    }
+  }, 45000);
 
   try {
+    console.log('[THESV] Starting scrape for:', url);
     // Add timeout to prevent infinite skeleton
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 35000);
@@ -1916,10 +1934,13 @@ async function handleImportUrl() {
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
+    console.log('[THESV] Scrape response:', resp.status);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
+    console.log('[THESV] Scrape data keys:', Object.keys(data));
 
     if (data.error) {
+      clearTimeout(retryBtnTimer); clearTimeout(forceRecoverTimer);
       hide('skeleton-view');
       show('initial-view');
       showScrapeError(data.error);
@@ -1927,6 +1948,7 @@ async function handleImportUrl() {
       return;
     }
     if (!data.price && !data.displacement && !data.fuelType && !data.registrationYear) {
+      clearTimeout(retryBtnTimer); clearTimeout(forceRecoverTimer);
       hide('skeleton-view');
       show('initial-view');
       showScrapeError('Não foi possível extrair dados. Verifique se o link é de um anúncio individual.');
@@ -1935,6 +1957,8 @@ async function handleImportUrl() {
     }
 
     // Success - show progress
+    clearTimeout(retryBtnTimer); clearTimeout(forceRecoverTimer);
+    console.log('[THESV] Success! Rendering...');
     updateSkeletonStatus('Dados obtidos! A calcular simulação...');
     
     // Success - normalize API fields to frontend fields
@@ -2021,18 +2045,26 @@ async function handleImportUrl() {
     showImportedView();
 
   } catch (err) {
+    clearTimeout(retryBtnTimer); clearTimeout(forceRecoverTimer);
+    console.error('[THESV] Scrape error:', err);
     hide('skeleton-view');
     show('initial-view');
-    const msg = err.message || String(err);
-    if (msg.includes('timeout') || msg.includes('TIMEOUT')) {
-      showScrapeError(url.includes('mobile.de')
-        ? 'O mobile.de demorou demasiado. Use um link do AutoScout24.'
-        : 'O site demorou demasiado. Tente novamente.');
+    const msg = err.name === 'AbortError' ? 'timeout' : (err.message || String(err));
+    if (msg.includes('timeout') || msg.includes('abort') || msg.includes('TIMEOUT')) {
+      showScrapeError('A ligação demorou demasiado (>35s). <button onclick="handleImportUrl()" style="margin-left:8px;padding:2px 12px;background:var(--ts-gold,#C5A55A);color:#0B0B0F;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:12px">↻ Tentar novamente</button>');
     } else {
-      showScrapeError('Erro ao aceder ao link. Verifique o URL e tente novamente.');
+      showScrapeError('Erro: ' + msg + ' — <button onclick="handleImportUrl()" style="margin-left:8px;padding:2px 12px;background:var(--ts-gold,#C5A55A);color:#0B0B0F;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:12px">↻ Tentar novamente</button>');
     }
     resetAnalyzeBtn();
   }
+}
+
+function handleSkeletonRetry() {
+  hide('skeleton-view');
+  show('initial-view');
+  resetAnalyzeBtn();
+  // Auto-retry
+  setTimeout(function() { handleImportUrl(); }, 300);
 }
 
 function calculateVehicleAge(year, month) {
@@ -2043,7 +2075,7 @@ function calculateVehicleAge(year, month) {
 }
 
 function showScrapeError(msg) {
-  $('scrape-error-text').textContent = msg;
+  $('scrape-error-text').innerHTML = msg;
   show('scrape-error');
 }
 
