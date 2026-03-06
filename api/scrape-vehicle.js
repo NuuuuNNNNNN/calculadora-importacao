@@ -1,4 +1,4 @@
-const { neon } = require('@neondatabase/serverless');
+import { neon } from '@neondatabase/serverless';
 
 // ═══════════════════════════════════════
 // Cache: 6h TTL in Neon Postgres
