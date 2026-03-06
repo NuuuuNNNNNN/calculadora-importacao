@@ -56,6 +56,13 @@ body { background:var(--ts-bg); color:var(--ts-text); font-family:'Inter',sans-s
 .kpi-card.accent .kpi-value { color:var(--ts-accent); }
 
 /* Cashback Section */
+.business-section { background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(59,130,246,0.02)); border:1px solid rgba(59,130,246,0.25); border-radius:14px; padding:20px; margin-bottom:20px; }
+.business-title { font-size:14px; font-weight:600; color:#60a5fa; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.business-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.business-item { text-align:center; }
+.business-item-value { font-size:22px; font-weight:700; color:#93c5fd; margin-bottom:2px; }
+.business-item-label { font-size:11px; color:var(--ts-muted); }
+.business-item.accent .business-item-value { color:var(--ts-accent); }
 .cashback-section { background:linear-gradient(135deg,rgba(212,175,55,0.08),rgba(212,175,55,0.02)); border:1px solid rgba(212,175,55,0.25); border-radius:14px; padding:20px; margin-bottom:20px; }
 .cashback-title { font-size:14px; font-weight:600; color:var(--ts-accent); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
 .cashback-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
@@ -115,6 +122,7 @@ td { padding:10px; font-size:13px; border-bottom:1px solid rgba(39,39,42,0.5); }
 /* Responsive */
 @media(max-width:700px) {
   .kpi-grid { grid-template-columns:repeat(2,1fr); }
+  .business-grid { grid-template-columns:1fr; gap:8px; }
   .cashback-grid { grid-template-columns:1fr; gap:8px; }
   .how-steps { grid-template-columns:repeat(2,1fr); }
   .funnel-steps { flex-direction:column; gap:8px; }
@@ -199,6 +207,25 @@ td { padding:10px; font-size:13px; border-bottom:1px solid rgba(39,39,42,0.5); }
       <div class="kpi-card accent"><div class="kpi-icon">🏆</div><div class="kpi-value" id="kpi-conversions">0</div><div class="kpi-label">Negócios</div></div>
     </div>
 
+    <!-- Potential Business Section -->
+    <div class="business-section">
+      <div class="business-title">📊 Potencial de Negócio</div>
+      <div class="business-grid">
+        <div class="business-item">
+          <div class="business-item-value" id="biz-vehicles">0</div>
+          <div class="business-item-label">Veículos Visualizados</div>
+        </div>
+        <div class="business-item">
+          <div class="business-item-value" id="biz-value">0 €</div>
+          <div class="business-item-label">Valor Total em Pipeline</div>
+        </div>
+        <div class="business-item accent">
+          <div class="business-item-value" id="biz-cashback">0 €</div>
+          <div class="business-item-label">Cashback Estimado</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Cashback Section -->
     <div class="cashback-section">
       <div class="cashback-title">💰 O Seu Cashback</div>
@@ -256,7 +283,7 @@ td { padding:10px; font-size:13px; border-bottom:1px solid rgba(39,39,42,0.5); }
 
     <!-- Shared Vehicles -->
     <div class="section" id="vehicles-section">
-      <div class="section-title">🚗 Veículos Partilhados</div>
+      <div class="section-title">🚗 Veículos no Pipeline</div>
       <div id="vehicles-table"></div>
     </div>
   </div>
@@ -313,12 +340,19 @@ async function loadDashboard() {
     $('dashboard').style.display = 'block';
     $('dash-code').textContent = code;
 
-    // KPIs
-    $('kpi-shares').textContent = data.total_shares || 0;
+    // KPIs — partilhas always >= cliques (a click implies a share)
+    const totalShares = Math.max(data.total_shares || 0, data.total_views || 0);
+    $('kpi-shares').textContent = totalShares;
     $('kpi-views').textContent = data.total_views || 0;
     $('kpi-leads').textContent = data.total_leads || 0;
     const completedDeals = (data.leads_by_status?.completed || 0) + (data.leads_by_status?.paid || 0);
     $('kpi-conversions').textContent = completedDeals;
+
+    // Potential Business
+    const biz = data.potential_business || {};
+    $('biz-vehicles').textContent = biz.unique_vehicles || 0;
+    $('biz-value').textContent = fmtCurrency(biz.total_value || 0);
+    $('biz-cashback').textContent = fmtCurrency(biz.estimated_cashback || 0);
 
     // Cashback
     $('cb-potential').textContent = fmtCurrency(data.cashback?.potential || 0);
@@ -352,14 +386,35 @@ async function loadDashboard() {
       $('leads-table').innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Ainda sem leads</div><div class="empty-sub">Partilhe simulações com amigos para gerar leads e ganhar cashback!</div></div>';
     }
 
-    // Vehicles table
-    if (data.vehicles && data.vehicles.length > 0) {
-      let html = '<table><thead><tr><th>Veículo</th><th>Preço</th><th>Partilhas</th></tr></thead><tbody>';
-      data.vehicles.forEach(v => {
+    // Vehicles table - merge shared + viewed vehicles
+    const allVehicles = new Map();
+    // Add shared vehicles
+    (data.vehicles || []).forEach(v => {
+      const key = v.vehicle_url || v.vehicle_title;
+      allVehicles.set(key, { ...v, shares: Number(v.shares) || 0, views: 0 });
+    });
+    // Add/merge viewed vehicles
+    (data.viewed_vehicles || []).forEach(v => {
+      const key = v.vehicle_url || v.vehicle_title;
+      if (allVehicles.has(key)) {
+        allVehicles.get(key).views = Number(v.views) || 0;
+      } else {
+        allVehicles.set(key, { ...v, shares: 0, views: Number(v.views) || 0 });
+      }
+    });
+    const vehicleList = Array.from(allVehicles.values());
+    if (vehicleList.length > 0) {
+      let html = '<table><thead><tr><th>Veículo</th><th>Preço</th><th>Partilhas</th><th>Visualizações</th><th>Cashback Potencial</th></tr></thead><tbody>';
+      vehicleList.forEach(v => {
+        const price = Number(v.vehicle_price) || 0;
+        const serviceFee = Math.max(1500, Math.min(30000, price * 0.05));
+        const potentialCB = serviceFee * 0.05;
         html += `<tr>
-          <td>${v.vehicle_title || '-'}</td>
-          <td>${v.vehicle_price ? fmtCurrency(Number(v.vehicle_price)) : '-'}</td>
-          <td style="font-weight:600">${v.shares}</td>
+          <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.vehicle_title || '-'}</td>
+          <td>${price ? fmtCurrency(price) : '-'}</td>
+          <td style="font-weight:600">${Math.max(v.shares, v.views)}</td>
+          <td>${v.views}</td>
+          <td style="font-weight:600;color:var(--ts-accent)">${price ? fmtCurrency(potentialCB) : '-'}</td>
         </tr>`;
       });
       html += '</tbody></table>';

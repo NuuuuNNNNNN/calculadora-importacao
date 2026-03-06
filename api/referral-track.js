@@ -94,13 +94,36 @@ module.exports = async (req, res) => {
     const totalCB = leads.reduce((s, l) => s + (Number(l.cashback_amount) || 0), 0);
     const pendingCB = leads.filter(l => l.conversion_status === 'completed').reduce((s, l) => s + (Number(l.cashback_amount) || 0), 0);
     const paidCB = leads.filter(l => l.conversion_status === 'paid').reduce((s, l) => s + (Number(l.cashback_amount) || 0), 0);
+    // Vehicles from shares
     const vehicles = await sql`SELECT vehicle_title, vehicle_price, vehicle_url, COUNT(*) as shares, MAX(created_at) as last_shared
       FROM referral_events WHERE referral_code = ${code} AND event_type = 'share' AND vehicle_title IS NOT NULL AND vehicle_title != ''
       GROUP BY vehicle_title, vehicle_price, vehicle_url ORDER BY shares DESC LIMIT 20`;
+
+    // Vehicles viewed via referral link (potential business)
+    const viewedVehicles = await sql`SELECT vehicle_title, vehicle_price, vehicle_url, COUNT(*) as views, MAX(created_at) as last_viewed
+      FROM referral_events WHERE referral_code = ${code} AND event_type = 'referral_view' AND vehicle_title IS NOT NULL AND vehicle_title != ''
+      GROUP BY vehicle_title, vehicle_price, vehicle_url ORDER BY views DESC LIMIT 20`;
+
+    // Calculate potential cashback from ALL referral views (not just leads)
+    const viewPrices = await sql`SELECT DISTINCT vehicle_url, vehicle_price
+      FROM referral_events WHERE referral_code = ${code} AND event_type = 'referral_view' AND vehicle_price > 0`;
+    let viewPotentialCB = 0;
+    viewPrices.forEach(v => {
+      const price = Number(v.vehicle_price) || 0;
+      const serviceFee = Math.max(1500, Math.min(30000, price * 0.05));
+      viewPotentialCB += serviceFee * 0.05;
+    });
+
+    // Total potential = max of (from leads, from views) since views include more prospects
+    const totalPotentialCB = Math.max(totalCB, viewPotentialCB);
+
+    const totalShares = Number(shares[0]?.c || 0);
+    const totalViews = Number(views[0]?.c || 0);
+
     return res.json({
       code,
-      total_shares: Number(shares[0]?.c || 0),
-      total_views: Number(views[0]?.c || 0),
+      total_shares: Math.max(totalShares, totalViews), // a click implies a share
+      total_views: totalViews,
       total_leads: leads.length,
       leads_by_status: {
         lead: leads.filter(l => l.conversion_status === 'lead').length,
@@ -108,13 +131,19 @@ module.exports = async (req, res) => {
         completed: leads.filter(l => l.conversion_status === 'completed').length,
         paid: leads.filter(l => l.conversion_status === 'paid').length,
       },
-      cashback: { potential: totalCB, pending: pendingCB, paid: paidCB },
+      cashback: { potential: totalPotentialCB, pending: pendingCB, paid: paidCB },
+      potential_business: {
+        unique_vehicles: viewPrices.length,
+        total_value: viewPrices.reduce((s, v) => s + (Number(v.vehicle_price) || 0), 0),
+        estimated_cashback: viewPotentialCB,
+      },
       leads: leads.map(l => ({
         id: l.id, name: l.name, vehicle_title: l.vehicle_title,
         vehicle_price: Number(l.vehicle_price), import_cost: Number(l.import_cost),
         cashback_amount: Number(l.cashback_amount), status: l.conversion_status, created_at: l.created_at,
       })),
       vehicles,
+      viewed_vehicles: viewedVehicles,
     });
   }
 
