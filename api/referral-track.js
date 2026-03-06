@@ -27,6 +27,13 @@ async function initDb(sql) {
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
   )`;
+  try { await sql`ALTER TABLE referral_events ADD COLUMN IF NOT EXISTS vehicle_url TEXT DEFAULT ''`; } catch(e) {}
+  try { await sql`ALTER TABLE referral_events ADD COLUMN IF NOT EXISTS vehicle_title TEXT DEFAULT ''`; } catch(e) {}
+  try { await sql`ALTER TABLE referral_events ADD COLUMN IF NOT EXISTS vehicle_price NUMERIC DEFAULT 0`; } catch(e) {}
+  try { await sql`ALTER TABLE referral_events ADD COLUMN IF NOT EXISTS source_page VARCHAR(50) DEFAULT ''`; } catch(e) {}
+  try { await sql`ALTER TABLE referral_leads ADD COLUMN IF NOT EXISTS vehicle_url TEXT DEFAULT ''`; } catch(e) {}
+  try { await sql`ALTER TABLE referral_leads ADD COLUMN IF NOT EXISTS vehicle_title TEXT DEFAULT ''`; } catch(e) {}
+  try { await sql`ALTER TABLE referral_leads ADD COLUMN IF NOT EXISTS vehicle_price NUMERIC DEFAULT 0`; } catch(e) {}
   try { await sql`ALTER TABLE referral_leads ADD COLUMN IF NOT EXISTS import_cost NUMERIC DEFAULT 0`; } catch(e) {}
   try { await sql`ALTER TABLE referral_leads ADD COLUMN IF NOT EXISTS cashback_amount NUMERIC DEFAULT 0`; } catch(e) {}
   try { await sql`ALTER TABLE referral_leads ADD COLUMN IF NOT EXISTS conversion_status VARCHAR(30) DEFAULT 'lead'`; } catch(e) {}
