@@ -2,7 +2,7 @@ const { neon } = require('@neondatabase/serverless');
 
 // Initialize DB connection
 function getSQL() {
-  return neon(process.env.DATABASE_URL);
+  return neon(process.env.POSTGRES_URL);
 }
 
 // Auto-create tables on first call
