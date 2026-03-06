@@ -536,25 +536,14 @@ async function submitLeadFromReserve() {
 </script>
 </head>
 <body>
-<!-- NAV BAR -->
-<nav style="position:sticky;top:0;z-index:100;background:rgba(9,9,11,0.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(200,169,110,0.1);padding:0 24px">
-  <div style="max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px">
-    <a href="/" style="display:flex;align-items:center;text-decoration:none">
-      <img src="/logo-thesv.png" alt="The Selection" style="height:32px;opacity:0.92">
-    </a>
-    <a href="https://wa.me/351936983876?text=Ol%C3%A1%2C%20gostava%20de%20saber%20mais%20sobre%20importa%C3%A7%C3%A3o%20de%20ve%C3%ADculos." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;background:rgba(200,169,110,0.1);border:1px solid rgba(200,169,110,0.2);border-radius:8px;color:var(--ts-gold);font-size:13px;font-weight:500;text-decoration:none;font-family:Inter,sans-serif;transition:all 0.2s" onmouseover="this.style.background='rgba(200,169,110,0.18)'" onmouseout="this.style.background='rgba(200,169,110,0.1)'">
-      <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.553 4.12 1.52 5.855L.058 23.708l5.998-1.425A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.82c-1.935 0-3.73-.527-5.285-1.442l-.38-.224-3.558.846.893-3.458-.25-.396A9.778 9.778 0 012.18 12c0-5.422 4.398-9.82 9.82-9.82 5.422 0 9.82 4.398 9.82 9.82 0 5.422-4.398 9.82-9.82 9.82z"/></svg>
-      Fale Connosco
-    </a>
-  </div>
-</nav>
+
 
 <div class="ts-container" id="app">
   <!-- INITIAL STATE: URL INPUT -->
   <div id="initial-view" class="ts-fade-in" style="display:flex;flex-direction:column;align-items:center;gap:40px;padding-top:48px">
     <div style="text-align:center">
       <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:32px">
-        <img src="/logo-thesv.png" alt="The Selection" style="height:40px;opacity:0.9">
+        <img src="/logo-thesv.png" alt="The Selection" style="height:32px;opacity:0.75">
       </div>
       <h1 class="ts-heading" style="font-size:36px;margin-bottom:16px">Descubra o preço final do veículo que quer importar</h1>
       <p style="font-size:15px;color:var(--ts-text-secondary);line-height:1.7;max-width:520px;margin:0 auto">
@@ -2877,12 +2866,9 @@ function generatePDF() {
 </div>
 
 <!-- FOOTER -->
-<footer style="margin-top:48px;border-top:1px solid rgba(200,169,110,0.08);padding:32px 24px 20px">
-  <div style="max-width:960px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px">
-    <div style="display:flex;align-items:center;gap:20px">
-      <img src="/logo-thesv.png" alt="The Selection" style="height:24px;opacity:0.6">
-      <span style="font-size:11px;color:#52525B;font-family:Inter,sans-serif">© 2026 The Selection Imports</span>
-    </div>
+<footer style="margin-top:48px;border-top:1px solid rgba(200,169,110,0.08);padding:24px 24px 16px">
+  <div style="max-width:960px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">
+    <span style="font-size:11px;color:#52525B;font-family:Inter,sans-serif">© 2026 The Selection Imports</span>
     <div style="display:flex;align-items:center;gap:16px">
       <a href="tel:+351936983876" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#71717A;text-decoration:none;font-family:Inter,sans-serif;transition:color 0.2s" onmouseover="this.style.color='#C8A96E'" onmouseout="this.style.color='#71717A'">
         <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
