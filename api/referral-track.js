@@ -40,6 +40,8 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  try {
+  if (!process.env.POSTGRES_URL) return res.status(500).json({ error: 'POSTGRES_URL not configured' });
   const sql = neon(process.env.POSTGRES_URL);
   await initDb(sql);
 
@@ -170,4 +172,8 @@ module.exports = async (req, res) => {
       conversion_status: l.conversion_status || 'lead', notes: l.notes || '',
     })),
   });
+  } catch(err) {
+    console.error('referral-track error:', err);
+    return res.status(500).json({ error: err.message, stack: err.stack?.split('\n').slice(0,3) });
+  }
 };
