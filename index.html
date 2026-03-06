@@ -241,6 +241,72 @@ body::-webkit-scrollbar {
 }
 .ts-fin-monthly-value { font-size: 18px; font-weight: 700; color: var(--ts-gold); }
 .ts-fin-monthly-label { font-size: 11px; color: var(--ts-text-muted); margin-top: 2px; }
+
+/* Slider entrada */
+.ts-slider-container { position: relative; padding: 0 0 8px; }
+.ts-slider-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.ts-slider-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ts-text-muted); }
+.ts-slider-value { font-size: 14px; font-weight: 700; color: var(--ts-gold); }
+.ts-slider-value span { font-size: 11px; font-weight: 400; color: var(--ts-text-muted); margin-left: 4px; }
+input[type="range"].ts-range {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 6px;
+  background: var(--ts-border); border-radius: 3px; outline: none; cursor: pointer;
+}
+input[type="range"].ts-range::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--ts-gold); border: 3px solid var(--ts-bg);
+  box-shadow: 0 0 0 1px rgba(200,169,110,0.3); cursor: pointer;
+}
+input[type="range"].ts-range::-moz-range-thumb {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--ts-gold); border: 3px solid var(--ts-bg);
+  box-shadow: 0 0 0 1px rgba(200,169,110,0.3); cursor: pointer;
+}
+
+/* Pill buttons prazo */
+.ts-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.ts-pill {
+  flex: 1; min-width: 54px; padding: 9px 4px; text-align: center;
+  font-size: 12px; font-weight: 600; font-family: inherit;
+  background: var(--ts-card-bg); border: 1px solid var(--ts-border);
+  border-radius: 8px; color: var(--ts-text-secondary); cursor: pointer;
+  transition: all 0.2s;
+}
+.ts-pill:hover { border-color: var(--ts-gold); color: var(--ts-text); }
+.ts-pill.active {
+  background: var(--ts-gold-soft); border-color: var(--ts-gold);
+  color: var(--ts-gold); box-shadow: 0 0 0 1px rgba(200,169,110,0.2);
+}
+
+/* Bank cards */
+.ts-banks { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.ts-bank-card {
+  display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+  background: var(--ts-card-bg); border: 1px solid var(--ts-border);
+  border-radius: 10px; cursor: pointer; transition: all 0.2s; position: relative;
+}
+.ts-bank-card:hover { border-color: rgba(200,169,110,0.4); }
+.ts-bank-card.active {
+  border-color: var(--ts-gold); background: var(--ts-gold-soft);
+  box-shadow: 0 0 0 1px rgba(200,169,110,0.15);
+}
+.ts-bank-logo {
+  width: 40px; height: 40px; border-radius: 8px; display: flex;
+  align-items: center; justify-content: center; font-size: 16px; font-weight: 800;
+  color: #fff; flex-shrink: 0; letter-spacing: -0.5px;
+}
+.ts-bank-info { flex: 1; min-width: 0; }
+.ts-bank-name { font-size: 13px; font-weight: 600; color: var(--ts-text); }
+.ts-bank-subtitle { font-size: 10px; color: var(--ts-text-muted); margin-top: 1px; }
+.ts-bank-rate { font-size: 10px; color: var(--ts-text-secondary); margin-top: 3px; }
+.ts-bank-monthly { text-align: right; flex-shrink: 0; }
+.ts-bank-monthly-value { font-size: 16px; font-weight: 700; color: var(--ts-gold); }
+.ts-bank-monthly-unit { font-size: 10px; color: var(--ts-text-muted); }
+.ts-bank-badge {
+  position: absolute; top: -8px; right: 12px; padding: 2px 8px;
+  background: var(--ts-gold); color: var(--ts-bg); font-size: 9px;
+  font-weight: 700; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em;
+}
 .ts-divider { height: 1px; background: var(--ts-border); }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 .ts-fade-in { animation: fadeUp 0.35s ease-out; }
@@ -529,15 +595,17 @@ function generatePDF() {
     y += 6;
     const entryAmount = Math.round(finalTotal * (state.entryPercent / 100));
     const financedAmount = finalTotal - entryAmount;
-    const monthlyRate = FINANCING_RATE / 12;
+    const selBank = FINANCING_BANKS.find(b => b.id === state.selectedBank) || FINANCING_BANKS[0];
+    const monthlyRate = selBank.taeg / 12;
     const monthly = financedAmount > 0 && state.loanTerm > 0
       ? Math.round(financedAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -state.loanTerm)))
       : 0;
     doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(60, 60, 65);
+    doc.text('Parceiro: ' + selBank.name + ' (' + selBank.subtitle + ')', mx, y); y += 5;
     doc.text('Entrada (' + state.entryPercent + '%): ' + fmtPrice(entryAmount), mx, y); y += 5;
     doc.text('Prazo: ' + state.loanTerm + ' meses', mx, y); y += 5;
     doc.text('Prestação mensal: ' + fmtPrice(monthly) + '/mês', mx, y); y += 5;
-    doc.text('TAEG indicativa: ' + (FINANCING_RATE*100).toFixed(1) + '%', mx, y); y += 8;
+    doc.text('TAN ' + (selBank.tan*100).toFixed(1) + '% · TAEG ' + (selBank.taeg*100).toFixed(1) + '%', mx, y); y += 8;
   }
 
   // ─── Footer ───
@@ -1017,6 +1085,7 @@ const state = {
   warranty: 'none',
   delivery: 'recolha',
   loanTerm: 72,
+  selectedBank: 'cetelem',
   entryPercent: 20,
   isv: null,
   co2Source: null,
@@ -1024,7 +1093,12 @@ const state = {
 
 const WARRANTY_COST = { none: 0, '12': 500, '24': 900 };
 const DELIVERY_COST = { recolha: 0, domicilio: 250, express: 650 };
-const FINANCING_RATE = 0.059;
+const FINANCING_BANKS = [
+  { id: 'cetelem', name: 'Cetelem', subtitle: 'BNP Paribas', tan: 0.049, taeg: 0.059, color: '#00A651' },
+  { id: 'cofidis', name: 'Cofidis', subtitle: 'Grupo Cofidis', tan: 0.059, taeg: 0.069, color: '#E4002B' },
+  { id: 'novobanco', name: 'Novo Banco', subtitle: 'Crédito Auto', tan: 0.065, taeg: 0.075, color: '#00B2A9' },
+];
+const FINANCING_RATE = 0.059; // default fallback
 
 // EU VAT rates by country code
 const VAT_RATES = {
@@ -1421,33 +1495,66 @@ function renderSimulation() {
   } else {
     const entryAmount = Math.round(finalTotal * (state.entryPercent / 100));
     const financedAmount = finalTotal - entryAmount;
-    const monthlyRate = FINANCING_RATE / 12;
-    const monthly = financedAmount > 0 && state.loanTerm > 0
-      ? Math.round(financedAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -state.loanTerm)))
-      : 0;
+
+    // Calculate monthly for each bank
+    const bankCards = FINANCING_BANKS.map(bank => {
+      const mr = bank.taeg / 12;
+      const monthly = financedAmount > 0 && state.loanTerm > 0
+        ? Math.round(financedAmount * mr / (1 - Math.pow(1 + mr, -state.loanTerm)))
+        : 0;
+      return { ...bank, monthly };
+    });
+    const cheapest = bankCards.reduce((a, b) => a.monthly < b.monthly ? a : b);
+    const selectedMonthly = bankCards.find(b => b.id === state.selectedBank)?.monthly || cheapest.monthly;
+
+    // Slider progress percentage
+    const sliderPct = ((state.entryPercent - 10) / 40) * 100;
 
     $('sim-total-area').innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <div class="ts-fin-grid">
-          <div class="ts-fin-field">
-            <label>Entrada (${state.entryPercent}%)</label>
-            <select id="sel-entry" onchange="state.entryPercent=Number(this.value);renderSimulation()">
-              ${[10,15,20,30,40,50].map(p => `<option value="${p}" ${p===state.entryPercent?'selected':''}>${p}% — ${fmtPrice(Math.round(finalTotal*p/100))}</option>`).join('')}
-            </select>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <!-- Slider Entrada -->
+        <div class="ts-slider-container">
+          <div class="ts-slider-header">
+            <span class="ts-slider-label">Entrada</span>
+            <span class="ts-slider-value">${fmtPrice(entryAmount)} <span>(${state.entryPercent}%)</span></span>
           </div>
-          <div class="ts-fin-field">
-            <label>Prazo</label>
-            <select id="sel-term" onchange="state.loanTerm=Number(this.value);renderSimulation()">
-              ${[48,60,72,84,96].map(t => `<option value="${t}" ${t===state.loanTerm?'selected':''}>${t} meses</option>`).join('')}
-            </select>
+          <input type="range" class="ts-range" min="10" max="50" step="5" value="${state.entryPercent}"
+            oninput="state.entryPercent=Number(this.value);renderSimulation()"
+            style="background:linear-gradient(to right, var(--ts-gold) ${sliderPct}%, var(--ts-border) ${sliderPct}%)">
+        </div>
+
+        <!-- Pills Prazo -->
+        <div>
+          <div class="ts-slider-label" style="margin-bottom:8px">Prazo</div>
+          <div class="ts-pills">
+            ${[36,48,60,72,84].map(t => `<button class="ts-pill ${t===state.loanTerm?'active':''}" onclick="state.loanTerm=${t};renderSimulation()">${t}<span style="font-size:10px;font-weight:400"> m</span></button>`).join('')}
           </div>
         </div>
-        <div class="ts-fin-monthly">
-          <div class="ts-fin-monthly-value">${fmtPrice(monthly)}/mês</div>
-          <div class="ts-fin-monthly-label">TAEG ${(FINANCING_RATE*100).toFixed(1)}% · Entrada ${fmtPrice(entryAmount)}</div>
+
+        <!-- Bank Cards -->
+        <div>
+          <div class="ts-slider-label" style="margin-bottom:8px">Parceiros Financeiros</div>
+          <div class="ts-banks">
+            ${bankCards.map(b => `
+              <div class="ts-bank-card ${b.id===state.selectedBank?'active':''}" onclick="state.selectedBank='${b.id}';renderSimulation()">
+                ${b.id===cheapest.id ? '<div class="ts-bank-badge">Melhor oferta</div>' : ''}
+                <div class="ts-bank-logo" style="background:${b.color}">${b.name.substring(0,2).toUpperCase()}</div>
+                <div class="ts-bank-info">
+                  <div class="ts-bank-name">${b.name}</div>
+                  <div class="ts-bank-subtitle">${b.subtitle}</div>
+                  <div class="ts-bank-rate">TAN ${(b.tan*100).toFixed(1)}% \u00b7 TAEG ${(b.taeg*100).toFixed(1)}%</div>
+                </div>
+                <div class="ts-bank-monthly">
+                  <div class="ts-bank-monthly-value">${fmtPrice(b.monthly)}</div>
+                  <div class="ts-bank-monthly-unit">/ m\u00eas</div>
+                </div>
+              </div>`).join('')}
+          </div>
         </div>
+
+        <!-- Total -->
         <div class="ts-total" style="padding:14px 20px">
-          <div class="ts-total-label" style="font-size:12px">Total Financiado</div>
+          <div class="ts-total-label" style="font-size:12px">Total Financiado \u00b7 ${state.loanTerm} meses</div>
           <div class="ts-total-value" style="font-size:18px">${fmtPrice(finalTotal)}</div>
         </div>
       </div>`;
@@ -1874,6 +1981,7 @@ function handleReset() {
   state.warranty = 'none';
   state.delivery = 'recolha';
   state.loanTerm = 72;
+  state.selectedBank = 'cetelem';
   state.entryPercent = 20;
   state.isv = null;
   state.co2Source = null;
@@ -2138,15 +2246,17 @@ function generatePDF() {
     y += 6;
     const entryAmount = Math.round(finalTotal * (state.entryPercent / 100));
     const financedAmount = finalTotal - entryAmount;
-    const monthlyRate = FINANCING_RATE / 12;
+    const selBank = FINANCING_BANKS.find(b => b.id === state.selectedBank) || FINANCING_BANKS[0];
+    const monthlyRate = selBank.taeg / 12;
     const monthly = financedAmount > 0 && state.loanTerm > 0
       ? Math.round(financedAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -state.loanTerm)))
       : 0;
     doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(60, 60, 65);
+    doc.text('Parceiro: ' + selBank.name + ' (' + selBank.subtitle + ')', mx, y); y += 5;
     doc.text('Entrada (' + state.entryPercent + '%): ' + fmtPrice(entryAmount), mx, y); y += 5;
     doc.text('Prazo: ' + state.loanTerm + ' meses', mx, y); y += 5;
     doc.text('Prestação mensal: ' + fmtPrice(monthly) + '/mês', mx, y); y += 5;
-    doc.text('TAEG indicativa: ' + (FINANCING_RATE*100).toFixed(1) + '%', mx, y); y += 8;
+    doc.text('TAN ' + (selBank.tan*100).toFixed(1) + '% · TAEG ' + (selBank.taeg*100).toFixed(1) + '%', mx, y); y += 8;
   }
 
   // ─── Footer ───
