@@ -1806,9 +1806,7 @@ function renderSpecs(data) {
   if (data.gearbox) {
     html += `<div class="ts-spec-cell"><div class="ts-spec-label">Tipo de Caixa</div><div class="ts-spec-value">${{'Automatic':'Automática','Automatik':'Automática','Manual':'Manual','Schaltgetriebe':'Manual'}[data.gearbox] || data.gearbox}</div></div>`;
   }
-  if (data.fuelType === 'hibrido_plugin' || data.fuelType === 'hibrido') {
-    html += `<div class="ts-spec-cell"><div class="ts-spec-label">Híbrido Plug-In</div><div class="ts-spec-value">${data.fuelType === 'hibrido_plugin' ? 'Sim' : 'Não'}</div></div>`;
-  }
+  // Híbrido info kept in scraping but not displayed (already shown in Combustível field)
   const isElectric = state.fuelType === 'eletrico';
   const co2Val = isElectric ? '0 g/km' : (state.co2 && Number(state.co2) > 0 ? state.co2 + ' g/km' : '—');
   const co2Class = co2Val === '—' ? ' muted' : (isElectric ? '' : '');
