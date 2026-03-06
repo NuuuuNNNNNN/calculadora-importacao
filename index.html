@@ -769,14 +769,25 @@ async function submitLead(e) {
     </div>
 
 
-    <!-- SAVINGS COMPARISON -->
+    <!-- MARKET COMPARISON -->
     <div id="savings-section" class="ts-card hidden" style="padding:12px 16px">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ts-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        <span style="font-size:12px;font-weight:600;color:var(--ts-text)">Comparar com preço em Portugal</span>
+        <span style="font-size:12px;font-weight:600;color:var(--ts-text)">Comparação com mercado nacional</span>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <input type="text" id="pt-price-input" class="ts-savings-input" placeholder="Preço em Portugal (ex: StandVirtual)" oninput="updateSavings()" />
+      <!-- Auto market price -->
+      <div id="market-auto" style="display:none">
+        <div id="market-loading" style="display:flex;align-items:center;gap:8px;padding:8px 0">
+          <div class="ts-spinner" style="width:14px;height:14px;border:2px solid rgba(255,255,255,0.1);border-top-color:var(--ts-accent);border-radius:50%;animation:spin 1s linear infinite"></div>
+          <span style="font-size:11px;color:var(--ts-muted)">A pesquisar no StandVirtual...</span>
+        </div>
+        <div id="market-result" style="display:none"></div>
+      </div>
+      <!-- Manual override -->
+      <div id="market-manual" style="margin-top:8px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="pt-price-input" class="ts-savings-input" placeholder="Ou insira preço manualmente..." oninput="updateSavings()" style="font-size:11px" />
+        </div>
       </div>
       <div id="savings-result" style="display:none;margin-top:8px"></div>
     </div>
@@ -1210,6 +1221,7 @@ function renderSimulation() {
   show('savings-section');
   show('lead-section');
   updateSavings();
+  fetchMarketPrice();
 
   // ISV detail
   renderISVDetail(isv);
@@ -1428,6 +1440,15 @@ async function handleImportUrl() {
     state.scrapedData = data;
     state.sourceUrl = url;
     state.imported = true;
+    // Extract make/model for market comparison
+    if (data.brand) state.make = data.brand;
+    if (data.model) state.model = data.model;
+    if (!state.make && data.title) {
+      const parts = data.title.split(' ');
+      state.make = parts[0] || '';
+      state.model = parts.slice(1, 3).join(' ') || '';
+    }
+    if (data.registrationYear) state.year = data.registrationYear;
     if (data.fuelType) state.fuelType = data.fuelType;
     if (data.displacement) state.displacement = String(data.displacement);
     if (data.co2) state.co2 = String(data.co2);
@@ -1930,6 +1951,108 @@ async function submitLead(e) {
     $('lead-form').innerHTML = '<div class="ts-lead-success">✓ A abrir o seu email com os dados da simulação.</div>';
   }
 }
+
+
+    // ---- MARKET PRICE AUTO-FETCH ----
+    async function fetchMarketPrice() {
+      const autoDiv = document.getElementById('market-auto');
+      const loadingDiv = document.getElementById('market-loading');
+      const resultDiv = document.getElementById('market-result');
+      
+      if (!autoDiv || !state.make || !state.model) return;
+      
+      autoDiv.style.display = 'block';
+      loadingDiv.style.display = 'flex';
+      resultDiv.style.display = 'none';
+      
+      try {
+        const resp = await fetch('/api/market-price', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            make: state.make,
+            model: state.model,
+            year: state.year
+          })
+        });
+        
+        const data = await resp.json();
+        loadingDiv.style.display = 'none';
+        
+        if (!data.found || !data.median) {
+          resultDiv.innerHTML = `
+            <div style="padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
+              <span style="font-size:11px;color:var(--ts-muted)">Sem resultados no StandVirtual para ${state.make} ${state.model} (${data.yearRange || ''})</span>
+            </div>`;
+          resultDiv.style.display = 'block';
+          return;
+        }
+        
+        // Calculate savings
+        const isEmpresa = document.getElementById('empresa-toggle')?.classList.contains('active');
+        const totalEl = document.getElementById('total-final');
+        const ourTotal = totalEl ? parseInt(totalEl.textContent.replace(/[^\d]/g, '')) : 0;
+        const marketMedian = data.median;
+        const savings = marketMedian - ourTotal;
+        const pct = marketMedian > 0 ? Math.round((savings / marketMedian) * 100) : 0;
+        
+        let savingsHtml = '';
+        if (savings > 500) {
+          savingsHtml = `
+            <div style="text-align:center;padding:12px;background:rgba(34,197,94,0.08);border-radius:8px;border:1px solid rgba(34,197,94,0.15)">
+              <div style="font-size:20px;font-weight:700;color:#22c55e">Poupa ${savings.toLocaleString('pt-PT')} €</div>
+              <div style="font-size:11px;color:#22c55e;opacity:0.8;margin-top:2px">-${Math.abs(pct)}% vs mercado português</div>
+            </div>`;
+        } else if (savings < -500) {
+          savingsHtml = `
+            <div style="text-align:center;padding:12px;background:rgba(239,68,68,0.08);border-radius:8px;border:1px solid rgba(239,68,68,0.15)">
+              <div style="font-size:16px;font-weight:700;color:#ef4444">+${Math.abs(savings).toLocaleString('pt-PT')} € vs Portugal</div>
+              <div style="font-size:11px;color:#ef4444;opacity:0.8;margin-top:2px">Preço semelhante ao mercado nacional</div>
+            </div>`;
+        } else {
+          savingsHtml = `
+            <div style="text-align:center;padding:12px;background:rgba(234,179,8,0.08);border-radius:8px;border:1px solid rgba(234,179,8,0.15)">
+              <div style="font-size:16px;font-weight:700;color:#eab308">Preço equivalente ao mercado nacional</div>
+            </div>`;
+        }
+        
+        resultDiv.innerHTML = `
+          <div style="padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:11px;color:var(--ts-muted)">Preço mediano StandVirtual</span>
+              <span style="font-size:14px;font-weight:700;color:var(--ts-text)">${marketMedian.toLocaleString('pt-PT')} €</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <span style="font-size:10px;color:var(--ts-muted)">${data.count} anúncio${data.count > 1 ? 's' : ''} · ${state.make} ${state.model} · ${data.yearRange}</span>
+              <a href="${data.searchUrl}" target="_blank" rel="noopener" style="font-size:10px;color:var(--ts-accent);text-decoration:none">Ver no StandVirtual →</a>
+            </div>
+            ${savingsHtml}
+          </div>`;
+        resultDiv.style.display = 'block';
+        
+        // Pre-fill the manual input with market price
+        const manualInput = document.getElementById('pt-price-input');
+        if (manualInput && !manualInput.value) {
+          manualInput.value = marketMedian.toLocaleString('pt-PT');
+          manualInput.placeholder = 'Preço mediano auto-preenchido';
+        }
+        
+        // Store for PDF
+        state.marketPrice = marketMedian;
+        state.marketCount = data.count;
+        state.marketYearRange = data.yearRange;
+        state.marketSearchUrl = data.searchUrl;
+        
+      } catch (err) {
+        console.error('Market price fetch error:', err);
+        loadingDiv.style.display = 'none';
+        resultDiv.innerHTML = `
+          <div style="padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
+            <span style="font-size:11px;color:var(--ts-muted)">Não foi possível pesquisar preços de mercado</span>
+          </div>`;
+        resultDiv.style.display = 'block';
+      }
+    }
 
 </script>
 </body>

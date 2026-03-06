@@ -161,6 +161,27 @@ function parseVehicleData(html, url) {
         .trim();
     }
 
+    // Extract brand and model from title or JSON
+    const brandMatch = html.match(/"make"\s*:\s*\{[^}]*"name"\s*:\s*"([^"]+)"/);
+    const modelMatch = html.match(/"model"\s*:\s*\{[^}]*"name"\s*:\s*"([^"]+)"/);
+    if (brandMatch) data.brand = brandMatch[1];
+    if (modelMatch) data.model = modelMatch[1];
+    
+    // Fallback: extract from title
+    if (!data.brand && data.title) {
+      const titleParts = data.title.split(' ');
+      // Common multi-word brands
+      const multiBrands = ['Mercedes-Benz', 'Alfa Romeo', 'Aston Martin', 'Land Rover', 'Range Rover'];
+      const twoWord = titleParts.slice(0, 2).join(' ');
+      if (multiBrands.some(b => twoWord.toLowerCase().startsWith(b.toLowerCase()))) {
+        data.brand = twoWord;
+        data.model = titleParts.slice(2, 4).join(' ');
+      } else {
+        data.brand = titleParts[0];
+        data.model = titleParts.slice(1, 3).join(' ');
+      }
+    }
+
     // Price pattern: "73.680 €" or "73680€"
     const priceMatch = html.match(/"grossAmount":\s*(\d+)/);
     if (priceMatch) {
