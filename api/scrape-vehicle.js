@@ -1,6 +1,57 @@
+const { neon } = require('@neondatabase/serverless');
+
+// ═══════════════════════════════════════
+// Cache: 6h TTL in Neon Postgres
+// ═══════════════════════════════════════
+async function initCacheTable(sql) {
+  try {
+    await sql`CREATE TABLE IF NOT EXISTS vehicle_cache (
+      url TEXT PRIMARY KEY,
+      data JSONB NOT NULL,
+      scraped_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`;
+  } catch (e) {
+    console.log('[CACHE] Table init note:', e.message);
+  }
+}
+
+async function getCachedVehicle(sql, url) {
+  try {
+    const rows = await sql`
+      SELECT data, scraped_at FROM vehicle_cache 
+      WHERE url = ${url} 
+        AND scraped_at > NOW() - INTERVAL '6 hours'
+    `;
+    if (rows.length > 0) {
+      console.log('[CACHE] HIT for', url, '- scraped at', rows[0].scraped_at);
+      return rows[0].data;
+    }
+    console.log('[CACHE] MISS for', url);
+    return null;
+  } catch (e) {
+    console.log('[CACHE] Read error:', e.message);
+    return null;
+  }
+}
+
+async function cacheVehicle(sql, url, data) {
+  try {
+    await sql`
+      INSERT INTO vehicle_cache (url, data, scraped_at)
+      VALUES (${url}, ${JSON.stringify(data)}, NOW())
+      ON CONFLICT (url) DO UPDATE SET data = ${JSON.stringify(data)}, scraped_at = NOW()
+    `;
+    console.log('[CACHE] STORED for', url);
+  } catch (e) {
+    console.log('[CACHE] Write error:', e.message);
+  }
+}
+
+// ═══════════════════════════════════════
+// Main handler
+// ═══════════════════════════════════════
 export default async (req, res) => {
   try {
-    // Support both POST body and GET query params
     const { url } = req.body || req.query || {};
     
     console.log('[DEBUG] Extracted URL:', url);
@@ -11,14 +62,27 @@ export default async (req, res) => {
 
     console.log('[API] Scraping:', url);
 
-    // Try ScrapingBee with automatic retry (premium_proxy required for mobile.de)
+    // ── Check cache first ──
+    let sql = null;
+    if (process.env.POSTGRES_URL) {
+      sql = neon(process.env.POSTGRES_URL);
+      await initCacheTable(sql);
+      
+      const cached = await getCachedVehicle(sql, url);
+      if (cached) {
+        cached._cached = true;
+        cached._cacheAge = 'within 6h';
+        return res.status(200).json(cached);
+      }
+    }
+
+    // ── ScrapingBee with retry ──
     let html = null;
     let usedScrapingBee = false;
     
     const apiKey = encodeURIComponent(process.env.SCRAPINGBEE_API_KEY);
     const encodedUrl = encodeURIComponent(url);
     
-    // Retry configurations - try different params on each attempt
     const retryConfigs = [
       { params: 'block_resources=false&premium_proxy=true&wait=5000&timeout=30000', label: 'premium+wait5s' },
       { params: 'block_resources=false&premium_proxy=true&wait=8000&timeout=45000', label: 'premium+wait8s' },
@@ -43,11 +107,10 @@ export default async (req, res) => {
         
         console.log(`[API] Attempt ${i+1} status: ${response.status}, length: ${text.length}`);
         
-        // Check if we hit the monthly limit
         if (text.includes('Monthly API calls limit reached')) {
           console.log('[API] ScrapingBee limit reached');
           lastError = new Error('API_LIMIT_REACHED');
-          break; // No point retrying
+          break;
         }
         
         if (response.ok && text.length > 5000) {
@@ -57,11 +120,9 @@ export default async (req, res) => {
           break;
         }
         
-        // Non-OK or too small response - log and retry
         lastError = new Error(`HTTP ${response.status}, ${text.length} bytes`);
         console.log(`[API] Attempt ${i+1} failed: ${lastError.message}`);
         
-        // Wait before retry (increasing delay)
         if (i < retryConfigs.length - 1) {
           const delay = (i + 1) * 3000;
           console.log(`[API] Waiting ${delay}ms before retry...`);
@@ -80,7 +141,6 @@ export default async (req, res) => {
       console.log('[API] All ScrapingBee attempts failed:', lastError.message);
       console.log('[API] Falling back to direct fetch...');
       
-      // Fallback: direct fetch with user-agent
       try {
         const headers = {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
@@ -107,14 +167,19 @@ export default async (req, res) => {
         html = await fallbackResponse.text();
         console.log('[API] Direct fetch success, HTML length:', html.length);
       } catch (fallbackError) {
-        throw new Error(`All methods failed: ${sbError.message}, fallback: ${fallbackError.message}`);
+        throw new Error(`All methods failed. ScrapingBee: ${lastError.message}, fallback: ${fallbackError.message}`);
       }
     }
 
-    // Parse vehicle data using regex patterns
+    // Parse vehicle data
     const vehicleData = parseVehicleData(html, url);
     
     console.log('[API] Parsed data:', vehicleData);
+
+    // ── Save to cache ──
+    if (sql && vehicleData.title) {
+      await cacheVehicle(sql, url, vehicleData);
+    }
 
     res.status(200).json(vehicleData);
 
@@ -167,7 +232,6 @@ function parseVehicleData(html, url) {
     // Fallback: extract from title
     if (!data.brand && data.title) {
       const titleParts = data.title.split(' ');
-      // Common multi-word brands
       const multiBrands = ['Mercedes-Benz', 'Alfa Romeo', 'Aston Martin', 'Land Rover', 'Range Rover'];
       const twoWord = titleParts.slice(0, 2).join(' ');
       if (multiBrands.some(b => twoWord.toLowerCase().startsWith(b.toLowerCase()))) {
@@ -179,19 +243,19 @@ function parseVehicleData(html, url) {
       }
     }
 
-    // Price pattern: "73.680 €" or "73680€"
+    // Price pattern
     const priceMatch = html.match(/"grossAmount":\s*(\d+)/);
     if (priceMatch) {
       data.price = parseInt(priceMatch[1]);
     }
 
-    // Mileage: "159.000 km" - looks for grossAmount or mileage value
+    // Mileage
     const mileageMatch = html.match(/"tag":"mileage","value":"([\d.]+)/);
     if (mileageMatch) {
       data.mileage = parseInt(mileageMatch[1].replace(/\./g, ''));
     }
 
-    // Year + Month: look for MM/YYYY format (e.g., "09/2020")
+    // Year + Month
     let yearMatch = html.match(/"firstRegistration"[^}]*"value":"(\d{2})\/(\d{4})/);
     if (yearMatch && yearMatch[1] && yearMatch[2]) {
       data.registrationMonth = parseInt(yearMatch[1]);
@@ -201,7 +265,6 @@ function parseVehicleData(html, url) {
       }
     }
     
-    // Fallback: generic MM/YYYY search
     if (!data.year) {
       yearMatch = html.match(/(\d{2})\/(\d{4})/);
       if (yearMatch && yearMatch[2]) {
@@ -213,7 +276,7 @@ function parseVehicleData(html, url) {
       }
     }
 
-    // Transmission (look more carefully)
+    // Transmission
     if (html.includes('"tag":"transmission"')) {
       const transMatch = html.match(/"tag":"transmission"[^}]*"value":"([^"]+)"/);
       if (transMatch) {
@@ -233,14 +296,11 @@ function parseVehicleData(html, url) {
       const fuelMatch = html.match(/"tag":"fuel"[^}]*"value":"([^"]+)"/);
       if (fuelMatch) {
         const fuelStr = fuelMatch[1];
-        // Check Plug-In first (before generic Hybrid/Diesel)
         if (fuelStr.includes('Plug-In') || fuelStr.includes('PlugIn')) data.fuelType = 'PlugIn Hybrid';
-        // Check pure Electric before hybrid combos (Elektro alone, not Elektro/Benzin)
         else if ((fuelStr === 'Elektro' || fuelStr === 'Electric') || 
                  (fuelStr.includes('Elektro') && !fuelStr.includes('Benzin') && !fuelStr.includes('Diesel'))) {
           data.fuelType = 'Electric';
         }
-        // Hybrid combos
         else if (fuelStr.includes('Hybrid') || fuelStr.includes('Elektro/Benzin') || fuelStr.includes('Benzin/Elektro') ||
                  fuelStr.includes('Elektro/Diesel') || fuelStr.includes('Diesel/Elektro')) {
           data.fuelType = 'Hybrid';
@@ -252,7 +312,6 @@ function parseVehicleData(html, url) {
       }
     }
     if (!data.fuelType) {
-      // Check fuel tag more broadly - look in structured data first
       const fuelPatterns = [
         { regex: /Elektrofahrzeug|Elektro\/Elektro|"fuel"[^}]*Elektro(?!\/Benzin|\/Diesel)/i, type: 'Electric' },
         { regex: /Plug-In[- ]?Hybrid|PlugIn[- ]?Hybrid/i, type: 'PlugIn Hybrid' },
@@ -268,7 +327,7 @@ function parseVehicleData(html, url) {
       }
     }
 
-    // Enhanced Plug-In Hybrid detection: check title and HTML for plug-in indicators
+    // Enhanced Plug-In Hybrid detection
     if (data.fuelType === 'Hybrid') {
       const plugInPatterns = [
         /Plug-?In/i,
@@ -285,28 +344,24 @@ function parseVehicleData(html, url) {
       }
     }
 
-    // Electric vehicle overrides: always 0 displacement and 0 CO2
+    // Electric vehicle overrides
     if (data.fuelType === 'Electric') {
       data.displacement = 0;
       data.co2 = 0;
       console.log('[API] Electric vehicle detected - setting displacement=0, co2=0');
     }
 
-    // Power: extract PS/cv value (not kW)
-    // mobile.de shows "350 kW (476 PS)" - we want the PS value
-    // Method 1: Extract PS from JSON tag
+    // Power
     const powerPsMatch = html.match(/"tag":"power"[^}]*"value":"[\d]+\s*kW\s*\(([\d]+)\s*PS\)/);
     if (powerPsMatch) {
       data.power = parseInt(powerPsMatch[1]);
     }
-    // Method 2: Extract PS from general pattern "XXX kW (YYY PS)"
     if (!data.power) {
       const psBracketMatch = html.match(/([\d]+)\s*kW\s*\(([\d]+)\s*(?:PS|hp|CV|cv)\)/);
       if (psBracketMatch) {
-        data.power = parseInt(psBracketMatch[2]); // Get the PS number, not kW
+        data.power = parseInt(psBracketMatch[2]);
       }
     }
-    // Method 3: If only kW found, convert to cv (1 kW = 1.35962 cv)
     if (!data.power) {
       const kwOnlyMatch = html.match(/"tag":"power"[^}]*"value":"([\d]+)\s*kW/);
       if (kwOnlyMatch) {
@@ -318,20 +373,18 @@ function parseVehicleData(html, url) {
       if (kwMatch2) data.power = Math.round(parseInt(kwMatch2[1]) * 1.36);
     }
 
-    // Displacement (Hubraum/cubic capacity)
+    // Displacement
     const dispMatch = html.match(/"tag":"cubicCapacity"[^}]*"value":"([\d.,]+)/);
     if (dispMatch) {
       data.displacement = parseInt(dispMatch[1].replace(/\./g, '').replace(',', ''));
     }
     if (!data.displacement) {
-      // Try "Hubraum" pattern: "2.979 cm³" or "2979 ccm"
       const dispMatch2 = html.match(/([\d.,]+)\s*(?:cm³|ccm)/i);
       if (dispMatch2) {
         data.displacement = parseInt(dispMatch2[1].replace(/\./g, '').replace(',', ''));
       }
     }
     if (!data.displacement) {
-      // Try generic pattern in JSON: "cubicCapacity":2979
       const dispMatch3 = html.match(/"cubicCapacity"[:\s]*(\d+)/);
       if (dispMatch3) {
         data.displacement = parseInt(dispMatch3[1]);
@@ -344,44 +397,35 @@ function parseVehicleData(html, url) {
       data.co2 = parseInt(co2Match[1]);
     }
 
-    // Seller country detection
+    // Seller country
     const countryMatch = html.match(/"sellerAddress"[^}]*"countryCode"\s*:\s*"([^"]+)"/);
     if (countryMatch) {
       data.sellerCountry = countryMatch[1].toUpperCase();
     }
     if (!data.sellerCountry) {
-      // Try other patterns for country
       const countryMatch2 = html.match(/"country"\s*:\s*"([A-Z]{2})"/);
       if (countryMatch2) data.sellerCountry = countryMatch2[1];
     }
     if (!data.sellerCountry) {
-      // Try location-based detection
       const locationMatch = html.match(/"location"[^}]*"country(?:Code)?"\s*:\s*"([^"]+)"/);
       if (locationMatch) data.sellerCountry = locationMatch[1].toUpperCase();
     }
     if (!data.sellerCountry) {
-      // Default for mobile.de: most sellers are in Germany
       if (html.includes('mobile.de')) data.sellerCountry = 'DE';
     }
 
-    // VAT (MwSt.) deductibility detection - MUST use ad-specific data, NOT page filter config
-    // The page contains "Mwst. ausweisbar" in the search filter config which is NOT ad-specific!
-    // Method 1: Check GPT targeting "vat" field (most reliable) - "vat":"1" = deductible, "vat":"0" = not
+    // VAT (MwSt.) deductibility detection
     const vatTargetMatch = html.match(/"vat"\s*:\s*"(\d)"/);
     if (vatTargetMatch) {
       data.vatDeductible = vatTargetMatch[1] === '1';
     }
-    // Method 2: Check price structure in ad JSON - if both gross and net exist, VAT is deductible
     if (data.vatDeductible === null) {
-      const priceMatch = html.match(/"price"\s*:\s*\{[^}]*?"type"\s*:\s*"([^"]+)"/);
-      if (priceMatch) {
-        // FIXED type without net = gross only = no VAT deduction
-        // Check if there's a separate net amount
+      const priceMatch2 = html.match(/"price"\s*:\s*\{[^}]*?"type"\s*:\s*"([^"]+)"/);
+      if (priceMatch2) {
         const hasNetPrice = html.match(/"price"\s*:\s*\{[^}]*?"net/);
         data.vatDeductible = !!hasNetPrice;
       }
     }
-    // Method 3: Check ad description for explicit "no tax" language
     if (data.vatDeductible === null || data.vatDeductible === true) {
       const descMatch = html.match(/"htmlDescription"\s*:\s*"([^"]{0,5000})"/);
       if (descMatch) {
@@ -391,9 +435,7 @@ function parseVehicleData(html, url) {
         }
       }
     }
-    // Method 4: Check for differenzbesteuert (margin scheme) in ad-specific context
     if (data.vatDeductible === null) {
-      // Only check near the ad data, not in filter config
       const adDataMatch = html.match(/"ad"\s*:\s*\{[\s\S]{0,50000}?"price"/);
       if (adDataMatch) {
         const adSection = adDataMatch[0];
@@ -403,13 +445,13 @@ function parseVehicleData(html, url) {
       }
     }
 
-    // Image: "ogImage":{"src":"https://img.classistatic.de/..."
+    // Image
     const imageMatch = html.match(/"ogImage":\s*{\s*"src":\s*"([^"]+)"/);
     if (imageMatch) {
       data.image = imageMatch[1];
     }
 
-    // Gallery: Extract all thumbnail IDs (mo-80w) from gallery strip - they all load eagerly
+    // Gallery
     const galleryIds = [];
     const seenIds = new Set();
     const thumbRegex = /https:\/\/img\.classistatic\.de\/api\/v1\/mo-prod\/images\/([a-f0-9]{2}\/[a-f0-9-]+)\?rule=mo-80w/g;
