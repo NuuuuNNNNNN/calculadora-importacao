@@ -23,51 +23,87 @@ module.exports = async (req, res) => {
       const session = event.data.object;
       const meta = session.metadata || {};
       
+      const customerName = session.customer_details?.name || meta.customer_name || 'Cliente';
+      const email = session.customer_details?.email || '';
+      const phone = meta.customer_phone || '';
+      const vehicleTitle = meta.vehicle_title || 'Veículo';
+      const vehiclePrice = Number(meta.vehicle_price) || 0;
+      const referralCode = meta.referral_code || null;
+      
       console.log('=== 🎉 RESERVA CONFIRMADA ===');
-      console.log('Cliente:', session.customer_details?.name || meta.customer_name);
-      console.log('Email:', session.customer_details?.email || '');
-      console.log('Telefone:', meta.customer_phone || '');
-      console.log('Veículo:', meta.vehicle_title);
-      console.log('Preço:', meta.vehicle_price ? meta.vehicle_price + '€' : '');
+      console.log('Cliente:', customerName);
+      console.log('Email:', email);
+      console.log('Telefone:', phone);
+      console.log('Veículo:', vehicleTitle);
+      console.log('Preço:', vehiclePrice ? vehiclePrice + '€' : '');
       console.log('URL:', meta.vehicle_url);
-      console.log('Referral:', meta.referral_code || 'Directo');
+      console.log('Referral:', referralCode || 'Directo');
       console.log('Pagamento: 250€');
       console.log('Stripe Session:', session.id);
       console.log('==============================');
 
-      // Send WhatsApp alert to team
-      const customerName = session.customer_details?.name || meta.customer_name || 'Cliente';
-      const vehicleTitle = meta.vehicle_title || 'Veículo';
-      const vehiclePrice = meta.vehicle_price ? Number(meta.vehicle_price).toLocaleString('pt-PT') + '€' : '';
-      const phone = meta.customer_phone || '';
-      const email = session.customer_details?.email || '';
+      // Calculate import cost (5% of vehicle price, min 1500€, max 30000€)
+      const importCost = vehiclePrice > 0 ? Math.max(1500, Math.min(30000, Math.round(vehiclePrice * 0.05))) : 0;
       
+      // Calculate cashback (5% of import cost if referred)
+      const cashbackAmount = (importCost > 0 && referralCode) ? Math.round(importCost * 0.05) : 0;
+
+      // Save to database as a lead with 'reserva' status
+      try {
+        const { neon } = require('@neondatabase/serverless');
+        if (process.env.POSTGRES_URL) {
+          const sql = neon(process.env.POSTGRES_URL);
+          
+          // Ensure table exists
+          await sql`CREATE TABLE IF NOT EXISTS referral_leads (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255),
+            email VARCHAR(255),
+            phone VARCHAR(50),
+            referral_code VARCHAR(20),
+            vehicle_url TEXT DEFAULT '',
+            vehicle_title TEXT DEFAULT '',
+            vehicle_price NUMERIC DEFAULT 0,
+            import_cost NUMERIC DEFAULT 0,
+            cashback_amount NUMERIC DEFAULT 0,
+            conversion_status VARCHAR(30) DEFAULT 'lead',
+            notes TEXT DEFAULT '',
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+          )`;
+          
+          // Check for duplicate (same email + vehicle to avoid double entries)
+          const existing = await sql`SELECT id FROM referral_leads 
+            WHERE email = ${email} AND vehicle_url = ${meta.vehicle_url || ''} AND conversion_status = 'reserva'`;
+          
+          if (existing.length === 0) {
+            await sql`INSERT INTO referral_leads (name, email, phone, referral_code, vehicle_url, vehicle_title, vehicle_price, import_cost, cashback_amount, conversion_status, notes)
+              VALUES (${customerName}, ${email}, ${phone}, ${referralCode}, ${meta.vehicle_url || ''}, ${vehicleTitle}, ${vehiclePrice}, ${importCost}, ${cashbackAmount}, ${'reserva'}, ${'Pré-reserva 250€ paga via Stripe. Session: ' + session.id})`;
+            
+            console.log('✅ Lead criada na base de dados — Status: reserva, Import Cost:', importCost + '€, Cashback:', cashbackAmount + '€');
+          } else {
+            console.log('⚠️ Lead já existente para este email + veículo — ignorada');
+          }
+        }
+      } catch (dbErr) {
+        console.error('❌ DB save failed:', dbErr.message);
+      }
+
+      // Log WhatsApp alert URL for team notification
       const whatsappMsg = encodeURIComponent(
         '🎉 NOVA RESERVA!\n\n' +
         '👤 ' + customerName + '\n' +
         (email ? '📧 ' + email + '\n' : '') +
         (phone ? '📱 ' + phone + '\n' : '') +
         '🚗 ' + vehicleTitle + '\n' +
-        (vehiclePrice ? '💰 ' + vehiclePrice + '\n' : '') +
+        (vehiclePrice ? '💰 ' + vehiclePrice.toLocaleString('pt-PT') + '€\n' : '') +
         '✅ Pré-reserva: 250€ paga\n' +
-        (meta.referral_code ? '🔗 Referência: ' + meta.referral_code + '\n' : '') +
+        (referralCode ? '🔗 Referência: ' + referralCode + '\n' : '') +
+        (cashbackAmount ? '💸 Cashback parceiro: ' + cashbackAmount + '€\n' : '') +
         '\n' + (meta.vehicle_url || '')
       );
       
-      // Log the WhatsApp alert URL (can be used to trigger via automation later)
       console.log('WhatsApp Alert URL: https://wa.me/351935711561?text=' + whatsappMsg);
-
-      // Also save to database as a lead with reservation status
-      try {
-        const { neon } = require('@neondatabase/serverless');
-        if (process.env.POSTGRES_URL) {
-          const sql = neon(process.env.POSTGRES_URL);
-          await sql`INSERT INTO referral_leads (name, email, phone, referral_code, my_referral_code, referred_by, vehicle_url, vehicle_title, vehicle_price, import_cost, conversion_status, notes)
-            VALUES (${customerName}, ${email}, ${phone}, ${meta.referral_code || null}, ${meta.my_referral_code || ''}, ${''}, ${meta.vehicle_url || ''}, ${vehicleTitle}, ${Number(meta.vehicle_price) || 0}, ${0}, ${'reserva'}, ${'Pré-reserva 250€ paga via Stripe. Session: ' + session.id})`;
-        }
-      } catch (dbErr) {
-        console.log('DB save failed (non-blocking):', dbErr.message);
-      }
     }
 
     return res.json({ received: true });

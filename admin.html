@@ -68,6 +68,7 @@
 .status-select:focus { border-color:#D4AF37; outline:none; }
 .status-badge { padding:2px 8px; border-radius:12px; font-size:10px; font-weight:600; display:inline-block; }
 .status-lead { background:rgba(74,158,255,0.15); color:#4A9EFF; }
+.status-reserva { background:rgba(139,92,246,0.15); color:#8B5CF6; }
 .status-negotiating { background:rgba(255,152,0,0.15); color:#FF9800; }
 .status-completed { background:rgba(76,175,80,0.15); color:#4CAF50; }
 .status-paid { background:rgba(212,175,55,0.15); color:#D4AF37; }
@@ -319,9 +320,9 @@ function updateLeadsTable(leads) {
     return;
   }
   tbody.innerHTML = leads.map(l => {
-    const statusOpts = ['lead','negotiating','completed','paid'];
-    const statusLabels = {lead:'Novo Lead',negotiating:'Em Negociação',completed:'Concluído',paid:'CB Pago'};
-    const statusClasses = {lead:'status-lead',negotiating:'status-negotiating',completed:'status-completed',paid:'status-paid'};
+    const statusOpts = ['lead','reserva','negotiating','completed','paid'];
+    const statusLabels = {lead:'Novo Lead',reserva:'💳 Reserva Paga',negotiating:'Em Negociação',completed:'Concluído',paid:'CB Pago'};
+    const statusClasses = {lead:'status-lead',reserva:'status-reserva',negotiating:'status-negotiating',completed:'status-completed',paid:'status-paid'};
     const cs = l.conversion_status || 'lead';
     const selectHtml = statusOpts.map(s => `<option value="${s}" ${s===cs?'selected':''}>${statusLabels[s]}</option>`).join('');
     return `<tr>

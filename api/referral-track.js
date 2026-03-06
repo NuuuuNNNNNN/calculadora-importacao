@@ -227,6 +227,7 @@ module.exports = async (req, res) => {
       total_leads: leads.length,
       leads_by_status: {
         lead: leads.filter(l => l.conversion_status === 'lead').length,
+        reserva: leads.filter(l => l.conversion_status === 'reserva').length,
         negotiating: leads.filter(l => l.conversion_status === 'negotiating').length,
         completed: leads.filter(l => l.conversion_status === 'completed').length,
         paid: leads.filter(l => l.conversion_status === 'paid').length,

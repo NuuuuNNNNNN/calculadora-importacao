@@ -106,6 +106,7 @@ th { text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:1
 td { padding:10px; font-size:13px; border-bottom:1px solid rgba(39,39,42,0.5); }
 .status-badge { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; display:inline-block; }
 .status-lead { background:rgba(74,158,255,0.15); color:var(--ts-blue); }
+.status-reserva { background:rgba(139,92,246,0.15); color:#8B5CF6; }
 .status-negotiating { background:rgba(255,152,0,0.15); color:var(--ts-orange); }
 .status-completed { background:rgba(76,175,80,0.15); color:var(--ts-green); }
 .status-paid { background:rgba(212,175,55,0.15); color:var(--ts-accent); }
@@ -285,25 +286,31 @@ td { padding:10px; font-size:13px; border-bottom:1px solid rgba(39,39,42,0.5); }
       <div class="funnel-title">📊 Funil de Conversão</div>
       <div class="funnel-steps">
         <div class="funnel-step">
-          <div class="funnel-step-bar" style="width:100%"></div>
+          <div class="funnel-step-bar" style="background:var(--ts-blue)"></div>
           <div class="funnel-step-value" id="f-leads">0</div>
           <div class="funnel-step-label">Leads</div>
         </div>
         <div class="funnel-arrow">→</div>
         <div class="funnel-step">
-          <div class="funnel-step-bar"></div>
+          <div class="funnel-step-bar" style="background:#8B5CF6"></div>
+          <div class="funnel-step-value" id="f-reserva">0</div>
+          <div class="funnel-step-label">💳 Reserva Paga</div>
+        </div>
+        <div class="funnel-arrow">→</div>
+        <div class="funnel-step">
+          <div class="funnel-step-bar" style="background:var(--ts-orange)"></div>
           <div class="funnel-step-value" id="f-neg">0</div>
           <div class="funnel-step-label">Em Negociação</div>
         </div>
         <div class="funnel-arrow">→</div>
         <div class="funnel-step">
-          <div class="funnel-step-bar"></div>
+          <div class="funnel-step-bar" style="background:var(--ts-green)"></div>
           <div class="funnel-step-value" id="f-done">0</div>
           <div class="funnel-step-label">Concluídos</div>
         </div>
         <div class="funnel-arrow">→</div>
         <div class="funnel-step">
-          <div class="funnel-step-bar"></div>
+          <div class="funnel-step-bar" style="background:var(--ts-accent)"></div>
           <div class="funnel-step-value" id="f-paid">0</div>
           <div class="funnel-step-label">Cashback Pago</div>
         </div>
@@ -431,6 +438,7 @@ async function loadStats() {
     // Funnel
     var ls = data.leads_by_status || {};
     $('f-leads').textContent = ls.lead || 0;
+    $('f-reserva').textContent = ls.reserva || 0;
     $('f-neg').textContent = ls.negotiating || 0;
     $('f-done').textContent = ls.completed || 0;
     $('f-paid').textContent = ls.paid || 0;
@@ -439,7 +447,7 @@ async function loadStats() {
     if (data.leads && data.leads.length > 0) {
       var html = '<table><thead><tr><th>Data</th><th>Veículo</th><th>Valor Importação</th><th>Seu Cashback</th><th>Estado</th></tr></thead><tbody>';
       data.leads.forEach(function(l) {
-        var statusMap = { lead:'Novo Lead', negotiating:'Em Negociação', completed:'Concluído', paid:'Cashback Pago' };
+        var statusMap = { lead:'Novo Lead', reserva:'💳 Reserva Paga', negotiating:'Em Negociação', completed:'Concluído', paid:'Cashback Pago' };
         var statusClass = 'status-' + (l.status || 'lead');
         html += '<tr><td>' + fmtDate(l.created_at) + '</td><td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (l.vehicle_title || '-') + '</td><td>' + (l.import_cost ? fmtCurrency(l.import_cost) : '-') + '</td><td style="font-weight:600;color:var(--ts-accent)">' + (l.cashback_amount ? fmtCurrency(l.cashback_amount) : '-') + '</td><td><span class="status-badge ' + statusClass + '">' + (statusMap[l.status] || l.status) + '</span></td></tr>';
       });
