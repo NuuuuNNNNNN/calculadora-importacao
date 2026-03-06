@@ -331,7 +331,7 @@ function parseVehicleData(html, url) {
     }
 
     // VAT (MwSt.) deductibility detection
-    if (html.includes('MwSt. ausweisbar') || html.includes('mwst_ausweisbar') || html.includes('MwSt ausweisbar')) {
+    if (html.includes('MwSt. ausweisbar') || html.includes('mwst_ausweisbar') || html.includes('MwSt ausweisbar') || html.includes('Mehrwertsteuer ausweisbar') || html.match(/MwSt\.?\s*ausw/i) || html.includes('inkl. MwSt')) {
       data.vatDeductible = true;
     } else if (html.includes('differenzbesteuert') || html.includes('Differenzbesteuert')) {
       data.vatDeductible = false; // Margin scheme - no VAT to reclaim

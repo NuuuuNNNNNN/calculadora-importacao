@@ -960,6 +960,19 @@ function renderSpecs(data) {
   const co2Val = isElectric ? '0 g/km' : (state.co2 && Number(state.co2) > 0 ? state.co2 + ' g/km' : '—');
   const co2Class = co2Val === '—' ? ' muted' : (isElectric ? '' : '');
   html += `<div class="ts-spec-cell"><div class="ts-spec-label">Emissões CO₂</div><div class="ts-spec-value${co2Class}">${co2Val}</div></div>`;
+  // Seller country indicator
+  if (state.sellerCountry) {
+    const cNames = {DE:"Alemanha",FR:"França",NL:"Holanda",BE:"Bélgica",ES:"Espanha",IT:"Itália",AT:"Áustria",PL:"Polónia",CZ:"Chéquia",LU:"Luxemburgo",CH:"Suíça"};
+    html += `<div class="ts-spec-cell"><div class="ts-spec-label">País de Origem</div><div class="ts-spec-value">${cNames[state.sellerCountry] || state.sellerCountry}</div></div>`;
+  }
+  // MwSt. / IVA indicator
+  if (state.vatDeductible === true) {
+    html += `<div class="ts-spec-cell"><div class="ts-spec-label">IVA (MwSt.)</div><div class="ts-spec-value" style="color:var(--ts-green)">✓ Dedutível</div></div>`;
+  } else if (state.vatDeductible === false) {
+    html += `<div class="ts-spec-cell"><div class="ts-spec-label">IVA (MwSt.)</div><div class="ts-spec-value" style="color:#f87171">✗ Não dedutível</div></div>`;
+  } else {
+    html += `<div class="ts-spec-cell"><div class="ts-spec-label">IVA (MwSt.)</div><div class="ts-spec-value muted">Não indicado</div></div>`;
+  }
   $('specs-grid').innerHTML = html;
 }
 
