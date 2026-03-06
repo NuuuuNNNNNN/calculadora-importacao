@@ -27,6 +27,7 @@ async function initDb(sql) {
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
   )`;
+  try { await sql`ALTER TABLE referral_events ADD COLUMN IF NOT EXISTS my_referral_code VARCHAR(20) DEFAULT ''`; } catch(e) {}
   try { await sql`ALTER TABLE referral_events ADD COLUMN IF NOT EXISTS vehicle_url TEXT DEFAULT ''`; } catch(e) {}
   try { await sql`ALTER TABLE referral_events ADD COLUMN IF NOT EXISTS vehicle_title TEXT DEFAULT ''`; } catch(e) {}
   try { await sql`ALTER TABLE referral_events ADD COLUMN IF NOT EXISTS vehicle_price NUMERIC DEFAULT 0`; } catch(e) {}
