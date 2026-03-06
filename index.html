@@ -695,6 +695,14 @@ async function submitLead(e) {
         que encontrou no <strong style="color:var(--ts-text)">Mobile.de</strong> ou <strong style="color:var(--ts-text)">AutoScout24</strong>.
       </p>
     </div>
+        <!-- REFERRAL BANNER (INITIAL) -->
+    <div id="referral-banner-initial" class="ts-referral-banner hidden" style="max-width:600px;margin:0 auto 16px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ts-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <div class="ts-ref-text">
+        <strong>Simulação partilhada por um amigo!</strong><br>
+        Ao importar através desta referência, ambos beneficiam de um <strong>desconto exclusivo</strong> no serviço de importação.
+      </div>
+    </div>
     <div style="width:100%;max-width:600px;display:flex;flex-direction:column;gap:14px">
       <div style="display:flex;gap:10px">
         <div style="position:relative;flex:1">
@@ -831,6 +839,15 @@ async function submitLead(e) {
 
   <!-- AFTER IMPORT VIEW -->
   <div id="imported-view" class="ts-fade-in hidden" style="display:flex;flex-direction:column;gap:16px">
+    <!-- REFERRAL BANNER -->
+    <div id="referral-banner" class="ts-referral-banner hidden">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ts-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <div class="ts-ref-text">
+        <strong>Simulação partilhada por um amigo!</strong><br>
+        Ao importar através desta referência, ambos beneficiam de um <strong>desconto exclusivo</strong> no serviço de importação.
+      </div>
+    </div>
+
     <!-- URL Bar -->
     <div class="ts-url-bar">
       <div style="display:flex;align-items:center;gap:10px;overflow:hidden">
@@ -2187,18 +2204,18 @@ function checkReferral() {
   if (ref) {
     state.referralCode = ref;
     // Show referral banner
-    const banner = $('referral-banner');
-    if (banner) banner.classList.remove('hidden');
+    var b1 = $('referral-banner'); if (b1) b1.classList.remove('hidden');
+    var b2 = $('referral-banner-initial'); if (b2) b2.classList.remove('hidden');
   }
   
   // Auto-load vehicle URL if present
   if (vehicleUrl) {
-    const input = $('vehicle-url');
+    const input = $('url-input');
     if (input) {
       input.value = vehicleUrl;
       // Auto-trigger analysis after short delay
       setTimeout(function() {
-        const btn = document.querySelector('.ts-btn[onclick*="analyzeVehicle"]') || document.querySelector('button[onclick*="analyzeVehicle"]');
+        const btn = document.querySelector('[onclick*="analyzeVehicle"]');
         if (btn) btn.click();
       }, 500);
     }
