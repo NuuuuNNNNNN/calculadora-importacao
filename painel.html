@@ -7,138 +7,138 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --ts-bg: #09090B; --ts-surface: #131316; --ts-surface-alt: #1a1a1f;
-  --ts-border: #27272A; --ts-text: #FAFAFA; --ts-muted: #A1A1AA;
-  --ts-accent: #D4AF37; --ts-accent-dim: rgba(212,175,55,0.15);
-  --ts-green: #4CAF50; --ts-blue: #4A9EFF; --ts-orange: #FF9800; --ts-red: #EF4444;
+  --bg: #0A0A0C;
+  --surface: #111114;
+  --surface-hover: #18181C;
+  --border: #1E1E22;
+  --border-light: #2A2A30;
+  --text: #E8E8EC;
+  --text-secondary: #8B8B96;
+  --text-muted: #5A5A64;
+  --accent: #C4A44A;
+  --accent-dim: rgba(196,164,74,0.08);
+  --accent-subtle: rgba(196,164,74,0.15);
+  --green: #3D9E5C;
+  --green-dim: rgba(61,158,92,0.12);
+  --amber: #B8860B;
+  --amber-dim: rgba(184,134,11,0.12);
+  --radius: 10px;
 }
+
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:var(--ts-bg); color:var(--ts-text); font-family:'Inter',sans-serif; min-height:100vh; }
-.container { max-width:900px; margin:0 auto; padding:24px 20px; }
+body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; -webkit-font-smoothing:antialiased; }
+.container { max-width:880px; margin:0 auto; padding:32px 24px; }
 
 /* Header */
-.header { text-align:center; padding:32px 0 24px; border-bottom:1px solid var(--ts-border); margin-bottom:24px; }
-.header-logo { font-size:11px; letter-spacing:4px; text-transform:uppercase; color:var(--ts-accent); font-weight:600; margin-bottom:6px; }
-.header-title { font-size:22px; font-weight:600; color:var(--ts-text); margin-bottom:4px; }
-.header-sub { font-size:13px; color:var(--ts-muted); }
+.header { text-align:center; padding:40px 0 28px; border-bottom:1px solid var(--border); margin-bottom:32px; }
+.header-logo { font-size:10px; letter-spacing:5px; text-transform:uppercase; color:var(--accent); font-weight:500; margin-bottom:10px; }
+.header-title { font-size:20px; font-weight:500; color:var(--text); letter-spacing:-0.3px; margin-bottom:6px; }
+.header-sub { font-size:12px; color:var(--text-muted); font-weight:400; }
 
-/* Login Card */
-.login-card { max-width:420px; margin:60px auto; background:var(--ts-surface); border:1px solid var(--ts-border); border-radius:16px; padding:32px; text-align:center; }
-.login-card h2 { font-size:18px; font-weight:600; margin-bottom:6px; }
-.login-card p { font-size:13px; color:var(--ts-muted); margin-bottom:20px; line-height:1.5; }
-.login-field { margin-bottom:12px; text-align:left; }
-.login-field label { display:block; font-size:11px; color:var(--ts-muted); margin-bottom:4px; font-weight:500; }
-.login-input { width:100%; padding:11px 14px; background:var(--ts-bg); border:1px solid var(--ts-border); border-radius:10px; color:var(--ts-text); font-size:14px; font-family:'Inter',sans-serif; outline:none; transition:border 0.2s; }
-.login-input:focus { border-color:var(--ts-accent); }
-.login-input::placeholder { color:#52525B; font-size:13px; }
-.login-btn { width:100%; margin-top:6px; padding:12px; background:var(--ts-accent); color:#000; border:none; border-radius:10px; font-size:14px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer; transition:opacity 0.2s; }
+/* Login */
+.login-card { max-width:400px; margin:60px auto; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:36px 32px; }
+.login-card h2 { font-size:17px; font-weight:500; margin-bottom:6px; text-align:center; letter-spacing:-0.2px; }
+.login-card p { font-size:12px; color:var(--text-secondary); margin-bottom:24px; line-height:1.6; text-align:center; }
+.login-field { margin-bottom:14px; }
+.login-field label { display:block; font-size:10px; color:var(--text-muted); margin-bottom:5px; font-weight:500; text-transform:uppercase; letter-spacing:0.8px; }
+.login-input { width:100%; padding:11px 14px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; font-family:'Inter',sans-serif; outline:none; transition:border 0.2s; }
+.login-input:focus { border-color:var(--border-light); }
+.login-input::placeholder { color:var(--text-muted); font-size:12px; }
+.login-btn { width:100%; margin-top:8px; padding:11px; background:var(--accent); color:var(--bg); border:none; border-radius:8px; font-size:13px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer; transition:opacity 0.2s; letter-spacing:0.2px; }
 .login-btn:hover { opacity:0.9; }
-.login-btn:disabled { opacity:0.5; cursor:not-allowed; }
-.login-error { color:var(--ts-red); font-size:12px; margin-top:10px; display:none; text-align:center; }
-.login-help { font-size:11px; color:var(--ts-muted); margin-top:16px; line-height:1.5; text-align:center; }
-.login-help a { color:var(--ts-accent); text-decoration:none; }
+.login-btn:disabled { opacity:0.4; cursor:not-allowed; }
+.login-error { color:#C94040; font-size:12px; margin-top:12px; display:none; text-align:center; }
+.login-help { font-size:11px; color:var(--text-muted); margin-top:20px; line-height:1.6; text-align:center; }
+.login-help a { color:var(--accent); text-decoration:none; }
 
 /* Dashboard */
 .dashboard { display:none; }
-.dash-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
-.dash-welcome { display:flex; flex-direction:column; gap:2px; }
-.dash-welcome-name { font-size:16px; font-weight:600; }
-.dash-welcome-sub { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ts-muted); }
-.dash-code-badge { background:var(--ts-accent-dim); color:var(--ts-accent); padding:2px 10px; border-radius:6px; font-size:12px; font-weight:700; letter-spacing:2px; }
-.dash-actions { display:flex; gap:8px; }
-.dash-btn { padding:8px 14px; background:var(--ts-surface); border:1px solid var(--ts-border); border-radius:8px; color:var(--ts-text); font-size:12px; font-family:'Inter',sans-serif; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:6px; }
-.dash-btn:hover { border-color:var(--ts-accent); color:var(--ts-accent); }
+.dash-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; flex-wrap:wrap; gap:12px; }
+.dash-welcome-name { font-size:16px; font-weight:500; letter-spacing:-0.2px; }
+.dash-welcome-sub { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); margin-top:4px; }
+.dash-code-badge { background:var(--surface); color:var(--text-secondary); padding:3px 10px; border-radius:4px; font-size:11px; font-weight:600; letter-spacing:2px; border:1px solid var(--border); font-family:'SF Mono','Consolas',monospace; }
+.dash-actions { display:flex; gap:6px; }
+.dash-btn { padding:7px 14px; background:var(--surface); border:1px solid var(--border); border-radius:6px; color:var(--text-secondary); font-size:11px; font-family:'Inter',sans-serif; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:5px; font-weight:500; }
+.dash-btn:hover { border-color:var(--border-light); color:var(--text); }
 
-/* KPI Cards */
-.kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
-.kpi-card { background:var(--ts-surface); border:1px solid var(--ts-border); border-radius:12px; padding:16px; text-align:center; }
-.kpi-icon { font-size:20px; margin-bottom:6px; }
-.kpi-value { font-size:26px; font-weight:700; color:var(--ts-text); margin-bottom:2px; }
-.kpi-label { font-size:11px; color:var(--ts-muted); text-transform:uppercase; letter-spacing:1px; }
-.kpi-card.accent { border-color:rgba(212,175,55,0.3); background:linear-gradient(135deg,rgba(212,175,55,0.08),transparent); }
-.kpi-card.accent .kpi-value { color:var(--ts-accent); }
+/* Section base */
+.section-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:14px; }
+.section-label { font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--text-muted); font-weight:500; margin-bottom:16px; }
 
-/* Business + Cashback Sections */
-.business-section { background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(59,130,246,0.02)); border:1px solid rgba(59,130,246,0.25); border-radius:14px; padding:20px; margin-bottom:20px; }
-.business-title { font-size:14px; font-weight:600; color:#60a5fa; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
-.business-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
-.business-item { text-align:center; }
-.business-item-value { font-size:22px; font-weight:700; color:#93c5fd; margin-bottom:2px; }
-.business-item-label { font-size:11px; color:var(--ts-muted); }
-.business-item.accent .business-item-value { color:var(--ts-accent); }
-.cashback-section { background:linear-gradient(135deg,rgba(212,175,55,0.08),rgba(212,175,55,0.02)); border:1px solid rgba(212,175,55,0.25); border-radius:14px; padding:20px; margin-bottom:20px; }
-.cashback-title { font-size:14px; font-weight:600; color:var(--ts-accent); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
-.cashback-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
-.cashback-item { text-align:center; }
-.cashback-item-value { font-size:22px; font-weight:700; margin-bottom:2px; }
-.cashback-item-label { font-size:11px; color:var(--ts-muted); }
-.cashback-item.potential .cashback-item-value { color:var(--ts-muted); }
-.cashback-item.pending .cashback-item-value { color:var(--ts-orange); }
-.cashback-item.paid .cashback-item-value { color:var(--ts-green); }
+/* Share Actions */
+.share-row { display:flex; gap:8px; }
+.share-btn { flex:1; padding:9px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text-secondary); font-size:11px; font-family:'Inter',sans-serif; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:6px; font-weight:500; }
+.share-btn:hover { border-color:var(--border-light); color:var(--text); }
+.share-btn svg { opacity:0.6; }
 
-/* Share Quick Actions */
-.share-actions { background:var(--ts-surface); border:1px solid var(--ts-border); border-radius:14px; padding:16px; margin-bottom:20px; }
-.share-actions-title { font-size:14px; font-weight:600; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
-.share-actions-row { display:flex; gap:8px; }
-.share-action-btn { flex:1; padding:10px; background:var(--ts-bg); border:1px solid var(--ts-border); border-radius:10px; color:var(--ts-text); font-size:12px; font-family:'Inter',sans-serif; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:6px; }
-.share-action-btn:hover { border-color:var(--ts-accent); color:var(--ts-accent); }
-.share-action-btn.whatsapp:hover { border-color:#25D366; color:#25D366; }
+/* How it works */
+.how-steps { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+.how-step { text-align:center; }
+.how-step-num { width:24px; height:24px; background:var(--bg); border:1px solid var(--border-light); color:var(--text-secondary); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; margin:0 auto 8px; }
+.how-step-title { font-size:11px; font-weight:500; color:var(--text); margin-bottom:3px; }
+.how-step-desc { font-size:10px; color:var(--text-muted); line-height:1.5; }
+
+/* KPI Grid */
+.kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:14px; }
+.kpi-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px 14px; text-align:center; }
+.kpi-value { font-size:28px; font-weight:600; color:var(--text); margin-bottom:4px; letter-spacing:-1px; }
+.kpi-label { font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1.2px; font-weight:500; }
+.kpi-card.highlight { border-color:var(--accent-subtle); }
+.kpi-card.highlight .kpi-value { color:var(--accent); }
+
+/* Metrics rows (Business + Cashback) */
+.metrics-row { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
+.metric-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px 14px; text-align:center; }
+.metric-value { font-size:22px; font-weight:600; color:var(--text); margin-bottom:4px; letter-spacing:-0.5px; }
+.metric-label { font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; font-weight:500; }
+.metric-card.accent .metric-value { color:var(--accent); }
+.metric-card.green .metric-value { color:var(--green); }
+.metric-card.muted .metric-value { color:var(--text-muted); }
+.metric-card.amber .metric-value { color:var(--amber); }
 
 /* Funnel */
-.funnel { background:var(--ts-surface); border:1px solid var(--ts-border); border-radius:14px; padding:20px; margin-bottom:20px; }
-.funnel-title { font-size:14px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
-.funnel-steps { display:flex; align-items:center; gap:0; }
-.funnel-step { flex:1; text-align:center; position:relative; }
-.funnel-step-bar { height:6px; border-radius:3px; margin-bottom:8px; }
-.funnel-step:nth-child(1) .funnel-step-bar { background:var(--ts-blue); }
-.funnel-step:nth-child(2) .funnel-step-bar { background:var(--ts-orange); }
-.funnel-step:nth-child(3) .funnel-step-bar { background:var(--ts-green); }
-.funnel-step:nth-child(4) .funnel-step-bar { background:var(--ts-accent); }
-.funnel-step-value { font-size:20px; font-weight:700; }
-.funnel-step-label { font-size:10px; color:var(--ts-muted); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
-.funnel-arrow { color:var(--ts-muted); font-size:18px; margin:0 -4px; padding-bottom:20px; }
+.funnel-row { display:flex; align-items:center; gap:0; }
+.funnel-step { flex:1; text-align:center; }
+.funnel-bar { height:3px; background:var(--border-light); border-radius:2px; margin-bottom:10px; }
+.funnel-step:first-child .funnel-bar { background:var(--text-muted); }
+.funnel-val { font-size:20px; font-weight:600; letter-spacing:-0.5px; }
+.funnel-lbl { font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-top:3px; font-weight:500; }
+.funnel-sep { color:var(--border-light); font-size:14px; padding-bottom:22px; margin:0 -2px; }
 
 /* Tables */
-.section { background:var(--ts-surface); border:1px solid var(--ts-border); border-radius:14px; padding:20px; margin-bottom:20px; }
-.section-title { font-size:14px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
 table { width:100%; border-collapse:collapse; }
-th { text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--ts-muted); padding:8px 10px; border-bottom:1px solid var(--ts-border); font-weight:600; }
-td { padding:10px; font-size:13px; border-bottom:1px solid rgba(39,39,42,0.5); }
-.status-badge { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; display:inline-block; }
-.status-lead { background:rgba(74,158,255,0.15); color:var(--ts-blue); }
-.status-reserva { background:rgba(139,92,246,0.15); color:#8B5CF6; }
-.status-negotiating { background:rgba(255,152,0,0.15); color:var(--ts-orange); }
-.status-completed { background:rgba(76,175,80,0.15); color:var(--ts-green); }
-.status-paid { background:rgba(212,175,55,0.15); color:var(--ts-accent); }
+th { text-align:left; font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); padding:0 10px 10px; border-bottom:1px solid var(--border); font-weight:500; }
+td { padding:10px; font-size:12px; color:var(--text-secondary); border-bottom:1px solid rgba(30,30,34,0.6); }
+.status-badge { padding:3px 8px; border-radius:4px; font-size:10px; font-weight:500; display:inline-block; letter-spacing:0.2px; }
+.status-lead { background:rgba(138,138,148,0.1); color:var(--text-secondary); }
+.status-reserva { background:var(--accent-dim); color:var(--accent); }
+.status-negotiating { background:var(--amber-dim); color:var(--amber); }
+.status-completed { background:var(--green-dim); color:var(--green); }
+.status-paid { background:var(--accent-dim); color:var(--accent); }
 
-/* Empty + How + Loading */
-.empty { text-align:center; padding:40px 20px; color:var(--ts-muted); }
-.empty-icon { font-size:40px; margin-bottom:10px; opacity:0.5; }
-.empty-text { font-size:14px; margin-bottom:6px; }
-.empty-sub { font-size:12px; }
-.how-it-works { background:var(--ts-surface); border:1px solid var(--ts-border); border-radius:14px; padding:20px; margin-bottom:20px; }
-.how-title { font-size:14px; font-weight:600; margin-bottom:14px; }
-.how-steps { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
-.how-step { text-align:center; padding:12px 8px; }
-.how-step-num { width:28px; height:28px; background:var(--ts-accent); color:#000; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; margin:0 auto 8px; }
-.how-step-title { font-size:12px; font-weight:600; margin-bottom:4px; }
-.how-step-desc { font-size:11px; color:var(--ts-muted); line-height:1.4; }
-.loading { text-align:center; padding:40px; color:var(--ts-muted); }
-.spinner { width:24px; height:24px; border:2px solid var(--ts-border); border-top-color:var(--ts-accent); border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 10px; }
+/* Empty states */
+.empty { text-align:center; padding:32px 20px; }
+.empty-text { font-size:12px; color:var(--text-muted); margin-bottom:4px; }
+.empty-sub { font-size:11px; color:var(--text-muted); opacity:0.6; }
+
+/* Loading + Toast */
+.loading { text-align:center; padding:40px; color:var(--text-muted); }
+.spinner { width:20px; height:20px; border:2px solid var(--border); border-top-color:var(--text-muted); border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 10px; }
 @keyframes spin { to { transform:rotate(360deg); } }
-
-/* Copied toast */
-.copied-toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--ts-green); color:#000; padding:10px 20px; border-radius:8px; font-size:13px; font-weight:600; opacity:0; transition:all 0.3s; pointer-events:none; z-index:1000; }
+.copied-toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--surface); border:1px solid var(--border-light); color:var(--text); padding:10px 20px; border-radius:6px; font-size:12px; font-weight:500; opacity:0; transition:all 0.3s; pointer-events:none; z-index:1000; }
 .copied-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* Divider */
+.section-divider { height:1px; background:var(--border); margin:6px 0 14px; }
 
 /* Responsive */
 @media(max-width:700px) {
   .kpi-grid { grid-template-columns:repeat(2,1fr); }
-  .business-grid, .cashback-grid { grid-template-columns:1fr; gap:8px; }
+  .metrics-row { grid-template-columns:1fr; gap:8px; }
   .how-steps { grid-template-columns:repeat(2,1fr); }
-  .funnel-steps { flex-direction:column; gap:8px; }
-  .funnel-arrow { transform:rotate(90deg); padding:0; }
-  .share-actions-row { flex-direction:column; }
+  .funnel-row { flex-direction:column; gap:8px; }
+  .funnel-sep { transform:rotate(90deg); padding:0; }
+  .share-row { flex-direction:column; }
 }
 </style>
 </head>
@@ -148,33 +148,33 @@ td { padding:10px; font-size:13px; border-bottom:1px solid rgba(39,39,42,0.5); }
   <div class="header">
     <div class="header-logo">THE SELECTION</div>
     <div class="header-title">Painel de Referências</div>
-    <div class="header-sub">Acompanhe as suas partilhas e ganhe cashback</div>
+    <div class="header-sub">Acompanhe as suas referências e comissões</div>
   </div>
 
   <!-- Login -->
   <div id="login-section" class="login-card">
-    <h2>👋 Bem-vindo</h2>
-    <p>Introduza os seus dados para aceder ao painel de referências.</p>
+    <h2>Aceder ao Painel</h2>
+    <p>Introduza os dados que utilizou no registo para aceder às suas estatísticas.</p>
     <div class="login-field">
       <label>Email</label>
       <input type="email" id="login-email" class="login-input" placeholder="O email que usou no registo">
     </div>
     <div class="login-field">
-      <label>Últimos 4 dígitos do telefone</label>
-      <input type="text" id="login-phone4" class="login-input" placeholder="Ex: 1234" maxlength="4" inputmode="numeric" style="text-align:center;letter-spacing:8px;font-size:18px;font-weight:600">
+      <label>Verificação</label>
+      <input type="text" id="login-phone4" class="login-input" placeholder="4 últimos dígitos do telefone" maxlength="4" inputmode="numeric" style="text-align:center;letter-spacing:6px;font-size:16px;font-weight:500">
     </div>
     <button id="login-btn" class="login-btn" onclick="doLogin()">Entrar</button>
     <div id="login-error" class="login-error"></div>
     <div class="login-help">
-      Não tem conta? Faça uma simulação na <a href="/">calculadora de importação</a> e clique em "Partilhar & Ganhar" para se registar.
+      Não tem conta? Faça uma simulação na <a href="/">calculadora</a> e clique em "Partilhar & Ganhar" para se registar.
     </div>
   </div>
 
   <!-- Dashboard -->
   <div id="dashboard" class="dashboard">
-    <!-- Welcome Header -->
+    <!-- Welcome -->
     <div class="dash-header">
-      <div class="dash-welcome">
+      <div>
         <div class="dash-welcome-name" id="dash-name">Olá!</div>
         <div class="dash-welcome-sub">
           Código: <span class="dash-code-badge" id="dash-code"></span>
@@ -182,45 +182,45 @@ td { padding:10px; font-size:13px; border-bottom:1px solid rgba(39,39,42,0.5); }
       </div>
       <div class="dash-actions">
         <button class="dash-btn" onclick="refresh()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
           Atualizar
         </button>
         <button class="dash-btn" onclick="logout()">Sair</button>
       </div>
     </div>
 
-    <!-- Quick Share Actions -->
-    <div class="share-actions">
-      <div class="share-actions-title">📤 Partilhar Simulação</div>
-      <div class="share-actions-row">
-        <button class="share-action-btn" onclick="copyMainLink()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    <!-- Share -->
+    <div class="section-card">
+      <div class="section-label">Partilhar</div>
+      <div class="share-row">
+        <button class="share-btn" onclick="copyMainLink()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copiar Link
         </button>
-        <button class="share-action-btn whatsapp" onclick="shareWhatsApp()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        <button class="share-btn" onclick="shareWhatsApp()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
           WhatsApp
         </button>
-        <button class="share-action-btn" onclick="shareEmail()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <button class="share-btn" onclick="shareEmail()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           Email
         </button>
       </div>
     </div>
 
     <!-- How it works -->
-    <div class="how-it-works">
-      <div class="how-title">💡 Como funciona o programa</div>
+    <div class="section-card">
+      <div class="section-label">Como funciona</div>
       <div class="how-steps">
         <div class="how-step">
           <div class="how-step-num">1</div>
           <div class="how-step-title">Partilhe</div>
-          <div class="how-step-desc">Envie simulações a amigos com o seu link personalizado</div>
+          <div class="how-step-desc">Envie o link personalizado a amigos interessados</div>
         </div>
         <div class="how-step">
           <div class="how-step-num">2</div>
           <div class="how-step-title">Amigo Simula</div>
-          <div class="how-step-desc">O seu amigo recebe 5% de desconto no serviço de importação</div>
+          <div class="how-step-desc">O amigo recebe 5% de desconto no serviço</div>
         </div>
         <div class="how-step">
           <div class="how-step-num">3</div>
@@ -229,110 +229,89 @@ td { padding:10px; font-size:13px; border-bottom:1px solid rgba(39,39,42,0.5); }
         </div>
         <div class="how-step">
           <div class="how-step-num">4</div>
-          <div class="how-step-title">Cashback 💰</div>
+          <div class="how-step-title">Comissão</div>
           <div class="how-step-desc">Recebe 5% do valor do serviço de importação</div>
         </div>
       </div>
     </div>
 
-    <!-- KPIs -->
+    <!-- Actividade -->
+    <div class="section-label" style="margin-top:8px">Actividade</div>
     <div class="kpi-grid">
-      <div class="kpi-card"><div class="kpi-icon">📤</div><div class="kpi-value" id="kpi-shares">0</div><div class="kpi-label">Partilhas</div></div>
-      <div class="kpi-card"><div class="kpi-icon">👀</div><div class="kpi-value" id="kpi-views">0</div><div class="kpi-label">Cliques</div></div>
-      <div class="kpi-card"><div class="kpi-icon">📋</div><div class="kpi-value" id="kpi-leads">0</div><div class="kpi-label">Leads</div></div>
-      <div class="kpi-card accent"><div class="kpi-icon">🏆</div><div class="kpi-value" id="kpi-conversions">0</div><div class="kpi-label">Negócios</div></div>
+      <div class="kpi-card"><div class="kpi-value" id="kpi-shares">0</div><div class="kpi-label">Partilhas</div></div>
+      <div class="kpi-card"><div class="kpi-value" id="kpi-views">0</div><div class="kpi-label">Cliques</div></div>
+      <div class="kpi-card"><div class="kpi-value" id="kpi-leads">0</div><div class="kpi-label">Leads</div></div>
+      <div class="kpi-card highlight"><div class="kpi-value" id="kpi-conversions">0</div><div class="kpi-label">Negócios</div></div>
     </div>
 
-    <!-- Potential Business -->
-    <div class="business-section">
-      <div class="business-title">📊 Potencial de Negócio</div>
-      <div class="business-grid">
-        <div class="business-item">
-          <div class="business-item-value" id="biz-vehicles">0</div>
-          <div class="business-item-label">Veículos Visualizados</div>
-        </div>
-        <div class="business-item">
-          <div class="business-item-value" id="biz-value">0 €</div>
-          <div class="business-item-label">Valor em Serviços</div>
-        </div>
-        <div class="business-item accent">
-          <div class="business-item-value" id="biz-cashback">0 €</div>
-          <div class="business-item-label">Cashback Estimado</div>
-        </div>
-      </div>
+    <!-- Pipeline -->
+    <div class="section-label">Pipeline</div>
+    <div class="metrics-row">
+      <div class="metric-card"><div class="metric-value" id="biz-vehicles">0</div><div class="metric-label">Veículos</div></div>
+      <div class="metric-card"><div class="metric-value" id="biz-value">0 €</div><div class="metric-label">Valor em Serviços</div></div>
+      <div class="metric-card accent"><div class="metric-value" id="biz-cashback">0 €</div><div class="metric-label">Comissão Estimada</div></div>
     </div>
 
-    <!-- Cashback -->
-    <div class="cashback-section">
-      <div class="cashback-title">💰 O Seu Cashback</div>
-      <div class="cashback-grid">
-        <div class="cashback-item potential">
-          <div class="cashback-item-value" id="cb-potential">0 €</div>
-          <div class="cashback-item-label">Potencial (se todos fecharem)</div>
-        </div>
-        <div class="cashback-item pending">
-          <div class="cashback-item-value" id="cb-pending">0 €</div>
-          <div class="cashback-item-label">Pendente de Pagamento</div>
-        </div>
-        <div class="cashback-item paid">
-          <div class="cashback-item-value" id="cb-paid">0 €</div>
-          <div class="cashback-item-label">Já Recebido ✓</div>
-        </div>
-      </div>
+    <!-- Comissões -->
+    <div class="section-label">Comissões</div>
+    <div class="metrics-row">
+      <div class="metric-card muted"><div class="metric-value" id="cb-potential">0 €</div><div class="metric-label">Potencial</div></div>
+      <div class="metric-card amber"><div class="metric-value" id="cb-pending">0 €</div><div class="metric-label">Pendente</div></div>
+      <div class="metric-card green"><div class="metric-value" id="cb-paid">0 €</div><div class="metric-label">Recebido</div></div>
     </div>
 
     <!-- Funnel -->
-    <div class="funnel">
-      <div class="funnel-title">📊 Funil de Conversão</div>
-      <div class="funnel-steps">
+    <div class="section-card">
+      <div class="section-label">Funil de Conversão</div>
+      <div class="funnel-row">
         <div class="funnel-step">
-          <div class="funnel-step-bar" style="background:var(--ts-blue)"></div>
-          <div class="funnel-step-value" id="f-leads">0</div>
-          <div class="funnel-step-label">Leads</div>
+          <div class="funnel-bar"></div>
+          <div class="funnel-val" id="f-leads">0</div>
+          <div class="funnel-lbl">Leads</div>
         </div>
-        <div class="funnel-arrow">→</div>
+        <div class="funnel-sep">›</div>
         <div class="funnel-step">
-          <div class="funnel-step-bar" style="background:#8B5CF6"></div>
-          <div class="funnel-step-value" id="f-reserva">0</div>
-          <div class="funnel-step-label">💳 Reserva Paga</div>
+          <div class="funnel-bar"></div>
+          <div class="funnel-val" id="f-reserva">0</div>
+          <div class="funnel-lbl">Reserva</div>
         </div>
-        <div class="funnel-arrow">→</div>
+        <div class="funnel-sep">›</div>
         <div class="funnel-step">
-          <div class="funnel-step-bar" style="background:var(--ts-orange)"></div>
-          <div class="funnel-step-value" id="f-neg">0</div>
-          <div class="funnel-step-label">Em Negociação</div>
+          <div class="funnel-bar"></div>
+          <div class="funnel-val" id="f-neg">0</div>
+          <div class="funnel-lbl">Negociação</div>
         </div>
-        <div class="funnel-arrow">→</div>
+        <div class="funnel-sep">›</div>
         <div class="funnel-step">
-          <div class="funnel-step-bar" style="background:var(--ts-green)"></div>
-          <div class="funnel-step-value" id="f-done">0</div>
-          <div class="funnel-step-label">Concluídos</div>
+          <div class="funnel-bar"></div>
+          <div class="funnel-val" id="f-done">0</div>
+          <div class="funnel-lbl">Concluídos</div>
         </div>
-        <div class="funnel-arrow">→</div>
+        <div class="funnel-sep">›</div>
         <div class="funnel-step">
-          <div class="funnel-step-bar" style="background:var(--ts-accent)"></div>
-          <div class="funnel-step-value" id="f-paid">0</div>
-          <div class="funnel-step-label">Cashback Pago</div>
+          <div class="funnel-bar"></div>
+          <div class="funnel-val" id="f-paid">0</div>
+          <div class="funnel-lbl">Pago</div>
         </div>
       </div>
     </div>
 
     <!-- Leads Table -->
-    <div class="section">
-      <div class="section-title">📋 Os Seus Leads</div>
+    <div class="section-card">
+      <div class="section-label">Leads</div>
       <div id="leads-table"></div>
     </div>
 
     <!-- Vehicles Pipeline -->
-    <div class="section">
-      <div class="section-title">🚗 Veículos no Pipeline</div>
+    <div class="section-card">
+      <div class="section-label">Veículos no Pipeline</div>
       <div id="vehicles-table"></div>
     </div>
   </div>
 </div>
 
-<!-- Copied toast -->
-<div id="copied-toast" class="copied-toast">✓ Link copiado!</div>
+<!-- Toast -->
+<div id="copied-toast" class="copied-toast">Link copiado</div>
 
 <script>
 const API = '/api/referral-track';
@@ -382,7 +361,6 @@ async function doLogin() {
       btnEl.textContent = 'Entrar';
       return;
     }
-    // Save session
     currentCode = data.referral_code;
     currentToken = data.access_token;
     localStorage.setItem('ts_panel_session', JSON.stringify({
@@ -391,7 +369,6 @@ async function doLogin() {
       name: data.name,
       email: email
     }));
-    // Load dashboard
     showDashboard(data.name, data.referral_code);
     loadStats();
   } catch(e) {
@@ -405,7 +382,7 @@ async function doLogin() {
 function showDashboard(name, code) {
   $('login-section').style.display = 'none';
   $('dashboard').style.display = 'block';
-  $('dash-name').textContent = 'Olá, ' + (name || 'Parceiro') + '!';
+  $('dash-name').textContent = name ? ('Olá, ' + name) : 'Olá';
   $('dash-code').textContent = code;
   history.replaceState(null, '', '/painel');
 }
@@ -424,13 +401,13 @@ async function loadStats() {
     var deals = (data.leads_by_status?.completed || 0) + (data.leads_by_status?.paid || 0);
     $('kpi-conversions').textContent = deals;
 
-    // Potential Business
+    // Pipeline
     var biz = data.potential_business || {};
     $('biz-vehicles').textContent = biz.unique_vehicles || 0;
     $('biz-value').textContent = fmtCurrency(biz.total_service_value || 0);
     $('biz-cashback').textContent = fmtCurrency(biz.estimated_cashback || 0);
 
-    // Cashback
+    // Comissões
     $('cb-potential').textContent = fmtCurrency(data.cashback?.potential || 0);
     $('cb-pending').textContent = fmtCurrency(data.cashback?.pending || 0);
     $('cb-paid').textContent = fmtCurrency(data.cashback?.paid || 0);
@@ -445,16 +422,16 @@ async function loadStats() {
 
     // Leads table
     if (data.leads && data.leads.length > 0) {
-      var html = '<table><thead><tr><th>Data</th><th>Veículo</th><th>Valor Importação</th><th>Seu Cashback</th><th>Estado</th></tr></thead><tbody>';
+      var html = '<table><thead><tr><th>Data</th><th>Veículo</th><th>Valor Serviço</th><th>Comissão</th><th>Estado</th></tr></thead><tbody>';
       data.leads.forEach(function(l) {
-        var statusMap = { lead:'Novo Lead', reserva:'💳 Reserva Paga', negotiating:'Em Negociação', completed:'Concluído', paid:'Cashback Pago' };
+        var statusMap = { lead:'Lead', reserva:'Reserva Paga', negotiating:'Em Negociação', completed:'Concluído', paid:'Comissão Paga' };
         var statusClass = 'status-' + (l.status || 'lead');
-        html += '<tr><td>' + fmtDate(l.created_at) + '</td><td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (l.vehicle_title || '-') + '</td><td>' + (l.import_cost ? fmtCurrency(l.import_cost) : '-') + '</td><td style="font-weight:600;color:var(--ts-accent)">' + (l.cashback_amount ? fmtCurrency(l.cashback_amount) : '-') + '</td><td><span class="status-badge ' + statusClass + '">' + (statusMap[l.status] || l.status) + '</span></td></tr>';
+        html += '<tr><td>' + fmtDate(l.created_at) + '</td><td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (l.vehicle_title || '—') + '</td><td>' + (l.import_cost ? fmtCurrency(l.import_cost) : '—') + '</td><td style="font-weight:500;color:var(--accent)">' + (l.cashback_amount ? fmtCurrency(l.cashback_amount) : '—') + '</td><td><span class="status-badge ' + statusClass + '">' + (statusMap[l.status] || l.status) + '</span></td></tr>';
       });
       html += '</tbody></table>';
       $('leads-table').innerHTML = html;
     } else {
-      $('leads-table').innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Ainda sem leads</div><div class="empty-sub">Partilhe simulações com amigos para gerar leads e ganhar cashback!</div></div>';
+      $('leads-table').innerHTML = '<div class="empty"><div class="empty-text">Ainda sem leads</div><div class="empty-sub">Partilhe simulações para gerar leads</div></div>';
     }
 
     // Vehicles table
@@ -469,23 +446,23 @@ async function loadStats() {
     });
     var vList = Array.from(allVehicles.values());
     if (vList.length > 0) {
-      var html = '<table><thead><tr><th>Veículo</th><th>Valor Serviço</th><th>Partilhas</th><th>Visualizações</th><th>Seu Cashback</th></tr></thead><tbody>';
+      var html = '<table><thead><tr><th>Veículo</th><th>Valor Serviço</th><th>Partilhas</th><th>Visualizações</th><th>Comissão</th></tr></thead><tbody>';
       vList.forEach(function(v) {
         var fee = Math.max(1500, Math.min(30000, v.price * 0.05));
         var cb = fee * 0.05;
-        html += '<tr><td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (v.title || '-') + '</td><td>' + (v.price ? fmtCurrency(fee) : '-') + '</td><td style="font-weight:600">' + Math.max(v.shares, v.views) + '</td><td>' + v.views + '</td><td style="font-weight:600;color:var(--ts-accent)">' + (v.price ? fmtCurrency(cb) : '-') + '</td></tr>';
+        html += '<tr><td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (v.title || '—') + '</td><td>' + (v.price ? fmtCurrency(fee) : '—') + '</td><td style="font-weight:500">' + Math.max(v.shares, v.views) + '</td><td>' + v.views + '</td><td style="font-weight:500;color:var(--accent)">' + (v.price ? fmtCurrency(cb) : '—') + '</td></tr>';
       });
       html += '</tbody></table>';
       $('vehicles-table').innerHTML = html;
     } else {
-      $('vehicles-table').innerHTML = '<div class="empty"><div class="empty-icon">🚗</div><div class="empty-text">Ainda sem veículos no pipeline</div><div class="empty-sub">Partilhe o seu link para começar!</div></div>';
+      $('vehicles-table').innerHTML = '<div class="empty"><div class="empty-text">Ainda sem veículos no pipeline</div><div class="empty-sub">Partilhe o seu link para começar</div></div>';
     }
   } catch(e) {
     console.error('Error loading stats:', e);
   }
 }
 
-// ── Share Actions ──
+// ── Share ──
 function copyMainLink() {
   var url = window.location.origin + '/?ref=' + currentCode;
   navigator.clipboard.writeText(url).then(function() {
@@ -530,7 +507,7 @@ function logout() {
   history.replaceState(null, '', '/painel');
 }
 
-// ── Auto-login from saved session ──
+// ── Auto-login ──
 (function() {
   try {
     var session = JSON.parse(localStorage.getItem('ts_panel_session'));
@@ -542,12 +519,10 @@ function logout() {
     }
   } catch(e) {}
 
-  // Also check URL for token (direct link from registration)
   var params = new URLSearchParams(window.location.search);
   var tokenParam = params.get('token');
   if (tokenParam && !currentToken) {
     currentToken = tokenParam;
-    // Fetch data to validate and get partner info
     fetch(API + '?token=' + encodeURIComponent(tokenParam)).then(function(r) { return r.json(); }).then(function(data) {
       if (data.code) {
         currentCode = data.code;
