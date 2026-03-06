@@ -612,6 +612,426 @@ input[type="range"].ts-range::-moz-range-thumb {
   /* Financing grid → single column */
   .ts-fin-grid { grid-template-columns: 1fr !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   LANDING PAGE STYLES  (all classes prefixed lp-)
+   ═══════════════════════════════════════════════════════════════ */
+
+html {
+  scroll-behavior: smooth !important;
+  overflow: auto !important;
+  height: auto !important;
+}
+
+body {
+  padding-top: 64px;
+  height: auto !important;
+}
+
+/* ── NAV ── */
+.lp-nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  height: 64px;
+  background: rgba(9,9,11,0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.lp-nav-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+.lp-logo img { display: block; }
+.lp-nav-links {
+  display: flex;
+  gap: 32px;
+}
+.lp-nav-links a {
+  color: #A1A1AA;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: color 0.2s;
+}
+.lp-nav-links a:hover { color: #FAFAFA; }
+.lp-nav-cta {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 20px;
+  background: #D4AF37;
+  color: #09090B;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.lp-nav-cta:hover { background: #E0C054; }
+
+/* ── HERO ── */
+.lp-hero {
+  position: relative;
+  min-height: calc(100vh - 64px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 0%, rgba(212,175,55,0.06) 0%, transparent 60%),
+              #09090B;
+  overflow: hidden;
+}
+.lp-hero::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 600px; height: 600px;
+  transform: translate(-50%, -55%);
+  background: radial-gradient(circle, rgba(212,175,55,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+.lp-hero-inner {
+  position: relative;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 80px 24px 64px;
+  text-align: center;
+}
+.lp-hero-label {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  color: #D4AF37;
+  margin-bottom: 24px;
+}
+.lp-hero-title {
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1.08;
+  color: #FAFAFA;
+  margin: 0 0 24px;
+  letter-spacing: -0.02em;
+}
+.lp-hero-subtitle {
+  font-size: 17px;
+  line-height: 1.7;
+  color: #A1A1AA;
+  max-width: 520px;
+  margin: 0 auto 40px;
+}
+.lp-hero-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 64px;
+}
+.lp-hero-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  padding: 14px 32px;
+  background: #D4AF37;
+  color: #09090B;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background 0.2s, transform 0.15s;
+}
+.lp-hero-btn-primary:hover { background: #E0C054; transform: translateY(-1px); }
+.lp-hero-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  padding: 14px 32px;
+  background: transparent;
+  color: #FAFAFA;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  text-decoration: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+.lp-hero-btn-secondary:hover { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.04); }
+.lp-hero-stats {
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+}
+.lp-stat { display: flex; flex-direction: column; align-items: center; }
+.lp-stat-number {
+  font-size: 28px;
+  font-weight: 700;
+  color: #D4AF37;
+  line-height: 1.2;
+}
+.lp-stat-label {
+  font-size: 12px;
+  color: #71717A;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* ── SECTIONS COMMON ── */
+.lp-section {
+  padding: 96px 24px;
+}
+.lp-section-alt {
+  background: #0D0D0F;
+}
+.lp-section-inner {
+  max-width: 960px;
+  margin: 0 auto;
+}
+.lp-section-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  color: #D4AF37;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.lp-section-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #FAFAFA;
+  text-align: center;
+  margin: 0 0 56px;
+  letter-spacing: -0.01em;
+}
+
+/* ── BENEFITS ── */
+.lp-benefits {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+.lp-benefit-card {
+  background: #18181B;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 32px 24px;
+  transition: border-color 0.3s, transform 0.2s;
+}
+.lp-benefit-card:hover {
+  border-color: rgba(212,175,55,0.25);
+  transform: translateY(-2px);
+}
+.lp-benefit-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(212,175,55,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+.lp-benefit-icon svg { width: 20px; height: 20px; }
+.lp-benefit-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #FAFAFA;
+  margin: 0 0 10px;
+}
+.lp-benefit-desc {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #A1A1AA;
+  margin: 0;
+}
+
+/* ── IMPORTS ── */
+.lp-imports {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.lp-import-card {
+  background: #18181B;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color 0.3s, transform 0.2s;
+}
+.lp-import-card:hover {
+  border-color: rgba(212,175,55,0.25);
+  transform: translateY(-2px);
+}
+.lp-import-img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+}
+.lp-import-info {
+  padding: 20px;
+}
+.lp-import-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #FAFAFA;
+  margin: 0 0 6px;
+}
+.lp-import-tag {
+  font-size: 11px;
+  color: #71717A;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+/* ── BRANDS ── */
+.lp-brands {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  flex-wrap: wrap;
+  padding: 16px 0;
+}
+.lp-brand-logo {
+  height: 36px;
+  width: auto;
+  filter: grayscale(1) brightness(0.7);
+  opacity: 0.5;
+  transition: filter 0.3s, opacity 0.3s;
+}
+.lp-brand-logo:hover {
+  filter: grayscale(0) brightness(1);
+  opacity: 1;
+}
+
+/* ── CTA SECTION ── */
+.lp-cta-section {
+  background: radial-gradient(ellipse at 50% 100%, rgba(212,175,55,0.06) 0%, transparent 60%),
+              #09090B;
+}
+.lp-cta-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+/* ── FOOTER ── */
+.lp-footer {
+  background: #0A0A0C;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 64px 24px 32px;
+}
+.lp-footer-inner {
+  max-width: 960px;
+  margin: 0 auto;
+}
+.lp-footer-top {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  gap: 40px;
+  margin-bottom: 48px;
+}
+.lp-footer-brand p {
+  font-size: 13px;
+  color: #71717A;
+  line-height: 1.7;
+  margin: 16px 0 0;
+}
+.lp-footer-col-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #71717A;
+  margin: 0 0 16px;
+  text-transform: uppercase;
+}
+.lp-footer-col a {
+  display: block;
+  font-size: 13px;
+  color: #A1A1AA;
+  text-decoration: none;
+  padding: 4px 0;
+  transition: color 0.2s;
+}
+.lp-footer-col a:hover { color: #FAFAFA; }
+.lp-footer-bottom {
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.lp-footer-copy {
+  font-size: 12px;
+  color: #52525B;
+}
+.lp-footer-socials {
+  display: flex;
+  gap: 16px;
+}
+.lp-footer-socials a {
+  color: #52525B;
+  transition: color 0.2s;
+}
+.lp-footer-socials a:hover { color: #D4AF37; }
+.lp-footer-socials svg { width: 18px; height: 18px; }
+
+/* ── MOBILE NAV TOGGLE ── */
+.lp-nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #A1A1AA;
+}
+.lp-nav-toggle svg { width: 24px; height: 24px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .lp-nav-links { display: none; }
+  .lp-nav-toggle { display: block; }
+  .lp-nav-links.lp-nav-open {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 64px; left: 0; right: 0;
+    background: rgba(9,9,11,0.97);
+    backdrop-filter: blur(16px);
+    padding: 16px 24px;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .lp-hero-title { font-size: 38px; }
+  .lp-hero-subtitle { font-size: 15px; }
+  .lp-hero-stats { gap: 24px; }
+  .lp-stat-number { font-size: 22px; }
+  .lp-benefits { grid-template-columns: repeat(2, 1fr); }
+  .lp-imports { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
+  .lp-brands { gap: 24px; }
+  .lp-brand-logo { height: 28px; }
+  .lp-footer-top { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .lp-section { padding: 64px 20px; }
+  .lp-section-title { font-size: 26px; margin-bottom: 40px; }
+}
+
+@media (max-width: 480px) {
+  .lp-nav-cta { display: none; }
+  .lp-hero-inner { padding: 48px 20px 48px; }
+  .lp-hero-title { font-size: 30px; }
+  .lp-hero-actions { flex-direction: column; align-items: center; }
+  .lp-hero-stats { flex-direction: column; gap: 16px; }
+  .lp-benefits { grid-template-columns: 1fr; }
+  .lp-footer-top { grid-template-columns: 1fr; }
+  .lp-footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
+  .lp-cta-actions { flex-direction: column; align-items: center; }
+}
+
 </style>
 <!-- jsPDF loaded on demand to improve page speed -->
 <script>
@@ -685,6 +1105,43 @@ async function submitLeadFromReserve() {
 </script>
 </head>
 <body>
+<!-- ═══ LANDING PAGE: NAV ═══ -->
+<nav class="lp-nav">
+  <div class="lp-nav-inner">
+    <a href="#" class="lp-logo"><img src="/img/logo.svg" alt="The Selection" height="28"></a>
+    <div class="lp-nav-links" id="lp-nav-menu">
+      <a href="#simulador">Simulador</a>
+      <a href="#vantagens">Vantagens</a>
+      <a href="#importacoes">Importações</a>
+      <a href="#contacto">Contacto</a>
+    </div>
+    <a href="#simulador" class="lp-nav-cta">Simular Importação</a>
+    <button class="lp-nav-toggle" onclick="document.getElementById('lp-nav-menu').classList.toggle('lp-nav-open')" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- ═══ LANDING PAGE: HERO ═══ -->
+<section class="lp-hero">
+  <div class="lp-hero-inner">
+    <span class="lp-hero-label">THE SELECTION IMPORTS</span>
+    <h1 class="lp-hero-title">Importação de<br>Excelência</h1>
+    <p class="lp-hero-subtitle">Oferecemos uma importação chave-na-mão. Desde a escolha até à entrega do seu novo carro — descomplicado, seguro e confortável.</p>
+    <div class="lp-hero-actions">
+      <a href="#simulador" class="lp-hero-btn-primary">Simular Importação</a>
+      <a href="#vantagens" class="lp-hero-btn-secondary">Saber Mais</a>
+    </div>
+    <div class="lp-hero-stats">
+      <div class="lp-stat"><span class="lp-stat-number">500+</span><span class="lp-stat-label">Veículos Importados</span></div>
+      <div class="lp-stat"><span class="lp-stat-number">30%</span><span class="lp-stat-label">Poupança Média</span></div>
+      <div class="lp-stat"><span class="lp-stat-number">100%</span><span class="lp-stat-label">Chave-na-Mão</span></div>
+    </div>
+  </div>
+</section>
+
+<div id="simulador"></div>
+
 <div class="ts-container" id="app">
   <!-- INITIAL STATE: URL INPUT -->
   <div id="initial-view" class="ts-fade-in" style="display:flex;flex-direction:column;align-items:center;gap:40px;padding-top:48px">
@@ -3012,6 +3469,159 @@ function generatePDF() {
     </div>
   </div>
 </div>
+
+
+<!-- ═══ LANDING PAGE: BENEFITS ═══ -->
+<section class="lp-section" id="vantagens">
+  <div class="lp-section-inner">
+    <span class="lp-section-label">PORQUÊ A THE SELECTION</span>
+    <h2 class="lp-section-title">Poupança, Segurança e Conforto</h2>
+    <div class="lp-benefits">
+
+      <div class="lp-benefit-card">
+        <div class="lp-benefit-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <h3 class="lp-benefit-title">Facilidade</h3>
+        <p class="lp-benefit-desc">É incrivelmente simples importar com a The Selection. Escolha a viatura — marca, modelo, características — e usufrua do nosso aconselhamento.</p>
+      </div>
+
+      <div class="lp-benefit-card">
+        <div class="lp-benefit-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3 class="lp-benefit-title">Qualidade</h3>
+        <p class="lp-benefit-desc">Os veículos importados, na maioria dos casos, são veículos muito bem cuidados com poucos quilómetros e maior oferta de equipamentos e extras.</p>
+      </div>
+
+      <div class="lp-benefit-card">
+        <div class="lp-benefit-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        </div>
+        <h3 class="lp-benefit-title">Poupança</h3>
+        <p class="lp-benefit-desc">Em vários casos, conseguimos uma poupança na compra dos veículos importados de até 30% face ao valor praticado no mercado português com um veículo similar.</p>
+      </div>
+
+      <div class="lp-benefit-card">
+        <div class="lp-benefit-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+        </div>
+        <h3 class="lp-benefit-title">Segurança</h3>
+        <p class="lp-benefit-desc">Todos os veículos importados pela The Selection são pré-avaliados, higienizados e preparados pelos nossos especialistas.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══ LANDING PAGE: RECENT IMPORTS ═══ -->
+<section class="lp-section lp-section-alt" id="importacoes">
+  <div class="lp-section-inner">
+    <span class="lp-section-label">IMPORTAÇÕES RECENTES</span>
+    <h2 class="lp-section-title">Veículos Entregues aos Nossos Clientes</h2>
+    <div class="lp-imports">
+
+      <div class="lp-import-card">
+        <img src="/img/audi-etron-gt.jpg" alt="Audi E-Tron GT" class="lp-import-img" loading="lazy">
+        <div class="lp-import-info">
+          <p class="lp-import-name">Audi E-Tron GT</p>
+          <span class="lp-import-tag">IMPORTADO DA ALEMANHA</span>
+        </div>
+      </div>
+
+      <div class="lp-import-card">
+        <img src="/img/porsche-taycan.jpg" alt="Porsche Taycan" class="lp-import-img" loading="lazy">
+        <div class="lp-import-info">
+          <p class="lp-import-name">Porsche Taycan</p>
+          <span class="lp-import-tag">IMPORTADO DA ALEMANHA</span>
+        </div>
+      </div>
+
+      <div class="lp-import-card">
+        <img src="/img/bmw-330e.jpg" alt="BMW 330e Pack M" class="lp-import-img" loading="lazy">
+        <div class="lp-import-info">
+          <p class="lp-import-name">BMW 330e Pack M</p>
+          <span class="lp-import-tag">IMPORTADO DA ALEMANHA</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══ LANDING PAGE: BRANDS ═══ -->
+<section class="lp-section" id="marcas">
+  <div class="lp-section-inner">
+    <span class="lp-section-label">MARCAS MAIS IMPORTADAS</span>
+    <div class="lp-brands">
+      <img src="/img/mercedes.png" alt="Mercedes-Benz" class="lp-brand-logo" loading="lazy">
+      <img src="/img/bmw.png" alt="BMW" class="lp-brand-logo" loading="lazy">
+      <img src="/img/audi.png" alt="Audi" class="lp-brand-logo" loading="lazy">
+      <img src="/img/porsche.png" alt="Porsche" class="lp-brand-logo" loading="lazy">
+      <img src="/img/tesla.png" alt="Tesla" class="lp-brand-logo" loading="lazy">
+      <img src="/img/jaguar.png" alt="Jaguar" class="lp-brand-logo" loading="lazy">
+    </div>
+  </div>
+</section>
+
+<!-- ═══ LANDING PAGE: CTA ═══ -->
+<section class="lp-section lp-cta-section" id="contacto">
+  <div class="lp-section-inner" style="text-align:center">
+    <h2 class="lp-section-title" style="margin-bottom:20px">Pronto para Importar o Seu Veículo?</h2>
+    <p style="font-size:16px;color:#A1A1AA;line-height:1.7;max-width:480px;margin:0 auto">Peça a sua proposta sem compromisso. Os nossos especialistas ajudam-no em todo o processo.</p>
+    <div class="lp-cta-actions">
+      <a href="#simulador" class="lp-hero-btn-primary">Simular Agora</a>
+      <a href="https://wa.me/351935711561" target="_blank" rel="noopener" class="lp-hero-btn-secondary">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" style="width:16px;height:16px;margin-right:8px"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.556 4.122 1.525 5.855L.058 23.708l5.993-1.572A11.956 11.956 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.782 9.782 0 01-5.39-1.612l-.386-.23-3.556.933.95-3.467-.252-.4A9.78 9.78 0 012.182 12 9.818 9.818 0 0112 2.182 9.818 9.818 0 0121.818 12 9.818 9.818 0 0112 21.818z"/></svg>
+        WhatsApp
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ LANDING PAGE: FOOTER ═══ -->
+<footer class="lp-footer">
+  <div class="lp-footer-inner">
+    <div class="lp-footer-top">
+      <div class="lp-footer-brand">
+        <img src="/img/logo.svg" alt="The Selection" height="24">
+        <p>Fácil, seguro e confortável.<br>Assim é importar com a The Selection.</p>
+      </div>
+      <div class="lp-footer-col">
+        <p class="lp-footer-col-title">Navegação</p>
+        <a href="#simulador">Simulador</a>
+        <a href="#vantagens">Vantagens</a>
+        <a href="#importacoes">Importações Recentes</a>
+        <a href="#marcas">Marcas</a>
+      </div>
+      <div class="lp-footer-col">
+        <p class="lp-footer-col-title">Contacto</p>
+        <a href="tel:+351935711561">+351 935 711 561</a>
+        <a href="mailto:automoveis@theselection.pt">automoveis@theselection.pt</a>
+        <a href="https://maps.google.com/?q=R.+Prof.+Manuel+Baganha+237+Porto" target="_blank" rel="noopener">R. Prof. Manuel Baganha 237<br>4350-009 Porto</a>
+      </div>
+      <div class="lp-footer-col">
+        <p class="lp-footer-col-title">Legal</p>
+        <a href="#">Política de Privacidade</a>
+        <a href="#">Termos e Condições</a>
+      </div>
+    </div>
+    <div class="lp-footer-bottom">
+      <span class="lp-footer-copy">&copy; 2026 The Selection Imports. Todos os direitos reservados.</span>
+      <div class="lp-footer-socials">
+        <a href="https://www.instagram.com/theselectionimports/" target="_blank" rel="noopener" aria-label="Instagram">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+        </a>
+        <a href="https://www.facebook.com/theselectionimports" target="_blank" rel="noopener" aria-label="Facebook">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        </a>
+        <a href="https://www.tiktok.com/@theselectionimports" target="_blank" rel="noopener" aria-label="TikTok">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 0010.86 4.46V13.2a8.16 8.16 0 005.58 2.2V12a4.85 4.85 0 01-3.58-1.59V6.69h3.58z"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
 
 <div style="text-align:center;padding:8px;opacity:0.3;font-size:10px;color:#666">v2.6</div>
 </body>
