@@ -318,8 +318,9 @@ export default async function handler(req, res) {
     const cacheKey = `${brand}_${model}_${year}_${displacement}_${power}`.toLowerCase().replace(/\s+/g, '_');
     
     // ── Check cache (permanent — CO2 values don't change) ──
+    const forceRefresh = params.force === '1' || params.force === 'true';
     const sql = await getSQL();
-    if (sql) {
+    if (sql && !forceRefresh) {
       try {
         const rows = await sql`SELECT co2_value, version_name, source_url FROM co2_cache WHERE cache_key = ${cacheKey}`;
         if (rows.length > 0) {
@@ -335,6 +336,7 @@ export default async function handler(req, res) {
         }
       } catch (e) { /* cache miss */ }
     }
+    if (forceRefresh) console.log('[CO2] Force refresh — bypassing cache');
     
     const slug = brandSlug(brand);
     console.log(`[CO2] Lookup: ${slug} ${model} | year:${year} disp:${displacement}cc power:${power}PS`);
