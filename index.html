@@ -1942,24 +1942,26 @@ async function handleImportUrl() {
       state.emissionStandard = data.registrationYear >= 2020 ? 'WLTP' : 'NEDC';
     }
 
-    // Try to get CO2 from API if not available
+    // Try to get CO2 from Ultimate Specs if not available
     if (!data.co2 && state.fuelType !== 'eletrico') {
       try {
-        const co2Resp = await fetch('/api/get-co2', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            brand: data.brand || (data.title ? data.title.split(' ')[0] : ''),
-            model: data.model || (data.title ? data.title.split(' ').slice(1,3).join(' ') : ''),
-            fuelType: state.fuelType,
-            engineSize: Number(state.displacement) || 0,
-          }),
+        const brandName = data.brand || (data.title ? data.title.split(' ')[0] : '');
+        const modelParts = data.title ? data.title.replace(brandName, '').trim().split(/\s+/) : [];
+        const modelName = data.model || modelParts.slice(0, 2).join(' ');
+        const params = new URLSearchParams({
+          brand: brandName,
+          model: modelName,
+          year: data.registrationYear || '',
+          displacement: state.displacement || '',
+          power: data.power || ''
         });
+        const co2Resp = await fetch('/api/co2-lookup?' + params.toString());
         if (co2Resp.ok) {
           const co2Data = await co2Resp.json();
           if (co2Data.co2) {
             state.co2 = String(co2Data.co2);
-            state.co2Source = co2Data.source || 'Base de dados';
+            state.co2Source = co2Data.versionName ? 'Ultimate Specs (' + co2Data.versionName + ')' : 'Ultimate Specs';
+            if (co2Data.standard) state.emissionStandard = co2Data.standard;
           }
         }
       } catch (e) { console.log('CO2 lookup failed:', e); }
