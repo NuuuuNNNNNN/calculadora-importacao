@@ -33,7 +33,7 @@ export default async function handler(req, res) {
 
     // Get leads for this referral code
     const leads = await sql`
-      SELECT id, name, status, vehicle_title, created_at
+      SELECT id, name, conversion_status, vehicle_title, created_at
       FROM referral_leads
       WHERE referral_code = ${code}
       ORDER BY created_at DESC
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
         total_simulations: Number(stats[0]?.total_simulations || 0),
         unique_vehicles: Number(stats[0]?.unique_vehicles || 0),
         leads: leads.length,
-        conversions: leads.filter(l => l.status === 'converted' || l.status === 'paid').length,
+        conversions: leads.filter(l => l.conversion_status === 'completed' || l.conversion_status === 'paid').length,
         first_activity: stats[0]?.first_simulation,
         last_activity: stats[0]?.last_simulation
       },
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
       })),
       leads: leads.map(l => ({
         name: l.name,
-        status: l.status,
+        status: l.conversion_status,
         vehicle: l.vehicle_title,
         date: l.created_at
       }))
