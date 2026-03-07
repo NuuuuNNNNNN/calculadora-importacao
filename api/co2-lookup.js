@@ -439,7 +439,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ 
         error: 'No matching version found', 
         brand: slug, model, year, displacement, power,
-        generationsChecked: debugGens,
+        generationsChecked: gensToTry.map(g => g.name),
         ms: Date.now() - startTime 
       });
     }
@@ -482,8 +482,7 @@ export default async function handler(req, res) {
       versionName,
       sourceUrl: versionUrl,
       cached: false,
-      ms: totalMs,
-      _debug: { generationsChecked: debugGens }
+      ms: totalMs
     });
     
   } catch (error) {
