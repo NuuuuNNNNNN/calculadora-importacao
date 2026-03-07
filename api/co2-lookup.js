@@ -404,28 +404,35 @@ export default async function handler(req, res) {
     // Try multiple generations and pick the best match across all
     let bestVersion = null;
     let bestScore = -1;
+    const debugGens = [];
     
     for (const gen of gensToTry) {
+      const genDebug = { name: gen.name, url: gen.url, versionCount: gen.versionCount };
       try {
         const genUrl = `https://www.ultimatespecs.com${gen.url}`;
         const genPageHtml = await fetchPage(genUrl);
+        genDebug.htmlLength = genPageHtml.length;
         
         const result = findBestVersion(genPageHtml, year, displacement, power);
+        genDebug.bestMatch = result ? { name: result.version.displayName, score: result.score, year: result.version.year, hp: result.version.hp, disp: result.version.disp } : null;
+        
         if (result && result.score > bestScore) {
           bestScore = result.score;
           bestVersion = result.version;
           console.log(`[CO2] Better match in ${gen.name}: ${result.version.displayName} (score: ${result.score})`);
         }
       } catch (e) {
+        genDebug.error = e.message;
         console.log(`[CO2] Generation ${gen.name} failed: ${e.message}`);
       }
+      debugGens.push(genDebug);
     }
     
     if (!bestVersion) {
       return res.status(404).json({ 
         error: 'No matching version found', 
         brand: slug, model, year, displacement, power,
-        generationsChecked: gensToTry.map(g => g.name),
+        generationsChecked: debugGens,
         ms: Date.now() - startTime 
       });
     }
@@ -468,7 +475,8 @@ export default async function handler(req, res) {
       versionName,
       sourceUrl: versionUrl,
       cached: false,
-      ms: totalMs
+      ms: totalMs,
+      _debug: { generationsChecked: debugGens }
     });
     
   } catch (error) {
