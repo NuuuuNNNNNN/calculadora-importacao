@@ -81,14 +81,29 @@ async function fetchPage(url) {
 
 // ── Step 1: Find model page URL ──
 // Input: "CLA 180" → tries "CLA-180", then "CLA"
-function getModelSearchTerms(model) {
+// BMW special: "320d" → also tries "3-Series"
+function getModelSearchTerms(brand, model) {
   const clean = model.trim().replace(/[^\w\s-]/g, '');
   const parts = clean.split(/\s+/);
   const terms = [];
+  
+  // Progressive shortening: "CLA 180" → ["CLA-180", "CLA"]
   for (let i = parts.length; i >= 1; i--) {
     terms.push(parts.slice(0, i).join('-'));
   }
-  return terms;
+  
+  // BMW: variant → series mapping (320d → 3-Series, X3 → X3, M5 → M5)
+  const brandLower = (brand || '').toLowerCase();
+  if (brandLower.includes('bmw')) {
+    const seriesFromVariant = clean.match(/^(\d)\d{2}/);
+    if (seriesFromVariant) {
+      terms.push(`${seriesFromVariant[1]}-Series`);
+    }
+    // X-series, Z-series, i-series already work as first word
+  }
+  
+  // Remove duplicates
+  return [...new Set(terms)];
 }
 
 // ── Step 2: Find generation page URL from model page ──
@@ -224,7 +239,7 @@ function findBestVersion(html, year, displacement, power) {
     console.log(`[CO2] Best match: ${bestVersion.displayName} (score: ${bestScore}, year: ${bestVersion.year}, ${bestVersion.hp}hp, ${bestVersion.disp}cc)`);
   }
   
-  return bestVersion;
+  return bestVersion ? { version: bestVersion, score: bestScore } : null;
 }
 
 // ── Step 4: Extract CO2 from version detail page ──
@@ -320,7 +335,7 @@ export default async function handler(req, res) {
     // ══════════════════════════════════════
     // Step 1: Find model page on Ultimate Specs
     // ══════════════════════════════════════
-    const searchTerms = getModelSearchTerms(model);
+    const searchTerms = getModelSearchTerms(brand, model);
     let modelPageHtml = null;
     
     for (const term of searchTerms) {
@@ -377,19 +392,29 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'No generations found', brand: slug, model, ms: Date.now() - startTime });
     }
     
-    // Try each generation (sorted by relevance)
-    let bestVersion = null;
-    let genPageHtml = null;
+    // Filter: skip body variants (Variant, Cabrio, Alltrack, etc.)
+    const mainGenerations = generations.filter(g => {
+      const n = g.name.toLowerCase();
+      return !n.includes('variant') && !n.includes('cabrio') && !n.includes('convertible') && 
+             !n.includes('alltrack') && !n.includes('sportsvan') && !n.includes('plus') &&
+             !n.includes('cross') && !n.includes('wagon');
+    });
+    const gensToTry = (mainGenerations.length > 0 ? mainGenerations : generations).slice(0, 4);
     
-    for (const gen of generations.slice(0, 3)) { // Try top 3 at most
+    // Try multiple generations and pick the best match across all
+    let bestVersion = null;
+    let bestScore = -1;
+    
+    for (const gen of gensToTry) {
       try {
         const genUrl = `https://www.ultimatespecs.com${gen.url}`;
-        genPageHtml = await fetchPage(genUrl);
+        const genPageHtml = await fetchPage(genUrl);
         
-        const version = findBestVersion(genPageHtml, year, displacement, power);
-        if (version) {
-          bestVersion = version;
-          break;
+        const result = findBestVersion(genPageHtml, year, displacement, power);
+        if (result && result.score > bestScore) {
+          bestScore = result.score;
+          bestVersion = result.version;
+          console.log(`[CO2] Better match in ${gen.name}: ${result.version.displayName} (score: ${result.score})`);
         }
       } catch (e) {
         console.log(`[CO2] Generation ${gen.name} failed: ${e.message}`);
@@ -400,7 +425,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ 
         error: 'No matching version found', 
         brand: slug, model, year, displacement, power,
-        generationsChecked: generations.slice(0, 3).map(g => g.name),
+        generationsChecked: gensToTry.map(g => g.name),
         ms: Date.now() - startTime 
       });
     }
