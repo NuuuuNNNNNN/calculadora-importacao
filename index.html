@@ -2035,7 +2035,8 @@ async function handleImportUrl() {
           model: modelName,
           year: data.registrationYear || '',
           displacement: state.displacement || '',
-          power: data.power || ''
+          power: data.power || '',
+          fuelType: state.fuelType || ''
         });
         const co2Resp = await fetch('/api/co2-lookup?' + params.toString());
         if (co2Resp.ok) {

@@ -167,8 +167,27 @@ function findGenerationUrls(html, year) {
   return results;
 }
 
+// ── Hybrid detection helpers ──
+function isHybridFuelType(fuelType) {
+  if (!fuelType) return false;
+  const ft = fuelType.toLowerCase();
+  return ft.includes('hybrid') || ft.includes('híbrido') || ft.includes('hibrido') || 
+         ft.includes('plug-in') || ft.includes('plugin') || ft.includes('phev') ||
+         ft.includes('hibrido_plugin') || ft.includes('hibrido_normal');
+}
+
+function versionNameIsHybrid(name) {
+  if (!name) return false;
+  const n = name.toLowerCase();
+  return n.includes('e-hybrid') || n.includes('ehybrid') || n.includes('hybrid') || 
+         n.includes('phev') || n.includes('plug-in') || n.includes('plugin') ||
+         n.includes('e-tron') || n.includes('xdrive45e') || n.includes('xdrive40e') ||
+         n.includes('edrive') || n.includes('recharge') || n.includes('tfsi e') ||
+         n.includes('epower') || n.includes('e-power');
+}
+
 // ── Step 3: Find best matching version from generation page ──
-function findBestVersion(html, year, displacement, power) {
+function findBestVersion(html, year, displacement, power, fuelType) {
   const versions = [];
   
   // Parse version links from the HTML table
@@ -234,6 +253,22 @@ function findBestVersion(html, year, displacement, power) {
       if (v.hp === power) score += 50;
       else if (Math.abs(v.hp - power) <= 5) score += 30;
       else if (Math.abs(v.hp - power) <= 20) score += 10;
+    }
+    
+    // Fuel type / Hybrid matching (CRITICAL for correct CO2)
+    // A hybrid Cayenne E-Hybrid has ~72 g/km vs Cayenne V6 at 265 g/km
+    const vIsHybrid = versionNameIsHybrid(v.displayName) || versionNameIsHybrid(v.urlName);
+    const searchIsHybrid = isHybridFuelType(fuelType);
+    
+    if (searchIsHybrid && vIsHybrid) {
+      // Strong bonus: searching for hybrid AND version is hybrid
+      score += 200;
+    } else if (searchIsHybrid && !vIsHybrid) {
+      // Penalty: searching for hybrid but version is NOT hybrid
+      score -= 150;
+    } else if (!searchIsHybrid && vIsHybrid) {
+      // Mild penalty: NOT searching for hybrid but version IS hybrid
+      score -= 80;
     }
     
     if (score > bestScore) {
@@ -309,13 +344,14 @@ export default async function handler(req, res) {
     const year = parseInt(params.year) || 0;
     const displacement = parseInt(params.displacement) || 0;
     const power = parseInt(params.power) || 0;
+    const fuelType = params.fuelType || '';
     
     if (!brand || !model) {
       return res.status(400).json({ error: 'Missing brand and model' });
     }
     
     // ── Cache key ──
-    const cacheKey = `${brand}_${model}_${year}_${displacement}_${power}`.toLowerCase().replace(/\s+/g, '_');
+    const cacheKey = `${brand}_${model}_${year}_${displacement}_${power}_${fuelType}`.toLowerCase().replace(/\s+/g, '_');
     
     // ── Check cache (permanent — CO2 values don't change) ──
     const forceRefresh = params.force === '1' || params.force === 'true';
@@ -339,7 +375,7 @@ export default async function handler(req, res) {
     if (forceRefresh) console.log('[CO2] Force refresh — bypassing cache');
     
     const slug = brandSlug(brand);
-    console.log(`[CO2] Lookup: ${slug} ${model} | year:${year} disp:${displacement}cc power:${power}PS`);
+    console.log(`[CO2] Lookup: ${slug} ${model} | year:${year} disp:${displacement}cc power:${power}PS fuel:${fuelType}`);
     
     // ══════════════════════════════════════
     // Step 1: Find model page on Ultimate Specs
@@ -422,7 +458,7 @@ export default async function handler(req, res) {
         const genPageHtml = await fetchPage(genUrl);
         genDebug.htmlLength = genPageHtml.length;
         
-        const result = findBestVersion(genPageHtml, year, displacement, power);
+        const result = findBestVersion(genPageHtml, year, displacement, power, fuelType);
         genDebug.bestMatch = result ? { name: result.version.displayName, score: result.score, year: result.version.year, hp: result.version.hp, disp: result.version.disp } : null;
         
         if (result && result.score > bestScore) {
