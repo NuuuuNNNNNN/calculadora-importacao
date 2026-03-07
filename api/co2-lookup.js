@@ -146,15 +146,22 @@ function findGenerationUrls(html, year) {
     results.push({ url, id, name, startYear, endYear, isVariant, versionCount });
   }
   
-  if (!year || results.length === 0) return results;
+  if (results.length === 0) return results;
   
-  // Sort: prefer matching year range, non-variant, most versions
+  // Ultimate Specs lists generations newest-first on the page.
+  // Preserve that order but move year-matching and non-variant to top.
+  // DO NOT sort by version count (biases towards older, larger gens).
   results.sort((a, b) => {
-    const aInRange = year >= a.startYear && year <= a.endYear ? 1 : 0;
-    const bInRange = year >= b.startYear && year <= b.endYear ? 1 : 0;
-    if (aInRange !== bInRange) return bInRange - aInRange;
+    // Year range match is top priority
+    if (year) {
+      const aInRange = year >= a.startYear && year <= a.endYear ? 1 : 0;
+      const bInRange = year >= b.startYear && year <= b.endYear ? 1 : 0;
+      if (aInRange !== bInRange) return bInRange - aInRange;
+    }
+    // Non-variants preferred
     if (a.isVariant !== b.isVariant) return a.isVariant ? 1 : -1;
-    return b.versionCount - a.versionCount;
+    // Otherwise: preserve page order (index in results = page order)
+    return 0;
   });
   
   return results;
@@ -399,7 +406,7 @@ export default async function handler(req, res) {
              !n.includes('alltrack') && !n.includes('sportsvan') && !n.includes('plus') &&
              !n.includes('cross') && !n.includes('wagon');
     });
-    const gensToTry = (mainGenerations.length > 0 ? mainGenerations : generations).slice(0, 4);
+    const gensToTry = (mainGenerations.length > 0 ? mainGenerations : generations).slice(0, 6);
     
     // Try multiple generations and pick the best match across all
     let bestVersion = null;
