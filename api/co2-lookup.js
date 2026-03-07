@@ -3,6 +3,9 @@
 // Fallback when mobile.de doesn't have CO2 data
 // Flow: brand+model → find model page → find generation → find version → extract CO2
 // Cache: permanent in Neon DB (CO2 doesn't change for a given version)
+//
+// CRITICAL: Uses fuel type classification to avoid matching wrong versions
+// e.g., GLC 220d (diesel, 160 g/km) vs GLC 300de (PHEV, 46 g/km)
 // ═══════════════════════════════════════
 
 let _sql = null;
@@ -26,7 +29,114 @@ async function getSQL() {
   }
 }
 
-// ── Brand name → URL slug mapping ──
+// ═══════════════════════════════════════
+// Fuel Type Classification System
+// Categories: ELECTRIC, PHEV, FULL_HYBRID, MILD_HYBRID, DIESEL, PETROL, UNKNOWN
+// ═══════════════════════════════════════
+
+// Classify fuel type from search parameters (Portuguese/German terms from mobile.de scraper)
+function classifySearchFuelType(fuelType) {
+  if (!fuelType) return 'UNKNOWN';
+  const ft = fuelType.toLowerCase().trim();
+  
+  // Electric
+  if (ft.includes('electr') || ft.includes('elétr') || ft.includes('eletr') || ft === 'ev' || ft === 'bev') return 'ELECTRIC';
+  
+  // Plug-in Hybrid (check BEFORE generic hybrid)
+  if (ft.includes('plug') || ft.includes('phev') || ft.includes('hibrido_plugin') || ft.includes('híbrido plug')) return 'PHEV';
+  
+  // Full Hybrid (generic hybrid without plug-in qualifier)
+  if (ft.includes('hybrid') || ft.includes('híbrido') || ft.includes('hibrido') || ft.includes('hev')) return 'FULL_HYBRID';
+  
+  // Diesel
+  if (ft.includes('diesel') || ft.includes('gasóleo') || ft.includes('gasoleo')) return 'DIESEL';
+  
+  // Petrol
+  if (ft.includes('gasol') || ft.includes('petrol') || ft.includes('benzin') || ft.includes('super')) return 'PETROL';
+  
+  return 'UNKNOWN';
+}
+
+// Classify fuel type from Ultimate Specs version name
+// e.g., "GLC 300 de 4MATIC" → PHEV, "320d" → DIESEL, "330e" → PHEV
+function classifyVersionFuelType(displayName, urlName) {
+  const name = ((displayName || '') + ' ' + (urlName || '')).toLowerCase();
+  
+  // ── PHEV indicators (most specific — check first) ──
+  if (name.includes('plug-in') || name.includes('plugin') || name.includes('phev') ||
+      name.includes('e-hybrid') || name.includes('ehybrid') ||
+      name.match(/\bgte\b/) ||
+      name.includes('tfsi e') || name.includes('tsi e') ||
+      name.match(/\d{2,3}\s*de\b/) ||               // Mercedes "300 de" = diesel+electric PHEV
+      name.match(/\d{2,3}e\b/) ||                    // BMW "330e", "530e", "745e"
+      name.match(/xdrive\d+e\b/) ||                  // BMW "xDrive45e", "xDrive30e"
+      name.match(/recharge\s+t[68]/i)) {             // Volvo "Recharge T6/T8"
+    return 'PHEV';
+  }
+  
+  // ── Mild Hybrid ──
+  if (name.includes('mhev') || name.includes('mild hybrid') || name.includes('mild-hybrid') ||
+      name.includes('48v') || name.includes('eq boost')) {
+    return 'MILD_HYBRID';
+  }
+  
+  // ── Full Hybrid (generic "hybrid" without plug-in/mild qualifiers) ──
+  if (name.includes('hybrid') || name.includes('hsd') || name.includes('e-cvt') ||
+      name.includes('self-charging') || name.includes('full hybrid')) {
+    return 'FULL_HYBRID';
+  }
+  
+  // ── Electric ──
+  if (name.includes('electric') || name.match(/\bev\s/) || name.match(/\bbev\b/)) {
+    return 'ELECTRIC';
+  }
+  
+  // ── Diesel indicators ──
+  if (name.match(/\d{2,3}d\b/) ||                    // BMW "320d", "xDrive20d"
+      name.match(/\d{2,3}\s+d\b/) ||                 // Mercedes "220 d", "300 d"
+      name.match(/\btdi\b/) || name.match(/\bcdi\b/) || name.match(/\bdci\b/) ||
+      name.includes('bluehdi') || name.includes('blue hdi') || name.includes('hdi') ||
+      name.includes('d-4d') || name.includes('d4d') ||
+      name.match(/\bjtd\b/) || name.includes('crdi') ||
+      name.includes('skyactiv-d') || name.match(/\bdiesel\b/)) {
+    return 'DIESEL';
+  }
+  
+  // ── Default to PETROL (most common on Ultimate Specs) ──
+  return 'PETROL';
+}
+
+// Score compatibility between search fuel type and version fuel type
+// Returns: +200 (exact match) to -500 (critical mismatch)
+function fuelTypeCompatibilityScore(searchFuel, versionFuel) {
+  // Can't judge if we don't know; electric doesn't need CO2
+  if (searchFuel === 'UNKNOWN' || searchFuel === 'ELECTRIC') return 0;
+  if (versionFuel === 'UNKNOWN') return 0;
+  
+  // Exact match → strong bonus
+  if (searchFuel === versionFuel) return 200;
+  
+  // Compatible: mild hybrid ≈ petrol/diesel (CO2 is very similar)
+  if ((searchFuel === 'DIESEL' || searchFuel === 'PETROL') && versionFuel === 'MILD_HYBRID') return 30;
+  if (searchFuel === 'MILD_HYBRID' && (versionFuel === 'PETROL' || versionFuel === 'DIESEL')) return 30;
+  
+  // Somewhat incompatible (full hybrid vs petrol: ~120 vs ~160 g/km)
+  if (searchFuel === 'FULL_HYBRID' && versionFuel === 'PETROL') return -200;
+  if (searchFuel === 'PETROL' && versionFuel === 'FULL_HYBRID') return -200;
+  if (searchFuel === 'FULL_HYBRID' && versionFuel === 'MILD_HYBRID') return -100;
+  
+  // VERY incompatible — dramatically different CO2 values
+  // Diesel ↔ PHEV: 160 vs 46 g/km = CRITICAL mismatch
+  // PHEV ↔ Petrol: 35 vs 160 g/km = CRITICAL mismatch
+  // Full Hybrid ↔ PHEV: 120 vs 35 g/km = SIGNIFICANT mismatch
+  return -500;
+}
+
+
+// ═══════════════════════════════════════
+// Brand and Model Mapping
+// ═══════════════════════════════════════
+
 const BRAND_MAP = {
   'mercedes-benz': 'Mercedes-Benz', 'mercedes': 'Mercedes-Benz',
   'alfa romeo': 'Alfa-Romeo', 'alfa-romeo': 'Alfa-Romeo',
@@ -53,7 +163,6 @@ const BRAND_MAP = {
 function brandSlug(brand) {
   const lower = brand.toLowerCase().trim();
   if (BRAND_MAP[lower]) return BRAND_MAP[lower];
-  // Capitalize each word and join with dash
   return brand.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('-');
 }
 
@@ -81,28 +190,55 @@ async function fetchPage(url) {
 
 // ── Step 1: Find model page URL ──
 // Input: "CLA 180" → tries "CLA-180", then "CLA"
-// BMW special: "320d" → also tries "3-Series"
+// Brand-specific mappings for BMW, Mercedes, Land Rover
 function getModelSearchTerms(brand, model) {
   const clean = model.trim().replace(/[^\w\s-]/g, '');
   const parts = clean.split(/\s+/);
   const terms = [];
+  const brandLower = (brand || '').toLowerCase();
   
   // Progressive shortening: "CLA 180" → ["CLA-180", "CLA"]
   for (let i = parts.length; i >= 1; i--) {
     terms.push(parts.slice(0, i).join('-'));
   }
   
-  // BMW: variant → series mapping (320d → 3-Series, X3 → X3, M5 → M5)
-  const brandLower = (brand || '').toLowerCase();
+  // ── BMW: variant → series mapping ──
+  // "320d" → "3-Series", "530e" → "5-Series", "M340i" → "3-Series"
   if (brandLower.includes('bmw')) {
-    const seriesFromVariant = clean.match(/^(\d)\d{2}/);
+    const seriesFromVariant = clean.match(/^[Mm]?(\d)\d{2}/);
     if (seriesFromVariant) {
       terms.push(`${seriesFromVariant[1]}-Series`);
     }
-    // X-series, Z-series, i-series already work as first word
   }
   
-  // Remove duplicates
+  // ── Mercedes-Benz: single letter + number → X-Class ──
+  // "C 220 d" → "C-Class", "A 180 d" → "A-Class", "E 300" → "E-Class", "S 500" → "S-Class"
+  if (brandLower.includes('mercedes')) {
+    const singleLetter = clean.match(/^([ABCEGSV])\s+\d/i);
+    if (singleLetter) {
+      terms.push(`${singleLetter[1].toUpperCase()}-Class`);
+    }
+    // Multi-letter models: "CLA", "GLC", "GLE", "GLS", "GLA", "GLB", "CLS", "EQE", "EQS"
+    // These already work via progressive shortening: "GLC 220 d" → [..., "GLC"]
+  }
+  
+  // ── Land Rover: specific sub-model disambiguation ──
+  // Without this, "Range Rover Evoque" falls back to "Range Rover" (full-size, wrong model!)
+  if (brandLower.includes('land rover') || brandLower.includes('land-rover')) {
+    const cleanLower = clean.toLowerCase();
+    if (cleanLower.includes('evoque')) {
+      terms.unshift('Range-Rover-Evoque');
+      if (!terms.includes('Evoque')) terms.push('Evoque');
+    } else if (cleanLower.includes('velar')) {
+      terms.unshift('Range-Rover-Velar');
+      if (!terms.includes('Velar')) terms.push('Velar');
+    } else if (cleanLower.includes('discovery') && cleanLower.includes('sport')) {
+      terms.unshift('Discovery-Sport');
+    } else if (cleanLower.includes('sport')) {
+      terms.unshift('Range-Rover-Sport');
+    }
+  }
+  
   return [...new Set(terms)];
 }
 
@@ -110,7 +246,6 @@ function getModelSearchTerms(brand, model) {
 function findGenerationUrls(html, year) {
   const results = [];
   
-  // Find all generation links: /car-specs/Brand/M{id}/{name}
   const genRegex = /href="(\/car-specs\/[^"]+\/M(\d+)\/([^"]+))"/g;
   let match;
   const seen = new Set();
@@ -123,13 +258,11 @@ function findGenerationUrls(html, year) {
     if (seen.has(id)) continue;
     seen.add(id);
     
-    // Skip body type variants we're less likely to want
     const nameLower = name.toLowerCase();
     const isVariant = nameLower.includes('shooting-brake') || nameLower.includes('estate') || 
                       nameLower.includes('wagon') || nameLower.includes('cabrio') ||
                       nameLower.includes('convertible') || nameLower.includes('roadster');
     
-    // Try to find year range near this link
     const afterText = html.substring(match.index, Math.min(html.length, match.index + 800));
     const yearRange = afterText.match(/\((\d{4})\s*-\s*(\d{4}|[Pp]resent|\.{3})\)/);
     
@@ -139,7 +272,6 @@ function findGenerationUrls(html, year) {
       endYear = (yearRange[2].toLowerCase() === 'present' || yearRange[2] === '...') ? 9999 : parseInt(yearRange[2]);
     }
     
-    // Extract version count
     const versionsMatch = afterText.match(/(\d+)\s*Version/i);
     const versionCount = versionsMatch ? parseInt(versionsMatch[1]) : 0;
     
@@ -148,50 +280,25 @@ function findGenerationUrls(html, year) {
   
   if (results.length === 0) return results;
   
-  // Ultimate Specs lists generations newest-first on the page.
-  // Preserve that order but move year-matching and non-variant to top.
-  // DO NOT sort by version count (biases towards older, larger gens).
+  // Sort: year-matching first, non-variants preferred, preserve page order otherwise
   results.sort((a, b) => {
-    // Year range match is top priority
     if (year) {
       const aInRange = year >= a.startYear && year <= a.endYear ? 1 : 0;
       const bInRange = year >= b.startYear && year <= b.endYear ? 1 : 0;
       if (aInRange !== bInRange) return bInRange - aInRange;
     }
-    // Non-variants preferred
     if (a.isVariant !== b.isVariant) return a.isVariant ? 1 : -1;
-    // Otherwise: preserve page order (index in results = page order)
     return 0;
   });
   
   return results;
 }
 
-// ── Hybrid detection helpers ──
-function isHybridFuelType(fuelType) {
-  if (!fuelType) return false;
-  const ft = fuelType.toLowerCase();
-  return ft.includes('hybrid') || ft.includes('híbrido') || ft.includes('hibrido') || 
-         ft.includes('plug-in') || ft.includes('plugin') || ft.includes('phev') ||
-         ft.includes('hibrido_plugin') || ft.includes('hibrido_normal');
-}
-
-function versionNameIsHybrid(name) {
-  if (!name) return false;
-  const n = name.toLowerCase();
-  return n.includes('e-hybrid') || n.includes('ehybrid') || n.includes('hybrid') || 
-         n.includes('phev') || n.includes('plug-in') || n.includes('plugin') ||
-         n.includes('e-tron') || n.includes('xdrive45e') || n.includes('xdrive40e') ||
-         n.includes('edrive') || n.includes('recharge') || n.includes('tfsi e') ||
-         n.includes('epower') || n.includes('e-power');
-}
-
 // ── Step 3: Find best matching version from generation page ──
-function findBestVersion(html, year, displacement, power, fuelType) {
+// Uses year, displacement, power, fuel type classification, and model name matching
+function findBestVersion(html, year, displacement, power, fuelType, model) {
   const versions = [];
   
-  // Parse version links from the HTML table
-  // Pattern: <a href="/car-specs/Brand/ID/Name.html">Name</a> ... year ... hp ... cm3
   const linkRegex = /<a[^>]*href="(\/car-specs\/[^"]+\/(\d+)\/([^"]+)\.html)"[^>]*>([^<]+)<\/a>/g;
   let match;
   
@@ -201,74 +308,80 @@ function findBestVersion(html, year, displacement, power, fuelType) {
     const urlName = match[3];
     const displayName = match[4].trim();
     
-    // Look ahead for year, HP, displacement in the same table row
     const ahead = html.substring(match.index, Math.min(html.length, match.index + 600));
     
-    // Year: 4-digit number in a table cell
     const yearMatches = [...ahead.matchAll(/>(\d{4})</g)];
     const vYear = yearMatches.length > 0 ? parseInt(yearMatches[0][1]) : 0;
     
-    // HP: number followed by hp/HP/PS/kW
     const hpMatch = ahead.match(/(\d+)\s*(?:hp|HP)/);
     const kwMatch = ahead.match(/(\d+)\s*kW/);
     const vHP = hpMatch ? parseInt(hpMatch[1]) : (kwMatch ? Math.round(parseInt(kwMatch[1]) * 1.36) : 0);
     
-    // Displacement: number followed by cm3 or cm³
     const dispMatch = ahead.match(/(\d+)\s*cm/);
     const vDisp = dispMatch ? parseInt(dispMatch[1]) : 0;
     
+    // Classify this version's fuel type from its name
+    const vFuelType = classifyVersionFuelType(displayName, urlName);
+    
     versions.push({
       url, versionId, urlName, displayName,
-      year: vYear, hp: vHP, disp: vDisp
+      year: vYear, hp: vHP, disp: vDisp, fuelType: vFuelType
     });
   }
   
   if (versions.length === 0) return null;
   
-  console.log(`[CO2] Found ${versions.length} versions on page`);
+  const searchFuel = classifySearchFuelType(fuelType);
+  console.log(`[CO2] Found ${versions.length} versions on page | searchFuel: ${searchFuel}`);
   
   // Score each version
-  let bestScore = -1;
+  let bestScore = -Infinity;
   let bestVersion = null;
   
   for (const v of versions) {
     let score = 0;
     
-    // Year matching (most important)
+    // ── Year matching (important) ──
     if (year && v.year) {
       if (v.year === year) score += 100;
       else if (Math.abs(v.year - year) === 1) score += 60;
       else if (Math.abs(v.year - year) <= 2) score += 30;
     }
     
-    // Displacement matching
+    // ── Displacement matching ──
     if (displacement && v.disp) {
       if (v.disp === displacement) score += 80;
       else if (Math.abs(v.disp - displacement) <= 50) score += 40;
       else if (Math.abs(v.disp - displacement) <= 200) score += 15;
     }
     
-    // Power matching
+    // ── Power matching ──
     if (power && v.hp) {
       if (v.hp === power) score += 50;
       else if (Math.abs(v.hp - power) <= 5) score += 30;
       else if (Math.abs(v.hp - power) <= 20) score += 10;
     }
     
-    // Fuel type / Hybrid matching (CRITICAL for correct CO2)
-    // A hybrid Cayenne E-Hybrid has ~72 g/km vs Cayenne V6 at 265 g/km
-    const vIsHybrid = versionNameIsHybrid(v.displayName) || versionNameIsHybrid(v.urlName);
-    const searchIsHybrid = isHybridFuelType(fuelType);
+    // ── Fuel type matching (CRITICAL — most impactful for CO2 accuracy) ──
+    // A GLC 220d (diesel, 160 g/km) vs GLC 300de (PHEV, 46 g/km) = 114 g/km difference!
+    score += fuelTypeCompatibilityScore(searchFuel, v.fuelType);
     
-    if (searchIsHybrid && vIsHybrid) {
-      // Strong bonus: searching for hybrid AND version is hybrid
-      score += 200;
-    } else if (searchIsHybrid && !vIsHybrid) {
-      // Penalty: searching for hybrid but version is NOT hybrid
-      score -= 150;
-    } else if (!searchIsHybrid && vIsHybrid) {
-      // Mild penalty: NOT searching for hybrid but version IS hybrid
-      score -= 80;
+    // ── Model number matching (bonus for exact variant) ──
+    // "GLC 220 d" search → "GLC 220 d 4MATIC" gets bonus for containing "220"
+    if (model) {
+      const modelNumbers = model.match(/(\d{2,3})/g);
+      if (modelNumbers && modelNumbers.length > 0) {
+        const vNameLower = (v.displayName + ' ' + v.urlName).toLowerCase();
+        // Check if the primary model number appears in the version name
+        if (vNameLower.includes(modelNumbers[0])) {
+          score += 30;
+        }
+      }
+    }
+    
+    // Log top candidates for debugging
+    if (score > bestScore - 100) {
+      console.log(`[CO2]   ${v.displayName}: score=${score} (fuel:${v.fuelType}, year:${v.year}, ${v.hp}hp, ${v.disp}cc)`);
     }
     
     if (score > bestScore) {
@@ -278,7 +391,7 @@ function findBestVersion(html, year, displacement, power, fuelType) {
   }
   
   if (bestVersion) {
-    console.log(`[CO2] Best match: ${bestVersion.displayName} (score: ${bestScore}, year: ${bestVersion.year}, ${bestVersion.hp}hp, ${bestVersion.disp}cc)`);
+    console.log(`[CO2] Best match: ${bestVersion.displayName} (score: ${bestScore}, fuel: ${bestVersion.fuelType})`);
   }
   
   return bestVersion ? { version: bestVersion, score: bestScore } : null;
@@ -287,7 +400,6 @@ function findBestVersion(html, year, displacement, power, fuelType) {
 // ── Step 4: Extract CO2 from version detail page ──
 function extractCO2(html) {
   // Method 1: JSON-LD structured data (most reliable)
-  // Pattern: "emissionsCO2": "121"
   const jsonLdMatch = html.match(/"emissionsCO2"\s*:\s*"(\d+)"/);
   if (jsonLdMatch) {
     const val = parseInt(jsonLdMatch[1]);
@@ -298,7 +410,6 @@ function extractCO2(html) {
   }
   
   // Method 2: WLTP value from HTML table
-  // Pattern: CO2 emissions WLTP : ... <td class="tabletd_right"> 145 g/km
   const wltpMatch = html.match(/CO2\s*emissions?\s*WLTP\s*:[\s\S]*?tabletd_right[^>]*>\s*(\d+)\s*g\/km/i);
   if (wltpMatch) {
     const val = parseInt(wltpMatch[1]);
@@ -309,7 +420,6 @@ function extractCO2(html) {
   }
   
   // Method 3: NEDC value from HTML table
-  // Pattern: CO2 emissions : ... <td class="tabletd_right"> 121 g/km (Mercedes Benz)
   const nedcMatch = html.match(/CO2\s*emissions?\s*:[\s\S]*?tabletd_right[^>]*>\s*(\d+)\s*g\/km/i);
   if (nedcMatch) {
     const val = parseInt(nedcMatch[1]);
@@ -319,7 +429,7 @@ function extractCO2(html) {
     }
   }
   
-  // Method 4: Generic fallback — any number followed by g/km near CO2
+  // Method 4: Generic fallback
   const genericMatch = html.match(/CO2[\s\S]{0,200}?(\d+)\s*g\/km/i);
   if (genericMatch) {
     const val = parseInt(genericMatch[1]);
@@ -331,6 +441,14 @@ function extractCO2(html) {
   
   return null;
 }
+
+// ═══════════════════════════════════════
+// Minimum confidence threshold
+// Better to return NO data than WRONG data
+// (frontend handles missing CO2 gracefully)
+// ═══════════════════════════════════════
+const MIN_CONFIDENCE_SCORE = 50;
+
 
 // ═══════════════════════════════════════
 // Main handler
@@ -350,8 +468,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing brand and model' });
     }
     
-    // ── Cache key ──
-    const cacheKey = `${brand}_${model}_${year}_${displacement}_${power}_${fuelType}`.toLowerCase().replace(/\s+/g, '_');
+    // ── Cache key (includes fuelType to separate diesel/PHEV/etc.) ──
+    const cacheKey = `v2_${brand}_${model}_${year}_${displacement}_${power}_${fuelType}`.toLowerCase().replace(/\s+/g, '_');
     
     // ── Check cache (permanent — CO2 values don't change) ──
     const forceRefresh = params.force === '1' || params.force === 'true';
@@ -375,12 +493,14 @@ export default async function handler(req, res) {
     if (forceRefresh) console.log('[CO2] Force refresh — bypassing cache');
     
     const slug = brandSlug(brand);
-    console.log(`[CO2] Lookup: ${slug} ${model} | year:${year} disp:${displacement}cc power:${power}PS fuel:${fuelType}`);
+    const searchFuel = classifySearchFuelType(fuelType);
+    console.log(`[CO2] Lookup: ${slug} ${model} | year:${year} disp:${displacement}cc power:${power}PS fuel:${fuelType} → ${searchFuel}`);
     
     // ══════════════════════════════════════
     // Step 1: Find model page on Ultimate Specs
     // ══════════════════════════════════════
     const searchTerms = getModelSearchTerms(brand, model);
+    console.log(`[CO2] Search terms: ${searchTerms.join(', ')}`);
     let modelPageHtml = null;
     
     for (const term of searchTerms) {
@@ -399,14 +519,11 @@ export default async function handler(req, res) {
       console.log('[CO2] Direct URL failed, searching brand page...');
       try {
         const brandPageHtml = await fetchPage(`https://www.ultimatespecs.com/car-specs/${slug}-models`);
-        const firstTerm = searchTerms[0].toLowerCase();
         
-        // Find all model links on the brand page
         const modelLinkRegex = /href="(\/car-specs\/[^"]*-models\/[^"]+)"/gi;
         let linkMatch;
         while ((linkMatch = modelLinkRegex.exec(brandPageHtml)) !== null) {
           const linkLower = linkMatch[1].toLowerCase();
-          // Check if any search term is in the link
           for (const term of searchTerms) {
             if (linkLower.includes(term.toLowerCase())) {
               const fullUrl = `https://www.ultimatespecs.com${linkMatch[1]}`;
@@ -425,7 +542,7 @@ export default async function handler(req, res) {
     }
     
     if (!modelPageHtml) {
-      return res.status(404).json({ error: 'Model not found', brand: slug, model, ms: Date.now() - startTime });
+      return res.status(404).json({ error: 'Model not found', brand: slug, model, searchTerms, ms: Date.now() - startTime });
     }
     
     // ══════════════════════════════════════
@@ -437,7 +554,6 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'No generations found', brand: slug, model, ms: Date.now() - startTime });
     }
     
-    // Filter: skip body variants (Variant, Cabrio, Alltrack, etc.)
     const mainGenerations = generations.filter(g => {
       const n = g.name.toLowerCase();
       return !n.includes('variant') && !n.includes('cabrio') && !n.includes('convertible') && 
@@ -448,18 +564,14 @@ export default async function handler(req, res) {
     
     // Try multiple generations and pick the best match across all
     let bestVersion = null;
-    let bestScore = -1;
-    const debugGens = [];
+    let bestScore = -Infinity;
     
     for (const gen of gensToTry) {
-      const genDebug = { name: gen.name, url: gen.url, versionCount: gen.versionCount };
       try {
         const genUrl = `https://www.ultimatespecs.com${gen.url}`;
         const genPageHtml = await fetchPage(genUrl);
-        genDebug.htmlLength = genPageHtml.length;
         
-        const result = findBestVersion(genPageHtml, year, displacement, power, fuelType);
-        genDebug.bestMatch = result ? { name: result.version.displayName, score: result.score, year: result.version.year, hp: result.version.hp, disp: result.version.disp } : null;
+        const result = findBestVersion(genPageHtml, year, displacement, power, fuelType, model);
         
         if (result && result.score > bestScore) {
           bestScore = result.score;
@@ -467,17 +579,32 @@ export default async function handler(req, res) {
           console.log(`[CO2] Better match in ${gen.name}: ${result.version.displayName} (score: ${result.score})`);
         }
       } catch (e) {
-        genDebug.error = e.message;
         console.log(`[CO2] Generation ${gen.name} failed: ${e.message}`);
       }
-      debugGens.push(genDebug);
     }
     
     if (!bestVersion) {
       return res.status(404).json({ 
         error: 'No matching version found', 
-        brand: slug, model, year, displacement, power,
+        brand: slug, model, year, displacement, power, fuelType: searchFuel,
         generationsChecked: gensToTry.map(g => g.name),
+        ms: Date.now() - startTime 
+      });
+    }
+    
+    // ══════════════════════════════════════
+    // Confidence check — reject low-confidence matches
+    // Wrong CO2 is WORSE than no CO2
+    // ══════════════════════════════════════
+    if (bestScore < MIN_CONFIDENCE_SCORE) {
+      console.log(`[CO2] ⚠️ Best score ${bestScore} below threshold ${MIN_CONFIDENCE_SCORE} — rejecting match: ${bestVersion.displayName}`);
+      return res.status(404).json({ 
+        error: 'No confident match found (fuel type or specs mismatch)',
+        bestCandidate: bestVersion.displayName,
+        bestScore,
+        threshold: MIN_CONFIDENCE_SCORE,
+        searchFuel,
+        candidateFuel: bestVersion.fuelType,
         ms: Date.now() - startTime 
       });
     }
@@ -511,13 +638,15 @@ export default async function handler(req, res) {
     }
     
     const totalMs = Date.now() - startTime;
-    console.log(`[CO2] ✅ ${co2Result.value} g/km (${co2Result.standard}) from ${versionName} in ${totalMs}ms`);
+    console.log(`[CO2] ✅ ${co2Result.value} g/km (${co2Result.standard}) from ${versionName} [score:${bestScore}, fuel:${bestVersion.fuelType}] in ${totalMs}ms`);
     
     return res.status(200).json({
       co2: co2Result.value,
       standard: co2Result.standard,
       source: 'ultimatespecs',
       versionName,
+      versionFuelType: bestVersion.fuelType,
+      matchScore: bestScore,
       sourceUrl: versionUrl,
       cached: false,
       ms: totalMs
