@@ -229,38 +229,46 @@ function findBestVersion(html, year, displacement, power) {
 
 // ── Step 4: Extract CO2 from version detail page ──
 function extractCO2(html) {
-  // Try WLTP first (newer standard, more relevant)
-  const wltpPatterns = [
-    /CO2\s*emissions?\s*WLTP\s*(?::|&#58;)\s*(?:<[^>]*>)*\s*(\d+)\s*g\/km/i,
-    /CO2.*?WLTP.*?(\d+)\s*g\/km/i,
-  ];
-  
-  for (const p of wltpPatterns) {
-    const m = html.match(p);
-    if (m) {
-      const val = parseInt(m[1]);
-      if (val > 0 && val < 1000) {
-        console.log(`[CO2] Found WLTP value: ${val} g/km`);
-        return { value: val, standard: 'WLTP' };
-      }
+  // Method 1: JSON-LD structured data (most reliable)
+  // Pattern: "emissionsCO2": "121"
+  const jsonLdMatch = html.match(/"emissionsCO2"\s*:\s*"(\d+)"/);
+  if (jsonLdMatch) {
+    const val = parseInt(jsonLdMatch[1]);
+    if (val > 0 && val < 1000) {
+      console.log(`[CO2] Found via JSON-LD: ${val} g/km`);
+      return { value: val, standard: 'NEDC' };
     }
   }
   
-  // Fall back to NEDC/generic CO2
-  const nedcPatterns = [
-    /CO2\s*emissions?\s*(?::|&#58;)\s*(?:<[^>]*>)*\s*(\d+)\s*g\/km/i,
-    /CO2[^<]*?(\d+)\s*g\/km/i,
-    />\s*(\d+)\s*g\/km\s*</i,
-  ];
+  // Method 2: WLTP value from HTML table
+  // Pattern: CO2 emissions WLTP : ... <td class="tabletd_right"> 145 g/km
+  const wltpMatch = html.match(/CO2\s*emissions?\s*WLTP\s*:[\s\S]*?tabletd_right[^>]*>\s*(\d+)\s*g\/km/i);
+  if (wltpMatch) {
+    const val = parseInt(wltpMatch[1]);
+    if (val > 0 && val < 1000) {
+      console.log(`[CO2] Found WLTP: ${val} g/km`);
+      return { value: val, standard: 'WLTP' };
+    }
+  }
   
-  for (const p of nedcPatterns) {
-    const m = html.match(p);
-    if (m) {
-      const val = parseInt(m[1]);
-      if (val > 0 && val < 1000) {
-        console.log(`[CO2] Found NEDC value: ${val} g/km`);
-        return { value: val, standard: 'NEDC' };
-      }
+  // Method 3: NEDC value from HTML table
+  // Pattern: CO2 emissions : ... <td class="tabletd_right"> 121 g/km (Mercedes Benz)
+  const nedcMatch = html.match(/CO2\s*emissions?\s*:[\s\S]*?tabletd_right[^>]*>\s*(\d+)\s*g\/km/i);
+  if (nedcMatch) {
+    const val = parseInt(nedcMatch[1]);
+    if (val > 0 && val < 1000) {
+      console.log(`[CO2] Found NEDC: ${val} g/km`);
+      return { value: val, standard: 'NEDC' };
+    }
+  }
+  
+  // Method 4: Generic fallback — any number followed by g/km near CO2
+  const genericMatch = html.match(/CO2[\s\S]{0,200}?(\d+)\s*g\/km/i);
+  if (genericMatch) {
+    const val = parseInt(genericMatch[1]);
+    if (val > 0 && val < 1000) {
+      console.log(`[CO2] Found generic: ${val} g/km`);
+      return { value: val, standard: 'unknown' };
     }
   }
   
