@@ -239,8 +239,8 @@ td { padding:10px; font-size:12px; color:var(--text-secondary); border-bottom:1p
     <!-- Actividade -->
     <div class="section-label" style="margin-top:8px">Actividade</div>
     <div class="kpi-grid">
-      <div class="kpi-card"><div class="kpi-value" id="kpi-shares">0</div><div class="kpi-label">Partilhas</div></div>
-      <div class="kpi-card"><div class="kpi-value" id="kpi-views">0</div><div class="kpi-label">Cliques</div></div>
+      <div class="kpi-card"><div class="kpi-value" id="kpi-visitors">0</div><div class="kpi-label">Pessoas Alcançadas</div></div>
+      <div class="kpi-card"><div class="kpi-value" id="kpi-simulations">0</div><div class="kpi-label">Simulações</div></div>
       <div class="kpi-card"><div class="kpi-value" id="kpi-leads">0</div><div class="kpi-label">Leads</div></div>
       <div class="kpi-card highlight"><div class="kpi-value" id="kpi-conversions">0</div><div class="kpi-label">Negócios</div></div>
     </div>
@@ -295,6 +295,12 @@ td { padding:10px; font-size:12px; color:var(--text-secondary); border-bottom:1p
           <div class="funnel-lbl">Pago</div>
         </div>
       </div>
+    </div>
+
+    <!-- Visitantes -->
+    <div class="section-label">Visitantes</div>
+    <div id="visitors-table">
+      <div class="empty"><div class="empty-text">A carregar...</div></div>
     </div>
 
     <!-- Leads Table -->
@@ -396,11 +402,31 @@ async function loadStats() {
     if (res.status === 401) { logout(); return; }
 
     // KPIs
-    $('kpi-shares').textContent = data.total_shares || 0;
-    $('kpi-views').textContent = data.total_views || 0;
     $('kpi-leads').textContent = data.total_leads || 0;
     var deals = (data.leads_by_status?.completed || 0) + (data.leads_by_status?.paid || 0);
     $('kpi-conversions').textContent = deals;
+
+    // Fetch visitor analytics
+    try {
+      var analyticsRes = await fetch('/api/partner-analytics?code=' + encodeURIComponent(currentCode));
+      var analytics = await analyticsRes.json();
+      if (analytics.ok) {
+        $('kpi-visitors').textContent = analytics.summary.unique_visitors || 0;
+        $('kpi-simulations').textContent = analytics.summary.total_simulations || 0;
+        
+        // Visitors table
+        if (analytics.visitors && analytics.visitors.length > 0) {
+          var vhtml = '<table><thead><tr><th>Visitante</th><th>Simulações</th><th>Veículos</th><th>Última Visita</th></tr></thead><tbody>';
+          analytics.visitors.forEach(function(v) {
+            vhtml += '<tr><td style="font-family:monospace;font-size:11px;color:var(--muted)">' + v.id + '</td><td style="font-weight:500">' + v.simulations + '</td><td>' + v.vehicles_checked + '</td><td style="color:var(--muted)">' + fmtDate(v.last_visit) + '</td></tr>';
+          });
+          vhtml += '</tbody></table>';
+          $('visitors-table').innerHTML = vhtml;
+        } else {
+          $('visitors-table').innerHTML = '<div class="empty"><div class="empty-text">Ainda sem visitantes</div><div class="empty-sub">Quando alguém simular com o seu link, aparecerá aqui</div></div>';
+        }
+      }
+    } catch(ae) { console.error('Analytics error:', ae); }
 
     // Pipeline
     var biz = data.potential_business || {};
