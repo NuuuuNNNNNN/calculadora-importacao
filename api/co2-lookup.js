@@ -155,7 +155,7 @@ function findBestVersion(html, year, displacement, power) {
   let match;
   
   while ((match = linkRegex.exec(html)) !== null) {
-    const url = match[1] + '.html';
+    const url = match[1];
     const versionId = match[2];
     const urlName = match[3];
     const displayName = match[4].trim();
