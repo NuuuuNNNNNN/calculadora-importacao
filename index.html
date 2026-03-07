@@ -1036,11 +1036,25 @@ const state = {
 
 
 // ═══════════════════════════════════════
+// VISITOR ID: Unique per browser (persists in localStorage)
+// ═══════════════════════════════════════
+function getVisitorId() {
+  let vid = localStorage.getItem('ts_visitor_id');
+  if (!vid) {
+    vid = 'v_' + crypto.randomUUID();
+    localStorage.setItem('ts_visitor_id', vid);
+  }
+  return vid;
+}
+const VISITOR_ID = getVisitorId();
+
+// ═══════════════════════════════════════
 // TRACKING: Referral analytics
 // ═══════════════════════════════════════
 function trackEvent(eventType, extra = {}) {
   const payload = {
     event_type: eventType,
+    visitor_id: VISITOR_ID,
     referral_code: state.referralCode || null,
         my_referral_code: getMyReferralCode(),
         referred_by: localStorage.getItem('ts_referred_by') || null,
@@ -2004,6 +2018,18 @@ function updateSkeletonStatus(text) {
 function showImportedView() {
   // Track simulation view
   trackEvent(state.referralCode ? 'referral_view' : 'view');
+  // Track simulation for analytics (unique visitors)
+  fetch('/api/track-simulation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      visitor_id: VISITOR_ID,
+      referral_code: state.referralCode || null,
+      vehicle_url: state.sourceUrl || null,
+      vehicle_title: [state.scrapedData?.make, state.scrapedData?.model, state.scrapedData?.year].filter(Boolean).join(' ') || null,
+      vehicle_price: state.purchasePrice || null
+    })
+  }).catch(() => {});
   hide('initial-view');
   hide('skeleton-view');
   show('imported-view');
