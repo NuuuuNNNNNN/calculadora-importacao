@@ -86,6 +86,6 @@ export default async function handler(req, res) {
     });
   } catch (e) {
     console.error('Analytics error:', e);
-    res.status(500).json({ error: 'Internal error' });
+    res.status(500).json({ error: 'Internal error', detail: e.message });
   }
 }
